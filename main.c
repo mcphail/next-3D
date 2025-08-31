@@ -13,8 +13,6 @@
 #include <im2.h>
 #include <intrinsic.h>
 
-#include <math.h>				// added for the trig, can be removed once optimised
-
 #include "core.h"
 #include "main.h"
 #include "kernel.h"
@@ -26,61 +24,25 @@
 // Sample data, may move later
 // ***************************************************************************************************************************************
 
-// Struct containing a 3D coordinate
-//
-typedef struct SPoint3D {           
-    int16_t x;
-    int16_t y;
-	int16_t z;
-} Point3D;
-
-// Struct containing a 3D angle
-//
-typedef struct SAngle3D {
-	float x;
-	float y;
-	float z;
-} Angle3D;
-
-// Struct containing the vertice information (joining the points)
-//
-typedef struct SVertice3D {
-	uint8_t p1;
-	uint8_t p2;
-	uint8_t p3;
-	uint8_t colour;
-} Vertice3D;
-
 // Struct for edges (for Elite data)
 //
-typedef struct SEdge3D {
+typedef struct SEdge_3D {
 	uint8_t v1;
 	uint8_t v2;
 	uint8_t f1;
 	uint8_t f2;
-} Edge3D;
+} Edge_3D;
 
 // Struct containing a single 3D objects data
 //
-typedef struct SObject3D {
-	Point3D pos;
-	Angle3D theta;
+typedef struct SObject_3D {
+	Point16_3D pos;
+	Angle_3D theta;
 } Object3D;
  
-// Struct containing the precalculated trigs
-//
-typedef struct STrig {
-	float cos_theta_x; 
-	float sin_theta_x;
-	float cos_theta_y;
-	float sin_theta_y;
-	float cos_theta_z;
-	float sin_theta_z;
-} Trig;
-
 // Some shape data
 //
-Point3D cube_p[] = {
+Point8_3D cube_p[] = {
 	 {-40, 40, 40},
 	 { 40, 40, 40},
 	 { 40,-40, 40},
@@ -90,7 +52,7 @@ Point3D cube_p[] = {
 	 { 40,-40,-40},
 	 {-40,-40,-40},
 };
-Vertice3D cube_v[] = {
+Vertice_3D cube_v[] = {
 	{0,1,2,16},{2,3,0,16},
 	{0,4,5,17},{5,1,0,17},
 	{7,6,5,18},{5,4,7,18},
@@ -102,7 +64,7 @@ Vertice3D cube_v[] = {
 // Cobra MkIII data courtesy of Mark Moxon
 // https://elite.bbcelite.com/6502sp/main/variable/ship_cobra_mk_3.html
 //
-Point3D cobra_p[] = {
+Point8_3D cobra_p[] = {
 	{   32,    0,   76 }, //    15,     15,   15,    15,         31    \ Vertex 0
 	{  -32,    0,   76 }, //    15,     15,   15,    15,         31    \ Vertex 1
 	{    0,   26,   24 }, //    15,     15,   15,    15,         31    \ Vertex 2
@@ -110,8 +72,8 @@ Point3D cobra_p[] = {
 	{  120,   -3,   -8 }, //     4,      8,   12,    12,         31    \ Vertex 4
 	{  -88,   16,  -40 }, //    15,     15,   15,    15,         31    \ Vertex 5
 	{   88,   16,  -40 }, //    15,     15,   15,    15,         31    \ Vertex 6
-	{  128,   -8,  -40 }, //     8,      9,   12,    12,         31    \ Vertex 7
-	{ -128,   -8,  -40 }, //     7,      9,   10,    10,         31    \ Vertex 8
+	{  120,   -8,  -40 }, //     8,      9,   12,    12,         31    \ Vertex 7
+	{ -120,   -8,  -40 }, //     7,      9,   10,    10,         31    \ Vertex 8
 	{    0,   26,  -40 }, //     5,      6,    9,     9,         31    \ Vertex 9
 	{  -32,  -24,  -40 }, //     9,     10,   11,    11,         31    \ Vertex 10
 	{   32,  -24,  -40 }, //     9,     11,   12,    12,         31    \ Vertex 11
@@ -133,7 +95,7 @@ Point3D cobra_p[] = {
 	{   80,   -6,  -40 }, //     9,      9,    9,     9,          8    \ Vertex 27
 };
 
-Edge3D cobra_e[] = {
+Edge_3D cobra_e[] = {
 	{  0,  1,  0, 11 }, // 31    \ Edge 0
 	{  0,  4,  4, 12 }, // 31    \ Edge 1
 	{  1,  3,  3, 10 }, // 31    \ Edge 2
@@ -174,7 +136,7 @@ Edge3D cobra_e[] = {
 	{ 25, 27,  9,  9 }, //  8    \ Edge 37
 };
 
-Point3D cobra_f[] = {
+Point8_3D cobra_f[] = {
 	{   0,  62,  31 }, // 31      \ Face 0
 	{ -18,  55,  16 }, // 31      \ Face 1
 	{  18,  55,  16 }, // 31      \ Face 2
@@ -194,47 +156,30 @@ Point3D cobra_f[] = {
 //  Sample routines
 // ***************************************************************************************************************************************
 
-float degToRad(float deg) {
-	return deg*M_PI/180;
-}
-
-// Precalculate the trig
-//
-void precalcTrig(Trig * t, Angle3D * theta) {
-	t->cos_theta_x = cos(theta->x);
-	t->sin_theta_x = sin(theta->x);
-	t->cos_theta_y = cos(theta->y);
-	t->sin_theta_y = sin(theta->y);
-	t->cos_theta_z = cos(theta->z);
-	t->sin_theta_z = sin(theta->z);
-}
-
-// Rotate a point in 3D space
-//
-Point3D rotate3D(Point3D * p, Trig * t) {
+Point8_3D rotate3D(Point8_3D * p, Angle_3D * theta) {
 
 	// Rotate around the X axis
 	//
-	Point3D r1 = {
+	Point8_3D r1 = {
 		p->x,
-		p->y*t->cos_theta_x-p->z*t->sin_theta_x,
-		p->y*t->sin_theta_x+p->z*t->cos_theta_x
+		fastCos(p->y, theta->x) - fastSin(p->z, theta->x),
+		fastSin(p->y, theta->x) + fastCos(p->z, theta->x),
 	};
 	
 	// Rotate around the Y axis
 	//
-	Point3D r2 = {
-		r1.x*t->cos_theta_y-r1.z*t->sin_theta_y,
+	Point8_3D r2 = {
+		fastCos(r1.x, theta->y) - fastSin(r1.z, theta->y),
 		r1.y,
-		r1.x*t->sin_theta_y+r1.z*t->cos_theta_y
+		fastSin(r1.x, theta->y) + fastCos(r1.z, theta->y),
 	};
 	
-	// Rotate around the Z axis
+	// Rotate around the Z axis	
 	//
-	Point3D r3 = {
-		r2.x*t->cos_theta_z-r2.y*t->sin_theta_z,
-		r2.x*t->sin_theta_z+r2.y*t->cos_theta_z,
-		r2.z		
+	Point8_3D r3 = {
+		fastCos(r2.x, theta->z) - fastSin(r2.y, theta->z),
+		fastSin(r2.x, theta->z) + fastCos(r2.y, theta->z),
+		r2.z,	
 	};
 
 	return r3;
@@ -258,9 +203,8 @@ void main(void)
 	zx_border(INK_RED);
 
 	int i;
-	Trig t;						// Buffer for precalculated trig rotation
 	Point16 point_t[64];		// Buffer for the translated points 
-	Point3D point_n[64];		// Buffer for the translated normals
+ 	Point8_3D point_n[64];		// Buffer for the translated normals
 	int pd = 256;				// The perspective distance
 
 	Object3D o = {
@@ -272,12 +216,12 @@ void main(void)
 		clearL2(0);
 		ReadKeyboard();
 		
-		if(Keys[VK_O])	o.pos.x -= 2;
-		if(Keys[VK_P])	o.pos.x += 2;
-		if(Keys[VK_Q])	o.pos.y -= 2;
-		if(Keys[VK_A])	o.pos.y += 2;
-		if(Keys[VK_W])	o.pos.z -= 2;
-		if(Keys[VK_S])	o.pos.z += 2;
+		if(Keys[VK_O])	o.pos.x -= 4;
+		if(Keys[VK_P])	o.pos.x += 4;
+		if(Keys[VK_Q])	o.pos.y -= 4;
+		if(Keys[VK_A])	o.pos.y += 4;
+		if(Keys[VK_W])	o.pos.z -= 4;
+		if(Keys[VK_S])	o.pos.z += 4;
 
 		// Draw a circle as a test
 		// 
@@ -285,28 +229,27 @@ void main(void)
 		circleL2F(c,35,0xFC);
 
 		if(o.pos.z > 128) {
-			precalcTrig(&t, &o.theta); // Precalculate the sin/cos values for each axis of rotation
-			
+
 			// Translate the normals in 3D space
 			//
 			for(i=0; i<13; i++) {
-				point_n[i] = rotate3D(&cobra_f[i], &t);
+				point_n[i] = rotate3D(&cobra_f[i], &o.theta);
 			}
 
 			// Translate the points in 3D space
 			//
 			for(i=0; i<28; i++) {
-				Point3D   r = rotate3D(&cobra_p[i], &t);
+				Point8_3D r = rotate3D(&cobra_p[i], &o.theta);
 				Point16 * t = &point_t[i];	
 
 				// Translate
 				//
-				r.z += o.pos.z;  
+				int16_t z = r.z + o.pos.z;  
 
 				// Perspective
 				//
-				int16_t x = fastMulDiv(r.x, pd, r.z); // pd * r.x / r.z;
-				int16_t y = fastMulDiv(r.y, pd, r.z); // pd * r.y / r.z;
+				int16_t x = fastMulDiv(r.x, pd, z); // pd * r.x / r.z;
+				int16_t y = fastMulDiv(r.y, pd, z); // pd * r.y / r.z;
 
 				// Bodge put here to avoid overflow
 				//
@@ -322,23 +265,23 @@ void main(void)
 			// Draw them (Elite style)
 			//
 			for(i=0;i<38;i++) {
-				Edge3D * e = &cobra_e[i];
+				Edge_3D * e = &cobra_e[i];
 				Point16 p1 = point_t[e->v1];
 				Point16 p2 = point_t[e->v2];
 				if(point_n[e->f1].z < 0 || point_n[e->f2].z < 0) {
 					lineL2C(p1,p2,255);
 				}
 			}
-/*	
+/*
 			// Draw them
 			//
 			for(i=0; i<12; i++) {
-				Vertice3D * v = &cube_v[i];
+				Vertice_3D * v = &cube_v[i];
 				Point16 p1 = point_t[v->p1];
 				Point16 p2 = point_t[v->p2];
 				Point16 p3 = point_t[v->p3];
 				if(p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)>0) {
-					triangleL2C(p1,p2,p3,v->colour);
+					triangleL2CF(p1,p2,p3,v->colour);
 				}
 			}
 */
@@ -346,10 +289,9 @@ void main(void)
 
 		// Do some rotation
 		//
-		o.theta.x+=degToRad(1);
-		o.theta.y+=degToRad(2);
-		o.theta.z-=degToRad(3);
-
+		o.theta.x+=1;
+		o.theta.y+=2;
+		o.theta.z-=1;
 		swapL2(); 		// Do the double-buffering
 	};
 }
