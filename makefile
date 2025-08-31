@@ -15,7 +15,7 @@ OBJS = \
 	obj/maths.o
 
 next-3D.nex: $(OBJS) 
-	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 -math16 --math32 $(OBJS) -o next-3D.nex -create-app -subtype=nex
+	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 $(OBJS) -o next-3D.nex -create-app -subtype=nex
 
 # Main program at $8000
 #
