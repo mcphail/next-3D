@@ -1,0 +1,38 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "dezog",
+			"request": "launch",
+			"name": "Z80 Debugger",
+			"remoteType": "zrcp",
+			"zrcp": {
+				"hostname": "localhost",
+				"port": 10000
+//					"skipInterrupt": false,
+			},
+//			"topOfStack": "Stack_Top",
+			"rootFolder": "${fileDirname}",
+			"z88dkv2": [
+				{
+					"path": "${workspaceFolder}/*.lis",
+					"srcDirs": [
+						""
+					],
+					"mapFile": "${workspaceFolder}/next-3D.map",
+					"excludeFiles": []
+				}
+			],
+			"disassemblerArgs": {
+				"esxdosRst": true
+			},
+			"load": "${workspaceFolder}/next-3D.nex",
+			"startAutomatically": false,
+			"preLaunchTask": "Build"
+		}
+	],
+	"compounds": []
+}

@@ -1,0 +1,9 @@
+# Exclude any build files
+#
+.DS_Store
+*.lis
+*.list
+*.o
+*.bin
+*.nex
+*.map

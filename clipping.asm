@@ -1,0 +1,396 @@
+    			SECTION KERNEL_CODE
+
+    			INCLUDE "globals.inc"
+;
+; Clipping algorithm courtesy of 
+; https://www.geeksforgeeks.org/dsa/line-clipping-set-1-cohen-sutherland-algorithm/
+;
+
+p1_x:			DS 	2
+p1_y:			DS	2
+p2_x:			DS	2
+p2_y:			DS	2
+dx:			DS	2
+dy:			DS 	2
+
+			EXTERN	fastMulDiv		; From maths.asm
+			EXTERN	negDE 
+
+			EXTERN	lineL2			; From render.asm
+			EXTERN	triangleL2		; From render.asm
+			EXTERN	triangleL2F		; From render.asm
+			EXTERN	shape_buffer		; From render.asm
+
+; extern void lineL2C(Point16 p1, Point16 p2, int16_t c) __z88dk_callee
+;
+PUBLIC _lineL2C
+
+_lineL2C:		POP	BC
+			POP	HL: LD (p1_x),HL
+			POP	HL: LD (p1_y),HL
+			POP	HL: LD (p2_x),HL
+			POP	HL: LD (p2_y),HL
+			POP	HL			; L: The colour
+			PUSH	BC
+			PUSH	HL
+			CALL	clipLine
+			POP	IY			; IYL: The colour 
+			OR	A
+			RET	Z
+			LD	A,(p1_x): LD L,A
+			LD	A,(p1_y): LD H,A
+			LD	A,(p2_x): LD E,A
+			LD	A,(p2_y): LD D,A
+			JP	lineL2
+
+; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int16_t c) __z88dk_callee;
+;
+PUBLIC _triangleL2C:	
+
+_triangleL2C:		POP	HL
+			LD	(_triangleL2C_M3+1),HL
+;
+			POP	HL: LD (p1_x),HL	; Parameter p1
+			POP	DE: LD (p1_y),DE
+			LD	(_triangleL2C_M1+1),HL 	; Store these unclipped points for later (self-modding)
+			LD	(_triangleL2C_M2+1),DE
+			POP	HL: LD (p2_x),HL	; Parameter p2
+			POP	DE: LD (p2_y),DE
+			PUSH	DE
+			PUSH	HL
+			CALL 	clipLine
+			LD	(shape_buffer+$00),A
+			LD	A,(p1_x): LD (shape_buffer+$01),A
+			LD	A,(p1_y): LD (shape_buffer+$02),A
+			LD	A,(p2_x): LD (shape_buffer+$03),A
+			LD	A,(p2_y): LD (shape_buffer+$04),A
+;
+			POP	HL: LD (p1_x),HL	; p2
+			POP	DE: LD (p1_y),DE
+			POP	HL: LD (p2_x),HL	; Parameter p3
+			POP	DE: LD (p2_y),DE
+			PUSH	DE
+			PUSH	HL
+			CALL	clipLine
+			LD	(shape_buffer+$05),A
+			LD	A,(p1_x): LD (shape_buffer+$06),A
+			LD	A,(p1_y): LD (shape_buffer+$07),A
+			LD	A,(p2_x): LD (shape_buffer+$08),A
+			LD	A,(p2_y): LD (shape_buffer+$09),A	
+;	
+			POP	HL: LD (p1_x),HL	; p3
+			POP	DE: LD (p1_y),DE
+_triangleL2C_M1:	LD	HL,0: LD (p2_x),HL	; p1
+_triangleL2C_M2:	LD	DE,0: LD (p2_y),DE
+			CALL	clipLine
+			LD	(shape_buffer+$0A),A
+			LD	A,(p1_x): LD (shape_buffer+$0B),A
+			LD	A,(p1_y): LD (shape_buffer+$0C),A
+			LD	A,(p2_x): LD (shape_buffer+$0D),A
+			LD	A,(p2_y): LD (shape_buffer+$0E),A
+;
+			POP	HL			; Parameter c (colour)
+			LD	A,L
+			CALL	triangleL2
+_triangleL2C_M3:	LD	HL,0			; The return address
+			PUSH	HL			
+			RET
+
+
+; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int16_t c) __z88dk_callee;
+;
+PUBLIC _triangleL2CF
+
+_triangleL2CF:		POP	HL
+			LD	(_triangleL2CF_M3+1),HL
+;
+			POP	HL: LD (p1_x),HL	; Parameter p1
+			POP	DE: LD (p1_y),DE
+			LD	(_triangleL2CF_M1+1),HL ; Store these unclipped points for later (self-modding)
+			LD	(_triangleL2CF_M2+1),DE
+			POP	HL: LD (p2_x),HL	; Parameter p2
+			POP	DE: LD (p2_y),DE
+			PUSH	DE
+			PUSH	HL
+			CALL 	clipLine
+			LD	(shape_buffer+$00),A
+			LD	A,(p1_x): LD (shape_buffer+$01),A
+			LD	A,(p1_y): LD (shape_buffer+$02),A
+			LD	A,(p2_x): LD (shape_buffer+$03),A
+			LD	A,(p2_y): LD (shape_buffer+$04),A
+;
+			POP	HL: LD (p1_x),HL	; p2
+			POP	DE: LD (p1_y),DE
+			POP	HL: LD (p2_x),HL	; Parameter p3
+			POP	DE: LD (p2_y),DE
+			PUSH	DE
+			PUSH	HL
+			CALL	clipLine
+			LD	(shape_buffer+$05),A
+			LD	A,(p1_x): LD (shape_buffer+$06),A
+			LD	A,(p1_y): LD (shape_buffer+$07),A
+			LD	A,(p2_x): LD (shape_buffer+$08),A
+			LD	A,(p2_y): LD (shape_buffer+$09),A	
+;	
+			POP	HL: LD (p1_x),HL	; p3
+			POP	DE: LD (p1_y),DE
+_triangleL2CF_M1:	LD	HL,0: LD (p2_x),HL	; p1
+_triangleL2CF_M2:	LD	DE,0: LD (p2_y),DE
+			CALL	clipLine
+			LD	(shape_buffer+$0A),A
+			LD	A,(p1_x): LD (shape_buffer+$0B),A
+			LD	A,(p1_y): LD (shape_buffer+$0C),A
+			LD	A,(p2_x): LD (shape_buffer+$0D),A
+			LD	A,(p2_y): LD (shape_buffer+$0E),A
+;
+			POP	HL			; Parameter c (colour)
+			LD	A,L
+			LD	IY,shape_buffer
+			CALL	triangleL2F		; Draw the triangle
+;
+_triangleL2CF_M3:	LD	HL,0			; The return address
+			PUSH	HL			
+			RET
+
+
+; extern uint8_t clipRegion(Point16 * p) __z88dk_callee
+;
+PUBLIC _clipRegion, clipRegion
+
+_clipRegion:		POP	BC
+			POP	IY		; Pointer to the Point16 struct
+			LD	C,(IY+0)	; Fetch the X coordinate
+			LD	B,(IY+1)
+			LD	E,(IY+2)	; Fetch the Y coordinate
+			LD	D,(IY+3)
+			PUSH 	BC
+			CALL	clipRegion
+			LD	L,A		; Return the clip region
+			RET
+
+; BC: X coordinate of interest
+; DE: Y coordinate of interest
+; Returns:
+;  A: Clip region(s) the point is in, with the following bits set:
+;  Bit 0: Top
+;      1: Bottom
+;      2: Right
+;      3: Left
+;
+clipRegion:		XOR	A		; The return value
+;
+clipRegionV:		RLC	D 		; D: Test the Y coordinate MSB
+			JR	C, clipRegionT	; Off top of the screen
+			JR	NZ, clipRegionB ; Off bottom of screen 
+			LD	D,A		; Store A temporarily
+			LD	A,E		; E: Y (LSB)
+			CP	192
+			LD	A,D		; Restore A
+			JR	C, clipRegionH 	; We're in the top 192 lines of the screen, so skip 
+clipRegionB:		OR	2		; Bottom
+			JR	clipRegionH
+clipRegionT:		OR	1		; Top
+;		
+clipRegionH:		RLC 	B		; B: Test the X coordinate MSB
+			RET	Z 		; We're on screen, so ignore
+			JR	C, clipRegionL	; We're off the left of the screen, so skip to that
+			OR	4		; Right
+			RET 
+clipRegionL:		OR	8		; Left
+			RET 		
+
+; extern uint8_t clipLine(Point16 * p1, Point16 * p2) __z88dk_callee
+; 
+PUBLIC _clipLine, clipLine
+
+_clipLine: 		POP	IY
+			LD	DE,p1_x		; Where we're going to store the coordinates
+			POP 	HL		; Pointer to p1
+			LD	(_clipLine_M1+1),HL
+			LDI 			; Copy p1 (4 bytes)
+			LDI
+			LDI
+			LDI
+			POP	HL		; Pointer to p2
+			LD	(_clipLine_M2+1),HL
+			LDI			; Copy p2 (4 bytes)
+			LDI
+			LDI
+			LDI 	
+			PUSH 	IY
+			CALL	clipLine
+;
+			LD	HL,p1_x		; Copy the values back to the pointers
+_clipLine_M1:		LD	DE,0
+			LDI
+			LDI
+			LDI
+			LDI
+			LD	HL,p2_x
+_clipLine_M2:		LD	DE,0
+			LDI
+			LDI
+			LDI
+			LDI
+			LD	L,A		; The return value
+			RET
+
+; Parameters:
+;  p1: Set to the first point to clip
+;  p2: Set to the second point to clip
+; Returns:
+;   A: 1 if the line is clipped and ready to be drawn
+;   A: 0 if the line does not need to be drawn (i.e. both points offscreen)
+;
+clipLine:		LD	BC,(p1_x)
+			LD	DE,(p1_y)
+			CALL	clipRegion	
+			LD	L,A 			; L: code1		
+			LD	BC,(p2_x)
+			LD	DE,(p2_y)
+			CALL	clipRegion
+			LD	H,A			; H: code2
+;
+; Trivial check if both points are on screen
+;
+clipLine_L1:		LD	A,H 			; code1|code2==0
+			OR	L
+			JR 	NZ, clipLine_M1		; No, so skip
+			INC	A			; A: Accept = 1
+			RET
+;
+; Trivial check if both points are off screen
+;
+clipLine_M1:		LD 	A,H			; code1&code2!=0	
+			AND 	L
+			JR	Z, clipLine_M2		; No, so skip
+			XOR	A
+			RET 				; A: Accept = 0
+;
+; Check which point needs clipping (codeout)
+;
+clipLine_M2:		LD	A,L			; Is L (code1) on screen
+			OR	A
+			JR	NZ, clipLine_M3		; NZ - L (code1) is codeout
+			LD	A,H 			;  Z - H (code2) is codeout
+;
+; Calculate the deltas
+;	
+clipLine_M3:		PUSH	HL			; Stack code1 and code2
+			PUSH	AF			; Stack codeout and Z flag
+			LD	C,A			; C: codeout
+;
+			LD	HL,(p2_x)		; Calculate dx (p2_x - p1_x)
+			LD	DE,(p1_x)
+			OR	A
+			SBC	HL,DE
+			LD	(dx),HL 
+;
+			LD	HL,(p2_y)		; Calculate dy (p2_y - p1_y)
+			LD	DE,(p1_y)
+			OR	A
+			SBC	HL,DE
+			LD	(dy),HL
+;
+; Do the clipping
+;
+			SRL	C
+			JR	C, clipLine_Top
+			SRL	C			
+			JR	C, clipLine_Bottom
+			SRL	C
+			JR	C, clipLine_Right
+;
+; Clip Left
+; Returns
+;  BC: Clipped X point
+;  DE: Clipped Y point
+;
+clipLine_Left:		LD	DE,(p1_x)		; Do p1->y + fastMulDiv(dy, -p1->x, dx)
+			CALL	negDE
+			LD	HL,(dy)
+			LD	BC,(dx)
+			CALL	fastMulDiv
+			LD	DE,(p1_y)
+			ADD	HL,DE
+			EX	HL,DE			; DE: Y
+			LD	BC, 0			; BC: X
+;
+; Set up for next iteration
+;
+clipLine_Next:		POP	AF			; A: codeout, flag set from previous calculation
+			POP	HL			; L: code1, H: code2
+			JR	NZ, @M1 		; F: NZ if code1=codeout
+;
+; codeout = H (code2) at this point
+;
+			LD	(p2_x),BC
+			LD	(p2_y),DE
+			CALL	clipRegion
+			LD	H,A			; H: code2
+			JP	clipLine_L1
+;
+; codeout = L (code1) at this point
+;
+@M1:			LD	(p1_x),BC
+			LD	(p1_y),DE
+			CALL	clipRegion		
+			LD 	L,A			; L: code1
+			JP	clipLine_L1
+;
+; Clip Top
+; Returns
+;  BC: Clipped X point
+;  DE: Clipped Y point
+;
+clipLine_Top:		LD	DE,(p1_y)		; Do p1->x + fastMulDiv(dx, -p1->y, dy)
+			CALL	negDE 
+			LD	HL,(dx)			; HL: dx
+			LD	BC,(dy)			; BC: dy
+			CALL	fastMulDiv		; HL: fastMulDiv(dx, -p1->y, dy); 
+			LD	DE,(p1_x)
+			ADD	HL,DE 			; HL: p1_x +fastMulDiv(dx, -p1->y, dy)
+			PUSH	HL
+			POP	BC			; BC: X
+			LD	DE,0			; DE: Y
+			JR 	clipLine_Next
+;
+; Clip Bottom
+; Returns
+;  BC: Clipped X point
+;  DE: Clipped Y point
+;					
+clipLine_Bottom:	LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
+			LD	DE,(p1_y)
+			OR	A
+			SBC	HL,DE
+			EX	DE,HL
+			LD	HL,(dx)
+			LD	BC,(dy)
+			CALL	fastMulDiv
+			LD	DE,(p1_x)
+			ADD	HL,DE
+			PUSH	HL
+			POP	BC			; BC: X
+			LD	DE, 191			; DE: Y
+			JR	clipLine_Next
+;
+; Clip Right
+; Returns
+;  BC: Clipped X point
+;  DE: Clipped Y point
+; 
+clipLine_Right:		LD	HL,256			; Do p1->y + fastMulDiv(dy, 256-p1->x, dx)
+			LD	DE,(p1_x)
+			OR	A
+			SBC	HL,DE
+			EX	DE,HL
+			LD	HL,(dy)
+			LD	BC,(dx)
+			CALL	fastMulDiv	
+			LD	DE,(p1_y)
+			ADD	HL,DE
+			EX	DE,HL			; DE: Y
+			LD	BC,255			; BC: X			
+			JR 	clipLine_Next
+
