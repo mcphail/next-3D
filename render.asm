@@ -71,15 +71,18 @@ _stop:			JP _stop
 ; A debugging tool. Used for testing asm functions
 ; ============================================================================================
 PUBLIC _test
+
 _test:	
 			RET
 
 
-; extern void setCPU(void)
+; extern void setCPU(uint8 speed) __z88dk_fastcall
 ; Sets the Next CPU to maximum speed, 28MHz
 ; ===========================================================================================
 PUBLIC _setCPU
-_setCPU:		NEXTREG 07h,3           ; Set CPU to 28MHz
+
+_setCPU:		LD	A,L
+			NEXTREG 07h,A           ; Set CPU speed
     			RET
 
 

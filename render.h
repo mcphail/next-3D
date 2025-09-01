@@ -29,7 +29,7 @@ typedef struct SLine16 {
 extern void stop(void);                                             // asm to stop program for debugging
 extern void test(void);												// asm to test functions
 
-extern void setCPU(void);                                           // asm to set CPU parameters to 28MHz etc.
+extern void setCPU(uint8 speed) __z88dk_fastcall;				// asm to set CPU speed.
 extern void initL2(void);                                           // asm to initialise Layer2 screen mode, addresses, banks etc.
 extern void swapL2(void);											// asm to swap the offscreen buffer in
 extern void clearL2(uint8 col) __z88dk_fastcall;					// asm to clear the offscreen buffer
