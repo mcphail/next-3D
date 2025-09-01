@@ -92,20 +92,18 @@ MUL8_DIV256:		EX	DE,HL
 ;
 PUBLIC _rotateX
 
-_rotateX:		POP	HL		; Return address
-			LD	(@M1+1), HL
+_rotateX:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; C: p.x, B: p.y
 			POP	DE		; E: p.z, D: a
-			LD	(IY+0),C	; Set p.x
+			PUSH	HL		; Stack the return address
+			LD	(IY+0),C	; Set r.x
 ;			LD	B,B		; B: p.y
 			LD	C,E		; C: p.z
 			CALL	fastCMS
-			LD	(IY+1),A	; Set p.y
+			LD	(IY+1),A	; Set r.y
 			CALL	fastSPC	
-			LD	(IY+2),A	; Set p.z
-@M1:			LD	HL,0		; The return address (self-modded)
-			PUSH	HL		; Restore stack
+			LD	(IY+2),A	; Set r.z
 			RET 
 
 ; extern Point8_3D rotateY(Point8_3D p, uint8_t a) __z88dk_callee;
@@ -120,20 +118,18 @@ _rotateX:		POP	HL		; Return address
 ;
 PUBLIC _rotateY
 
-_rotateY:		POP	HL		; Return address
-			LD	(@M1+1), HL
+_rotateY:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; C: p.x, B: p.y
 			POP	DE		; E: p.z, D: a
-			LD	(IY+1),B	; Set p.y
+			PUSH	HL		; Stack the return address
+			LD	(IY+1),B	; Set r.y
 			LD	B,C		; B: p.y
 			LD	C,E		; C: p.z
 			CALL	fastCMS
-			LD	(IY+0),A
+			LD	(IY+0),A	; Set r.x
 			CALL	fastSPC
-			LD	(IY+2),A
-@M1:			LD	HL,0		; The return address (self-modded)
-			PUSH	HL		; Restore stack
+			LD	(IY+2),A	; Set r.z
 			RET 
 
 ; extern Point8_3D rotateZ(Point8_3D p, uint8_t a) __z88dk_callee;
@@ -148,21 +144,19 @@ _rotateY:		POP	HL		; Return address
 ;
 PUBLIC _rotateZ
 
-_rotateZ:		POP	HL		; Return address
-			LD	(@M1+1), HL
+_rotateZ:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; C: p.x, B: p.y
 			POP	DE		; E: p.z, D: a
-			LD	(IY+2),E	; Set p.z
+			PUSH	HL		; Stack the return address
+			LD	(IY+2),E	; Set r.z
 			LD	A,B
 			LD	B,C		; B: p.x
 			LD	C,A		; C: p.y
 			CALL	fastCMS
-			LD	(IY+0),A
-			CALL	fastSPC
-			LD	(IY+1),A
-@M1:			LD	HL,0		; The return address (self-modded)
-			PUSH	HL		; Restore stack
+			LD	(IY+0),A	; Set r.x
+			CALL	fastSPC	
+			LD	(IY+1),A	; Set r.y
 			RET 
 
 ; Do A=fastCos(B,D)-fastSin(C,D)
