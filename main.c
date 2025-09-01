@@ -157,31 +157,9 @@ Point8_3D cobra_f[] = {
 // ***************************************************************************************************************************************
 
 Point8_3D rotate3D(Point8_3D * p, Angle_3D * theta) {
-
-	// Rotate around the X axis
-	//
-	Point8_3D r1 = {
-		p->x,
-		fastCos(p->y, theta->x) - fastSin(p->z, theta->x),
-		fastSin(p->y, theta->x) + fastCos(p->z, theta->x),
-	};
-	
-	// Rotate around the Y axis
-	//
-	Point8_3D r2 = {
-		fastCos(r1.x, theta->y) - fastSin(r1.z, theta->y),
-		r1.y,
-		fastSin(r1.x, theta->y) + fastCos(r1.z, theta->y),
-	};
-	
-	// Rotate around the Z axis	
-	//
-	Point8_3D r3 = {
-		fastCos(r2.x, theta->z) - fastSin(r2.y, theta->z),
-		fastSin(r2.x, theta->z) + fastCos(r2.y, theta->z),
-		r2.z,	
-	};
-
+	Point8_3D r1 = rotateX(*p, theta->x);
+	Point8_3D r2 = rotateY(r1, theta->y);
+	Point8_3D r3 = rotateZ(r2, theta->z);
 	return r3;
 }
 
@@ -198,8 +176,8 @@ void main(void)
     NextReg(0x7,3);           	// 28Mhz
     NextReg(0x8,0x4A);        	// Disable RAM contention, enable DAC and turbosound
 //  NextReg(0x5,0x04);			// 60Hz mode
-
-    initL2();
+	setCPU(3);
+;   initL2();
 	zx_border(INK_RED);
 
 	int i;
@@ -222,6 +200,11 @@ void main(void)
 		if(Keys[VK_A])	o.pos.y += 4;
 		if(Keys[VK_W])	o.pos.z -= 4;
 		if(Keys[VK_S])	o.pos.z += 4;
+
+		if(Keys[VK_1])	setCPU(0);
+		if(Keys[VK_2])	setCPU(1);
+		if(Keys[VK_3])	setCPU(2);
+		if(Keys[VK_4])	setCPU(3);
 
 		// Draw a circle as a test
 		// 
@@ -247,6 +230,7 @@ void main(void)
 				int16_t z = r.z + o.pos.z;  
 
 				// Perspective
+				// NB: If pd is fixed at 256, could do a quick multiply by shifting 8 bits left
 				//
 				int16_t x = fastMulDiv(r.x, pd, z); // pd * r.x / r.z;
 				int16_t y = fastMulDiv(r.y, pd, z); // pd * r.y / r.z;
