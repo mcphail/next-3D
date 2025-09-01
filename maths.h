@@ -34,8 +34,12 @@ typedef struct SVertice_3D {
 	uint8_t colour;
 } Vertice_3D;
 
-extern int16_t fastSin(uint8_t a, int8_t m) __z88dk_callee;
-extern int16_t fastCos(uint8_t a, int8_t m) __z88dk_callee;
+extern Point8_3D rotateX(Point8_3D p, uint8_t a) __z88dk_callee;
+extern Point8_3D rotateY(Point8_3D p, uint8_t a) __z88dk_callee;
+extern Point8_3D rotateZ(Point8_3D p, uint8_t a) __z88dk_callee;
+
+extern int8_t fastSin(uint8_t a, int8_t m) __z88dk_callee;
+extern int8_t fastCos(uint8_t a, int8_t m) __z88dk_callee;
 
 extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 

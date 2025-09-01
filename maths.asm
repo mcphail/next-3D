@@ -78,8 +78,129 @@ MUL8_DIV256:		EX	DE,HL
 			EX	DE,HL
 			RET
 
-; extern int16_t fastSin(uint8_t a, int8_t m) __z88dk_callee;
-; extern int16_t fastCos(uint8_t a, int8_t m) __z88dk_callee;
+
+
+; extern Point8_3D rotateX(Point8_3D p, uint8_t a) __z88dk_callee;
+; This is an optimised version of this C routine
+;
+; Point8_3D r = {
+;     p.x,
+;     fastCos(p.y, a) - fastSin(p.z, a),
+;     fastSin(p.y, a) + fastCos(p.z, a),
+; };
+; return r;
+;
+PUBLIC _rotateX
+
+_rotateX:		POP	HL		; Return address
+			LD	(@M1+1), HL
+			POP	IY		; Return data address
+			POP	BC		; C: p.x, B: p.y
+			POP	DE		; E: p.z, D: a
+			LD	(IY+0),C	; Set p.x
+;			LD	B,B		; B: p.y
+			LD	C,E		; C: p.z
+			CALL	fastCMS
+			LD	(IY+1),A	; Set p.y
+			CALL	fastSPC	
+			LD	(IY+2),A	; Set p.z
+@M1:			LD	HL,0		; The return address (self-modded)
+			PUSH	HL		; Restore stack
+			RET 
+
+; extern Point8_3D rotateY(Point8_3D p, uint8_t a) __z88dk_callee;
+; This is an optimised version of this C routine
+;
+; Point8_3D r2 = {
+; 	fastCos(p.x, a) - fastSin(p.z, ay),
+; 	p.y,
+; 	fastSin(p.x, a) + fastCos(p.z, a),
+; };
+; return r;
+;
+PUBLIC _rotateY
+
+_rotateY:		POP	HL		; Return address
+			LD	(@M1+1), HL
+			POP	IY		; Return data address
+			POP	BC		; C: p.x, B: p.y
+			POP	DE		; E: p.z, D: a
+			LD	(IY+1),B	; Set p.y
+			LD	B,C		; B: p.y
+			LD	C,E		; C: p.z
+			CALL	fastCMS
+			LD	(IY+0),A
+			CALL	fastSPC
+			LD	(IY+2),A
+@M1:			LD	HL,0		; The return address (self-modded)
+			PUSH	HL		; Restore stack
+			RET 
+
+; extern Point8_3D rotateZ(Point8_3D p, uint8_t a) __z88dk_callee;
+; This is an optimised version of this C routine
+;
+; Point8_3D r = {
+;     fastCos(p.x, a) - fastSin(p.y, a),
+;     fastSin(p.x, a) + fastCos(p.y, a),
+;     p.z,	
+; };
+; return r;
+;
+PUBLIC _rotateZ
+
+_rotateZ:		POP	HL		; Return address
+			LD	(@M1+1), HL
+			POP	IY		; Return data address
+			POP	BC		; C: p.x, B: p.y
+			POP	DE		; E: p.z, D: a
+			LD	(IY+2),E	; Set p.z
+			LD	A,B
+			LD	B,C		; B: p.x
+			LD	C,A		; C: p.y
+			CALL	fastCMS
+			LD	(IY+0),A
+			CALL	fastSPC
+			LD	(IY+1),A
+@M1:			LD	HL,0		; The return address (self-modded)
+			PUSH	HL		; Restore stack
+			RET 
+
+; Do A=fastCos(B,D)-fastSin(C,D)
+;
+fastCMS:		PUSH	BC		; BC: The multipliers
+			PUSH	DE		;  E: The angle
+			LD	A,D		;  A: Angle
+			LD	E,C		;  E: Multiplier for sin
+			PUSH	AF		; Stack the angle
+			CALL	sin		;  A: fastSin(C,A)
+			LD	C,A		;  C: fastSin(C,A)
+			POP	AF
+			LD	E,B		;  E: Multiplier for cos
+			CALL	cos		;  A: fastCos(B,A)
+			SUB	C		;  A: fastCos(B,A)-fastSin(C,A)
+			POP	DE
+			POP	BC
+			RET
+
+; Do A=fastSin(B,D)+fastCos(C,D)
+; 
+fastSPC:		PUSH	BC		; BC: The multipliers
+			PUSH	DE		;  E: The angle
+			LD	A,D		;  A: Angle
+			LD	E,C		; E: Multiplier for cos
+			PUSH	AF		; Stack the angle
+			CALL	cos		; A: fastCos(C,A)
+			LD	C,A		; C: fastCos(C,A)
+			POP	AF
+			LD	E,B		; E: Multiplier for sin
+			CALL	sin		; A: fastSin(B,A)
+			ADD	C		; A: fastSin(B,A)+fastCos(C,A)
+			POP	DE
+			POP	BC
+			RET
+
+; extern int8_t fastSin(uint8_t a, int8_t m) __z88dk_callee;
+; extern int8_t fastCos(uint8_t a, int8_t m) __z88dk_callee;
 ;
 PUBLIC _fastSin
 PUBLIC _fastCos
@@ -89,9 +210,6 @@ _fastSin:		POP	BC
 			LD	A,D 			; A: Angle
 			CALL	sin
 			LD	L,A
-			ADD	A,A			; Sign extend A to 16-bit value
-			SBC	A,A
-			LD	H,A
 			PUSH	BC
 			RET
 
@@ -100,9 +218,6 @@ _fastCos:		POP	BC
 			LD	A,D 
 			CALL	cos
 			LD	L,A
-			ADD	A,A			; Sign extend A to 16-bit value
-			SBC	A,A
-			LD	H,A
 			PUSH	BC
 			RET
 
