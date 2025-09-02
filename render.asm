@@ -8,8 +8,8 @@ shape_buffer:		DS 15				; For up to 3 x/y pairs of coordinates and a flag
 screen_banks:		DB 0				; LSB: The visible screen
 			DB 0				; MSB: The offscreen buffer
 
-vector_table_X1:	EQU	Scratchpad 
-vector_table_X2:	EQU	Scratchpad + $100
+shapeT_X1:		EQU	Scratchpad 
+shapeT_X2:		EQU	Scratchpad + $100
 
 			PUBLIC	shape_buffer
  
@@ -38,7 +38,7 @@ DRAW_LINE_TABLE		MACRO	FLAG,PX1,PY1,PX2,PY2
 			LD B,(IY+PY1)
 			LD E,(IY+PX2)
 			LD D,(IY+PY2)
-			CALL draw_line_table
+			CALL lineT
 S1:
 			ENDM
 
@@ -231,7 +231,7 @@ plotPixel8KColour:
 	ret    
 
 
-; extern void lineL2(Point8 pt0, Point8 pt1, uint8_t y2coord, uint8_t colour) __z88dk_callee
+; extern void lineL2(Point8 pt0, Point8 pt1, uint16 colour) __z88dk_callee
 ; A Bresenham's line drawing catering for every type of line and direction, inspired by a bunch of Speccy algos online
 ; ====================================================================================================================
 ; Credits to Andy Dansby (https://github.com/andydansby/bresenham_torture_test/blob/main/bresenham_line3.asm)
@@ -438,7 +438,7 @@ triangleL2F:		LD (triangleL2F_M1+1),A		; Store the colour
 ;
 triangleL2F_M1:		LD A,0				; Get the colour
 			RET Z
-			JP draw_vector_table		; Only draw if not zero
+			JP drawShapeTable		; Only draw if not zero
 
 ; extern void circleL2F(Point8 pt0, uint16 radius, uint16 colour) __z88dk_callee;
 ; A filled circle drawing routine
@@ -466,7 +466,7 @@ _circleL2F:		POP IY				; Pops SP into IY
 circleL2F:		PUSH AF				; Store the colour
 			LD A,D
 			PUSH AF
-			CALL draw_circle_table
+			CALL circleT
 			POP AF				; A = radius
 			EXX				; BC' = YX origin
 			LD C,A				; C = radius
@@ -484,25 +484,35 @@ circleL2F:		PUSH AF				; Store the colour
 			INC A				; Because height = bottom - top + 1
 			LD B,A				; Store in B
 			POP AF
-			JP draw_vector_table		; Draw the table
+			JP drawShapeTable		; Draw the table
 
-; Draw a line into the vector table
+
+; extern void lineT(Point8 pt0, Point8 pt1) __z88dk_callee
+;
+PUBLIC _lineT, lineT
+
+_lineT:			POP HL
+			POP BC          ; Loads y1x1 into BC
+			POP DE          ; Loads y2x2 into DE
+			PUSH HL
+
+; Draw a line into the shape table
 ; B = Y pixel position 1
 ; C = X pixel position 1
 ; D = Y pixel position 2
 ; E = X pixel position 2
 ;
-draw_line_table:	LD H,vector_table_X1 >> 8	; Default to drawing in this table
+lineT:			LD H,shapeT_X1 >> 8		; Default to drawing in this table
 			LD A,D				; Check whether we are going to be drawing up
 			CP B
-			JR NC, draw_line_table_1
+			JR NC, lineT_1
 			INC H				; If we're drawing up, then draw in second table
 			PUSH BC				; And use this neat trick to swaps BC and DE
 			PUSH DE				; using the stack, forcing the line to be always
 			POP BC				; drawn downwards
 			POP DE
 
-draw_line_table_1:	LD L, B				; Y address -> index of table	
+lineT_1:		LD L, B				; Y address -> index of table	
 			LD A, C				; X address
 			PUSH AF				; Stack the X address	
 			LD A, D				; Calculate the line height in B
@@ -526,13 +536,13 @@ draw_line_table_1:	LD L, B				; Y address -> index of table
 ;
 ; We've got the basic information at this point
 ;
-@L2:			LD (draw_line_table_Q1_M2), A	; Code for INC D or DEC D
-			LD (draw_line_table_Q2_M2), A
+@L2:			LD (lineT_Q1_M2), A		; Code for INC D or DEC D
+			LD (lineT_Q2_M2), A
 			POP AF				; Pop the X address
 			LD D, A				; And store in the D register
 			LD A, B				; Check if B and C are 0
 			OR C 
-			JR NZ, draw_line_table_Q	; There is a line to draw, so skip to the next bit
+			JR NZ, lineT_Q			; There is a line to draw, so skip to the next bit
 			LD (HL), D 			; Otherwise just plot the point into the table
 			RET
 ;			
@@ -542,54 +552,54 @@ draw_line_table_1:	LD L, B				; Y address -> index of table
 ;  C = Line width
 ;  D = X Position
 ;
-draw_line_table_Q:	LD A,B				; Work out which diagonal we are on
+lineT_Q:		LD A,B				; Work out which diagonal we are on
 			CP C
-			JR NC,draw_line_table_Q2
+			JR NC,lineT_Q2
 ;
 ; This bit of code draws the line where B<C (more horizontal than vertical)
 ;
-draw_line_table_Q1:	LD A,C
-			LD (draw_line_table_Q1_M1+1), A	; Self-mod the code to store the line width
+lineT_Q1:		LD A,C
+			LD (lineT_Q1_M1+1), A		; Self-mod the code to store the line width
 			LD C,B
 			LD B,A
 			LD E,B				; Calculate the error value
 			SRL E
-draw_line_table_Q1_L1:	LD A,E
+lineT_Q1_L1:		LD A,E
 			SUB C
 			LD E,A
-			JR NC,draw_line_table_Q1_M2
-draw_line_table_Q1_M1:	ADD A,0				; Add the line height (self modifying code)
+			JR NC,lineT_Q1_M2
+lineT_Q1_M1:		ADD A,0				; Add the line height (self modifying code)
 			LD E,A
 			LD (HL),D			; Store the X position
 			INC L				; Go to next pixel position down
-draw_line_table_Q1_M2:	INC D				; Increment or decrement the X coordinate (self-modding code)
-			DJNZ draw_line_table_Q1_L1	; Loop until the line is drawn
+lineT_Q1_M2:		INC D				; Increment or decrement the X coordinate (self-modding code)
+			DJNZ lineT_Q1_L1		; Loop until the line is drawn
 			LD (HL),D
 			RET
 ;
 ; This bit draws the line where B>=C (more vertical than horizontal, or diagonal)
 ;
-draw_line_table_Q2:	LD (draw_line_table_Q2_M1+1), A	; Self-mod the code to store the line width
+lineT_Q2:		LD (lineT_Q2_M1+1), A		; Self-mod the code to store the line width
 			LD E,B				; Calculate the error value
 			SRL E
-draw_line_table_Q2_L1:	LD (HL),D			; Store the X position
+lineT_Q2_L1:		LD (HL),D			; Store the X position
 			LD A,E				; Get the error value
 			SUB C				; Add the line length to it (X2-X1)
-			JR NC,draw_line_table_Q2_L2	; Skip the next bit if we don't get a carry
-draw_line_table_Q2_M1: 	ADD A,0				; Add the line height (self modifying code)
-draw_line_table_Q2_M2:	INC D				; Increment or decrement the X coordinate (self-modding code)
-draw_line_table_Q2_L2:	LD E,A				; Store the error value back in
+			JR NC,lineT_Q2_L2		; Skip the next bit if we don't get a carry
+lineT_Q2_M1: 		ADD A,0				; Add the line height (self modifying code)
+lineT_Q2_M2:		INC D				; Increment or decrement the X coordinate (self-modding code)
+lineT_Q2_L2:		LD E,A				; Store the error value back in
 			INC L				; And also move down
-			DJNZ draw_line_table_Q2_L1
+			DJNZ lineT_Q2_L1
 			LD (HL),D
 			RET	
 
-; Draw a circle in the table
+; Draw a circle in the shape table
 ; B = Y pixel position of circle centre
 ; C = X pixel position of circle centre
 ; A = Radius of circle
 ;
-draw_circle_table:	AND A				
+circleT:		AND A				
 			RET Z 
 
 			PUSH BC 			; Get BC in BC'
@@ -629,10 +639,10 @@ draw_circle_table:	AND A
 ; C' = X origin
 ;
 @L1:			EXX				; Plot the circle quadrants
-			PLOT_CIRCLE_TABLE vector_table_X1, ADD, ADD
-			PLOT_CIRCLE_TABLE vector_table_X2, SUB, ADD
-			PLOT_CIRCLE_TABLE vector_table_X1, ADD, SUB
-			PLOT_CIRCLE_TABLE vector_table_X2, SUB, SUB
+			PLOT_CIRCLE_TABLE shapeT_X1, ADD, ADD
+			PLOT_CIRCLE_TABLE shapeT_X2, SUB, ADD
+			PLOT_CIRCLE_TABLE shapeT_X1, ADD, SUB
+			PLOT_CIRCLE_TABLE shapeT_X2, SUB, SUB
 			EXX
 ;
 ; Now calculate the next point
@@ -653,17 +663,28 @@ draw_circle_table:	AND A
 			INC IXL				; X=X+1
 			JR @L1
 
-; Draw the contents of the vector tables
+; extern void drawShapeTable(uint8_t y, uint8_t h, uint16 colour) __z88dk_callee
+;
+PUBLIC _drawShapeTable, drawShapeTable
+
+_drawShapeTable:	POP	IY
+			POP	BC			; C: y, B: h 
+			POP	DE			; A: colour
+			LD	A,E
+			LD	L,C 
+			PUSH	IY
+
+; Draw the contents of the shape tables
 ; L: Start Y position
 ; B: Height
 ; A: Colour
 ;
-draw_vector_table:	LD (draw_vector_table_C+1),A	; Store the colour
+drawShapeTable:		LD (drawShapeTable_C+1),A	; Store the colour
 			LD A,(screen_banks+1)		; Self-mod the screen bank in for performance
-			LD (draw_vector_table_B+1),A
+			LD (drawShapeTable_B+1),A
 			LD C,L 				; Store the Y position in C
-draw_vector_table_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C)
-			LD H, vector_table_X1 >> 8	; Get the MSB table in H - HL is now a pointer in that table
+drawShapeTable_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C)
+			LD H, shapeT_X1 >> 8		; Get the MSB table in H - HL is now a pointer in that table
 			LD L,C  			; The Y coordinate
 			LD D,(HL)			; Get X1 from the first table
 			INC H				; Increment H to the second table (they're a page apart)
@@ -672,16 +693,16 @@ draw_vector_table_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C
 			AND %11100000			; 3 bits for the 8 banks we can use
 			SWAPNIB
 			RRCA
-draw_vector_table_B:	ADD A, 0			; Add the bank in (self-modded at top of routine)
+drawShapeTable_B:	ADD A, 0			; Add the bank in (self-modded at top of routine)
 			NEXTREG MMU_REGISTER_0, A	; And set it
 			LD A,L
 			AND %00011111
 			LD H,A 				; H: The MSB of the screen address
-draw_vector_table_C:	LD C,0				; The colour (self-modded)
+drawShapeTable_C:	LD C,0				; The colour (self-modded)
 			CALL draw_horz_line		; Draw the line
 			POP BC 				; Pop loop counter (B) and Y coordinate (C) off the stack
 			INC C 				; Go to the next line
-			DJNZ draw_vector_table_L
+			DJNZ drawShapeTable_L
 			RET
 
 ; Draw Horizontal Line routine

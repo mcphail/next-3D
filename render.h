@@ -39,5 +39,9 @@ extern void triangleL2(Point8 pt0, Point8 pt1, Point8 pt2, uint16 colour) __z88d
 extern void triangleL2F(Point8 pt0, Point8 pt1, Point8 pt2, uint16 colour) __z88dk_callee;
 extern void circleL2F(Point8 pt0, uint16 radius, uint16 colour) __z88dk_callee;
 
+extern void lineT(Point8 pt0, Point8 pt1) __z88dk_callee;
+extern void drawShapeTable(uint8_t y, uint8_t h, uint16 colour) __z88dk_callee;
+
+
 #endif 	//__RENDER_H__
 
