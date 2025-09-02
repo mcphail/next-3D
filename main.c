@@ -24,14 +24,7 @@
 // Sample data, may move later
 // ***************************************************************************************************************************************
 
-// Struct for edges (for Elite data)
-//
-typedef struct SEdge_3D {
-	uint8_t v1;
-	uint8_t v2;
-	uint8_t f1;
-	uint8_t f2;
-} Edge_3D;
+const int pd = 256;				// The perspective distance
 
 // Struct containing a single 3D objects data
 //
@@ -43,14 +36,14 @@ typedef struct SObject_3D {
 // Some shape data
 //
 Point8_3D cube_p[] = {
-	 {-40, 40, 40},
-	 { 40, 40, 40},
-	 { 40,-40, 40},
-	 {-40,-40, 40},
-	 {-40, 40,-40},
-	 { 40, 40,-40},
-	 { 40,-40,-40},
-	 {-40,-40,-40},
+	 {-70, 70, 70},
+	 { 70, 70, 70},
+	 { 70,-70, 70},
+	 {-70,-70, 70},
+	 {-70, 70,-70},
+	 { 70, 70,-70},
+	 { 70,-70,-70},
+	 {-70,-70,-70},
 };
 Vertice_3D cube_v[] = {
 	{0,1,2,16},{2,3,0,16},
@@ -64,35 +57,45 @@ Vertice_3D cube_v[] = {
 // Cobra MkIII data courtesy of Mark Moxon
 // https://elite.bbcelite.com/6502sp/main/variable/ship_cobra_mk_3.html
 //
+
+// Struct for edges (for Elite data)
+//
+typedef struct SEdge_3D {
+	uint8_t v1;
+	uint8_t v2;
+	uint8_t f1;
+	uint8_t f2;
+} Edge_3D;
+
 Point8_3D cobra_p[] = {
-	{   32,    0,   76 }, //    15,     15,   15,    15,         31    \ Vertex 0
-	{  -32,    0,   76 }, //    15,     15,   15,    15,         31    \ Vertex 1
-	{    0,   26,   24 }, //    15,     15,   15,    15,         31    \ Vertex 2
-	{ -120,   -3,   -8 }, //     3,      7,   10,    10,         31    \ Vertex 3
-	{  120,   -3,   -8 }, //     4,      8,   12,    12,         31    \ Vertex 4
-	{  -88,   16,  -40 }, //    15,     15,   15,    15,         31    \ Vertex 5
-	{   88,   16,  -40 }, //    15,     15,   15,    15,         31    \ Vertex 6
-	{  120,   -8,  -40 }, //     8,      9,   12,    12,         31    \ Vertex 7
-	{ -120,   -8,  -40 }, //     7,      9,   10,    10,         31    \ Vertex 8
-	{    0,   26,  -40 }, //     5,      6,    9,     9,         31    \ Vertex 9
-	{  -32,  -24,  -40 }, //     9,     10,   11,    11,         31    \ Vertex 10
-	{   32,  -24,  -40 }, //     9,     11,   12,    12,         31    \ Vertex 11
-	{  -36,    8,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 12
-	{   -8,   12,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 13
-	{    8,   12,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 14
-	{   36,    8,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 15
-	{   36,  -12,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 16
-	{    8,  -16,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 17
-	{   -8,  -16,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 18
-	{  -36,  -12,  -40 }, //     9,      9,    9,     9,         20    \ Vertex 19
-	{    0,    0,   76 }, //     0,     11,   11,    11,          6    \ Vertex 20
-	{    0,    0,   90 }, //     0,     11,   11,    11,         31    \ Vertex 21
-	{  -80,   -6,  -40 }, //     9,      9,    9,     9,          8    \ Vertex 22
-	{  -80,    6,  -40 }, //     9,      9,    9,     9,          8    \ Vertex 23
-	{  -88,    0,  -40 }, //     9,      9,    9,     9,          6    \ Vertex 24
-	{   80,    6,  -40 }, //     9,      9,    9,     9,          8    \ Vertex 25
-	{   88,    0,  -40 }, //     9,      9,    9,     9,          6    \ Vertex 26
-	{   80,   -6,  -40 }, //     9,      9,    9,     9,          8    \ Vertex 27
+	{   32,    0,   76 }, // Vertex 0
+	{  -32,    0,   76 }, // Vertex 1
+	{    0,   26,   24 }, // Vertex 2
+	{ -120,   -3,   -8 }, // Vertex 3
+	{  120,   -3,   -8 }, // Vertex 4
+	{  -88,   16,  -40 }, // Vertex 5
+	{   88,   16,  -40 }, // Vertex 6
+	{  120,   -8,  -40 }, // Vertex 7
+	{ -120,   -8,  -40 }, // Vertex 8
+	{    0,   26,  -40 }, // Vertex 9
+	{  -32,  -24,  -40 }, // Vertex 10
+	{   32,  -24,  -40 }, // Vertex 11
+	{  -36,    8,  -40 }, // Vertex 12
+	{   -8,   12,  -40 }, // Vertex 13
+	{    8,   12,  -40 }, // Vertex 14
+	{   36,    8,  -40 }, // Vertex 15
+	{   36,  -12,  -40 }, // Vertex 16
+	{    8,  -16,  -40 }, // Vertex 17
+	{   -8,  -16,  -40 }, // Vertex 18
+	{  -36,  -12,  -40 }, // Vertex 19
+	{    0,    0,   76 }, // Vertex 20
+	{    0,    0,   90 }, // Vertex 21
+	{  -80,   -6,  -40 }, // Vertex 22
+	{  -80,    6,  -40 }, // Vertex 23
+	{  -88,    0,  -40 }, // Vertex 24
+	{   80,    6,  -40 }, // Vertex 25
+	{   88,    0,  -40 }, // Vertex 26
+	{   80,   -6,  -40 }, // Vertex 27
 };
 
 Edge_3D cobra_e[] = {
@@ -163,6 +166,50 @@ Point8_3D rotate3D(Point8_3D * p, Angle_3D * theta) {
 	return r3;
 }
 
+// Project an object in 3D space with perspective
+// Parameters:
+// - pos: The position of the object in space
+// -   r: The point to project
+//
+Point16 project3D(Point16_3D * pos, Point8_3D * r) {
+	//
+	// NB: If pd is fixed at 256, could do a quick multiply by shifting 8 bits left
+	//
+	int16_t z = pos->z + r->z;  
+	Point16 p = {
+		pos->x + fastMulDiv(r->x, pd, z) + 128, // r->x * pd / z
+		pos->y + fastMulDiv(r->y, pd, z) + 96,  // r->y * pd / z
+	};
+	return p;
+}
+
+int16_t dotp(Point16_3D p1, Point16_3D p2) {
+	return (p1.x * p2.x) + (p1.y * p2.y) + (p1.z * p2.z);
+}
+
+int16_t crossp(Point16_3D p1, Point16_3D p2) {
+	return (p1.x * p2.x) - (p1.y * p2.y) - (p1.z * p2.z);
+}
+
+Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
+	Point8_3D a = {
+		p2.x - p1.x,
+		p2.y - p1.y,
+		p2.z - p1.z,
+	};
+	Point8_3D b = {
+		p3.x - p1.x,
+		p3.y - p1.y,
+		p3.z - p1.z,
+	};
+	Point8_3D n = {
+		(a.y * b.z) - (a.z * b.y),
+		(a.z * b.x) - (a.x * b.z),
+		(a.x * b.y) - (a.y * b.x),
+	};
+	return n;
+}
+
 // ***************************************************************************************************************************************
 //  Main startup and loop
 // ***************************************************************************************************************************************
@@ -170,26 +217,36 @@ Point8_3D rotate3D(Point8_3D * p, Angle_3D * theta) {
 void main(void)
 {
 //  BREAK;
-    NextReg(0x57,2);          	// page in kernel
+    NextReg(0x57,2);          	// Page in kernel
     InitKernel();
     SetUpIRQs();
-    NextReg(0x7,3);           	// 28Mhz
     NextReg(0x8,0x4A);        	// Disable RAM contention, enable DAC and turbosound
 //  NextReg(0x5,0x04);			// 60Hz mode
-	setCPU(3);
-;   initL2();
+	setCPU(3);					// 28Mhz
+    initL2();
 	zx_border(INK_RED);
 
-	int i;
+	int i;						// General loop index
 	Point16 point_t[64];		// Buffer for the translated points 
- 	Point8_3D point_n[64];		// Buffer for the translated normals
-	int pd = 256;				// The perspective distance
+//	int16_t dpn[64];			// Buffer for the face normal dot products
+//	Point8_3D cube_n[12];		// Buffer for the precalculated normals
 
 	Object3D o = {
-		{0, 0, pd},				// Position
+		{0, 0, pd * 2},			// Position
 		{0, 0, 0},				// Angle
 	};
 
+	// Precalculate the normals
+	//
+/*
+	for(i=0; i<12; i++) {
+		cube_n[i] = calculateNormal(
+			cube_p[cube_v[i].p1,
+			cube_p[cube_v[i].p2,
+			cube_p[cube_v[i].p3
+		);
+	}
+*/
 	while(1) {
 		clearL2(0);
 		ReadKeyboard();
@@ -212,52 +269,36 @@ void main(void)
 		circleL2F(c,35,0xFC);
 
 		if(o.pos.z > 128) {
-
-			// Translate the normals in 3D space
+/*
+			// Calculate the face normal dot product relative to viewpoint
 			//
-			for(i=0; i<13; i++) {
-				point_n[i] = rotate3D(&cobra_f[i], &o.theta);
+			for(i=0; i<12; i++) {
+				Point8_3D r = rotate3D(&cube_n[i], &o.theta);
+				Point16_3D p = {
+					r.x,
+					r.y,
+					r.z,
+				};
+				dpn[i] = dotp(o.pos, p);
 			}
-
+*/
 			// Translate the points in 3D space
 			//
-			for(i=0; i<28; i++) {
-				Point8_3D r = rotate3D(&cobra_p[i], &o.theta);
-				Point16 * t = &point_t[i];	
-
-				// Translate
-				//
-				int16_t z = r.z + o.pos.z;  
-
-				// Perspective
-				// NB: If pd is fixed at 256, could do a quick multiply by shifting 8 bits left
-				//
-				int16_t x = fastMulDiv(r.x, pd, z); // pd * r.x / r.z;
-				int16_t y = fastMulDiv(r.y, pd, z); // pd * r.y / r.z;
-
-				// Bodge put here to avoid overflow
-				//
-				x += o.pos.x;
-				y += o.pos.y;
-
-				// Screen offset and store in t
-				//
-				t->x=x+128;
-				t->y=y+96;
+			for(i=0; i<8; i++) {
+				Point8_3D r = rotate3D(&cube_p[i], &o.theta);
+				point_t[i] = project3D(&o.pos, &r);
 			}
-
+/*
 			// Draw them (Elite style)
 			//
 			for(i=0;i<38;i++) {
 				Edge_3D * e = &cobra_e[i];
-				Point16 p1 = point_t[e->v1];
-				Point16 p2 = point_t[e->v2];
-				if(point_n[e->f1].z < 0 || point_n[e->f2].z < 0) {
-					lineL2C(p1,p2,255);
+				if(dpn[e->f1] < 0 || dpn[e->f2] < 0) {
+					lineL2C(point_t[e->v1],point_t[e->v2],255);
 				}
 			}
-/*
-			// Draw them
+*/
+			// Draw the cube
 			//
 			for(i=0; i<12; i++) {
 				Vertice_3D * v = &cube_v[i];
@@ -268,7 +309,6 @@ void main(void)
 					triangleL2CF(p1,p2,p3,v->colour);
 				}
 			}
-*/
 		}
 
 		// Do some rotation
