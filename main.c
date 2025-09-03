@@ -25,6 +25,9 @@
 // ***************************************************************************************************************************************
 
 const int pd = 256;				// The perspective distance
+uint8_t	renderMode = 0;			// 0: Wireframe, 1: Filled
+Point16 point_t[64];			// Buffer for the translated points 
+
 
 // Struct containing a single 3D objects data
 //
@@ -58,101 +61,76 @@ Vertice_3D cube_v[] = {
 // https://elite.bbcelite.com/6502sp/main/variable/ship_cobra_mk_3.html
 //
 
-// Struct for edges (for Elite data)
-//
-typedef struct SEdge_3D {
-	uint8_t v1;
-	uint8_t v2;
-	uint8_t f1;
-	uint8_t f2;
-} Edge_3D;
+typedef struct SModel_3D {           
+	uint8_t numVertices;
+	uint8_t numFaces;
+	Point8_3D (*vertices)[];
+	Vertice_3D (*faces)[];
+} Model_3D;
 
+Model_3D cobra = {
+	28,
+	26,
+	&cobra_p,
+	&cobra_v,
+};
 Point8_3D cobra_p[] = {
-	{   32,    0,   76 }, // Vertex 0
-	{  -32,    0,   76 }, // Vertex 1
-	{    0,   26,   24 }, // Vertex 2
-	{ -120,   -3,   -8 }, // Vertex 3
-	{  120,   -3,   -8 }, // Vertex 4
-	{  -88,   16,  -40 }, // Vertex 5
-	{   88,   16,  -40 }, // Vertex 6
-	{  120,   -8,  -40 }, // Vertex 7
-	{ -120,   -8,  -40 }, // Vertex 8
-	{    0,   26,  -40 }, // Vertex 9
-	{  -32,  -24,  -40 }, // Vertex 10
-	{   32,  -24,  -40 }, // Vertex 11
-	{  -36,    8,  -40 }, // Vertex 12
-	{   -8,   12,  -40 }, // Vertex 13
-	{    8,   12,  -40 }, // Vertex 14
-	{   36,    8,  -40 }, // Vertex 15
-	{   36,  -12,  -40 }, // Vertex 16
-	{    8,  -16,  -40 }, // Vertex 17
-	{   -8,  -16,  -40 }, // Vertex 18
-	{  -36,  -12,  -40 }, // Vertex 19
-	{    0,    0,   76 }, // Vertex 20
-	{    0,    0,   90 }, // Vertex 21
-	{  -80,   -6,  -40 }, // Vertex 22
-	{  -80,    6,  -40 }, // Vertex 23
-	{  -88,    0,  -40 }, // Vertex 24
-	{   80,    6,  -40 }, // Vertex 25
-	{   88,    0,  -40 }, // Vertex 26
-	{   80,   -6,  -40 }, // Vertex 27
+    { 30, 0, 72 },
+    { -30, 0, 72 },
+    { 0, 25, 23 },
+    { -122, -3, -8 },
+    { 122, -3, -8 },
+    { -84, 15, -38 },
+    { 84, 15, -38 },
+    { 122, -8, -38 },
+    { -122, -8, -38 },
+    { 0, 25, -38 },
+    { -30, -23, -38 },
+    { 30, -23, -38 },
+    { -34, 8, -38 },
+    { -8, 11, -38 },
+    { 8, 11, -38 },
+    { 34, 8, -38 },
+    { 34, -11, -38 },
+    { 8, -15, -38 },
+    { -8, -15, -38 },
+    { -34, -11, -38 },
+    { 0, 0, 72 },
+    { 0, 0, 86 },
+    { -76, -6, -38 },
+    { -76, 6, -38 },
+    { -84, 0, -38 },
+    { 76, 6, -38 },
+    { 84, 0, -38 },
+    { 76, -6, -38 },
 };
-
-Edge_3D cobra_e[] = {
-	{  0,  1,  0, 11 }, // 31    \ Edge 0
-	{  0,  4,  4, 12 }, // 31    \ Edge 1
-	{  1,  3,  3, 10 }, // 31    \ Edge 2
-	{  3,  8,  7, 10 }, // 31    \ Edge 3
-	{  4,  7,  8, 12 }, // 31    \ Edge 4
-	{  6,  7,  8,  9 }, // 31    \ Edge 5
-	{  6,  9,  6,  9 }, // 31    \ Edge 6
-	{  5,  9,  5,  9 }, // 31    \ Edge 7
-	{  5,  8,  7,  9 }, // 31    \ Edge 8
-	{  2,  5,  1,  5 }, // 31    \ Edge 9
-	{  2,  6,  2,  6 }, // 31    \ Edge 10
-	{  3,  5,  3,  7 }, // 31    \ Edge 11
-	{  4,  6,  4,  8 }, // 31    \ Edge 12
-	{  1,  2,  0,  1 }, // 31    \ Edge 13
-	{  0,  2,  0,  2 }, // 31    \ Edge 14
-	{  8, 10,  9, 10 }, // 31    \ Edge 15
-	{ 10, 11,  9, 11 }, // 31    \ Edge 16
-	{  7, 11,  9, 12 }, // 31    \ Edge 17
-	{  1, 10, 10, 11 }, // 31    \ Edge 18
-	{  0, 11, 11, 12 }, // 31    \ Edge 19
-	{  1,  5,  1,  3 }, // 29    \ Edge 20
-	{  0,  6,  2,  4 }, // 29    \ Edge 21
-	{ 20, 21,  0, 11 }, //  6    \ Edge 22
-	{ 12, 13,  9,  9 }, // 20    \ Edge 23
-	{ 18, 19,  9,  9 }, // 20    \ Edge 24
-	{ 14, 15,  9,  9 }, // 20    \ Edge 25
-	{ 16, 17,  9,  9 }, // 20    \ Edge 26
-	{ 15, 16,  9,  9 }, // 19    \ Edge 27
-	{ 14, 17,  9,  9 }, // 17    \ Edge 28
-	{ 13, 18,  9,  9 }, // 19    \ Edge 29
-	{ 12, 19,  9,  9 }, // 19    \ Edge 30
-	{  2,  9,  5,  6 }, // 30    \ Edge 31
-	{ 22, 24,  9,  9 }, //  6    \ Edge 32
-	{ 23, 24,  9,  9 }, //  6    \ Edge 33
-	{ 22, 23,  9,  9 }, //  8    \ Edge 34
-	{ 25, 26,  9,  9 }, //  6    \ Edge 35
-	{ 26, 27,  9,  9 }, //  6    \ Edge 36
-	{ 25, 27,  9,  9 }, //  8    \ Edge 37
-};
-
-Point8_3D cobra_f[] = {
-	{   0,  62,  31 }, // 31      \ Face 0
-	{ -18,  55,  16 }, // 31      \ Face 1
-	{  18,  55,  16 }, // 31      \ Face 2
-	{ -16,  52,  14 }, // 31      \ Face 3
-	{  16,  52,  14 }, // 31      \ Face 4
-	{ -14,  47,   0 }, // 31      \ Face 5
-	{  14,  47,   0 }, // 31      \ Face 6
-	{ -61, 102,   0 }, // 31      \ Face 7
-	{  61, 102,   0 }, // 31      \ Face 8
-	{   0,   0, -80 }, // 31      \ Face 9
-	{  -7, -42,   9 }, // 31      \ Face 10
-	{   0, -30,   6 }, // 31      \ Face 11
-	{   7, -42,   9 }, // 31      \ Face 12
+Vertice_3D cobra_v[] = {
+    { 14, 16, 17, 0xFF },
+    { 13, 18, 19, 0xFF },
+    { 23, 22, 24, 0xFF },
+    { 27, 25, 26, 0xFF },
+    { 5, 9, 10, 0xFF },
+    { 1, 11, 0, 0xFF },
+    { 2, 6, 9, 0xFF },
+    { 9, 5, 2, 0xFF },
+    { 0, 2, 1, 0xFF },
+    { 0, 4, 6, 0xFF },
+    { 3, 1, 5, 0xFF },
+    { 8, 3, 5, 0xFF },
+    { 6, 4, 7, 0xFF },
+    { 2, 0, 6, 0xFF },
+    { 5, 1, 2, 0xFF },
+    { 10, 3, 8, 0xFF },
+    { 4, 11, 7, 0xFF },
+    { 4, 0, 11, 0xFF },
+    { 1, 10, 11, 0xFF },
+    { 10, 1, 3, 0xFF },
+    { 13, 19, 12, 0xFF },
+    { 14, 15, 16, 0xFF },
+    { 9, 6, 11, 0xFF },
+    { 6, 7, 11, 0xFF },
+    { 11, 10, 9, 0xFF },
+    { 10, 8, 5, 0xFF },
 };
 
 // ***************************************************************************************************************************************
@@ -210,6 +188,83 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 	return n;
 }
 
+void lineT_8(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
+	Point8 p1 = { x1, y1 };
+	Point8 p2 = { x2, y2 };
+	lineT(p1,p2);
+}
+
+uint8_t clipLineT(Point16 p1, Point16 p2) {
+	Point16 c1 = p1;
+	Point16 c2 = p2;
+	uint8_t a = clipLine(&c1,&c2);
+	if(a != 0) {
+		lineT_8(c1.x, c1.y, c2.x, c2.y);
+	}
+	if(a > 1) {
+		// TODO: Need to think about this
+	}
+	return a;
+}
+
+/*
+	The vertical line gap fill can work out which table it is drawn in the same way that the normal line routine does,
+	depending upon whether the line is drawn up or down. It can fill in either a full line or just the gap. Clip line now 
+	returns > 1 if the line has been clipped. Then the X value is just whether either of the points are off to the 
+	left or right of the screen
+*/
+void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
+	uint8_t a1 = clipLineT(p1,p2);
+	uint8_t a2 = clipLineT(p2,p3);
+	uint8_t a3 = clipLineT(p3,p1);
+
+	if(a1 | a2 | a3) {
+		int min = p1.y;
+		int max = p1.y;
+
+		if(p2.y < min) min = p2.y;
+		if(p3.y < min) min = p3.y;
+		if(p2.y > max) max = p2.y;
+		if(p3.y > max) max = p3.y;
+
+		if(min < 0) min = 0;
+		if(max > 191) max = 191;
+
+		drawShapeTable(min,max-min+1,colour);
+	}
+}
+
+void drawModel(Model_3D * model, Object3D * o) {
+	int i;
+
+	if(o->pos.z > 128) {
+
+		// Translate the vertices in 3D space
+		//
+		for(i=0; i<model->numVertices; i++) {
+			Point8_3D v = (*model->vertices)[i];
+			Point8_3D r = rotate3D(&v, &o->theta);
+			point_t[i] = project3D(&o->pos, &r);
+		}
+
+		// Draw the faces
+		//
+		for(i=0; i<model->numFaces; i++) {
+			Vertice_3D * v = &(*model->faces)[i];
+			Point16 p1 = point_t[v->p1];
+			Point16 p2 = point_t[v->p2];
+			Point16 p3 = point_t[v->p3];
+			if(p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0) {
+				if(renderMode == 1) {
+//					testTClipped(p1,p2,p3,v->colour);
+					triangleL2CF(p1,p2,p3,v->colour);
+				}
+				triangleL2C(p1,p2,p3,0xFF);
+			}
+		}
+	}
+}
+
 // ***************************************************************************************************************************************
 //  Main startup and loop
 // ***************************************************************************************************************************************
@@ -226,8 +281,6 @@ void main(void)
     initL2();
 	zx_border(INK_RED);
 
-	int i;						// General loop index
-	Point16 point_t[64];		// Buffer for the translated points 
 //	int16_t dpn[64];			// Buffer for the face normal dot products
 //	Point8_3D cube_n[12];		// Buffer for the precalculated normals
 
@@ -263,53 +316,11 @@ void main(void)
 		if(Keys[VK_3])	setCPU(2);
 		if(Keys[VK_4])	setCPU(3);
 
-		// Draw a circle as a test
-		// 
-		Point8 c = {56,56};
-		circleL2F(c,35,0xFC);
+		if(Keys[VK_SPACE])	renderMode = 1-renderMode;
 
-		if(o.pos.z > 128) {
-/*
-			// Calculate the face normal dot product relative to viewpoint
-			//
-			for(i=0; i<12; i++) {
-				Point8_3D r = rotate3D(&cube_n[i], &o.theta);
-				Point16_3D p = {
-					r.x,
-					r.y,
-					r.z,
-				};
-				dpn[i] = dotp(o.pos, p);
-			}
-*/
-			// Translate the points in 3D space
-			//
-			for(i=0; i<8; i++) {
-				Point8_3D r = rotate3D(&cube_p[i], &o.theta);
-				point_t[i] = project3D(&o.pos, &r);
-			}
-/*
-			// Draw them (Elite style)
-			//
-			for(i=0;i<38;i++) {
-				Edge_3D * e = &cobra_e[i];
-				if(dpn[e->f1] < 0 || dpn[e->f2] < 0) {
-					lineL2C(point_t[e->v1],point_t[e->v2],255);
-				}
-			}
-*/
-			// Draw the cube
-			//
-			for(i=0; i<12; i++) {
-				Vertice_3D * v = &cube_v[i];
-				Point16 p1 = point_t[v->p1];
-				Point16 p2 = point_t[v->p2];
-				Point16 p3 = point_t[v->p3];
-				if(p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)>0) {
-					triangleL2CF(p1,p2,p3,v->colour);
-				}
-			}
-		}
+		Point8 c = {56,56};		// Draw a filled circle
+		circleL2F(c,35,0xFC);
+		drawModel(&cobra, &o);	// Draw the cobra model
 
 		// Do some rotation
 		//
