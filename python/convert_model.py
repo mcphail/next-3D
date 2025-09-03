@@ -49,7 +49,7 @@ while True:
 			if value < -128 or value > 127:
 				sys.exit("Coordinate data out of range")
 			output.append(str(value))
-		vertices.append(f"\t{{ {', '.join(output)} }},")
+		vertices.append(f"    {{ {', '.join(output)} }},")
 	elif code == "vn:":							# Normal data
 		pass
 	elif code == "f":							# Face data
@@ -60,13 +60,19 @@ while True:
 			value = item.split("//")
 			output.append(str(int(value[0])-1))	# Blender indexes vertices from 1, not 0
 		output.append("0xFF")					# Colour of face, stubbed
-		faces.append(f"\t{{ {', '.join(output)} }},")
+		faces.append(f"    {{ {', '.join(output)} }},")
 		pass
 	elif code == "l":							# Line data
 		pass
 	else:
 		pass
 
+print(f"Model_3D {modelName}_p[] = {{")
+print(f"    {len(vertices)},");
+print(f"    {len(faces)},");
+print(f"    &{modelName}_p,");
+print(f"    &{modelName}_v,");
+print("};")
 print(f"Point8_3D {modelName}_p[] = {{")
 print("\n".join(vertices))
 print("};")
