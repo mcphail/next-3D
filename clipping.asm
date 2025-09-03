@@ -239,8 +239,10 @@ _clipLine_M2:		LD	DE,0
 ;  p1: Set to the first point to clip
 ;  p2: Set to the second point to clip
 ; Returns:
-;   A: 1 if the line is clipped and ready to be drawn
-;   A: 0 if the line does not need to be drawn (i.e. both points offscreen)
+;   A:
+;	1 if the line hasn't been clipped as both points are on screen
+;	0 if the line does not need to be drawn as both points are off screen
+;   Otherwise returns number of iterations of clipping required
 ;
 clipLine:		LD	BC,(p1_x)
 			LD	DE,(p1_y)
@@ -250,13 +252,15 @@ clipLine:		LD	BC,(p1_x)
 			LD	DE,(p2_y)
 			CALL	clipRegion
 			LD	H,A			; H: code2
+			LD	IYL, 0			; Iteration counter
 ;
 ; Trivial check if both points are on screen
 ;
-clipLine_L1:		LD	A,H 			; code1|code2==0
+clipLine_L1:		INC	IYL			; Increment iteration counter
+			LD	A,H 			; code1|code2==0
 			OR	L
 			JR 	NZ, clipLine_M1		; No, so skip
-			INC	A			; A: Accept = 1
+			LD	A,IYL			; A: Accept
 			RET
 ;
 ; Trivial check if both points are off screen
@@ -265,7 +269,7 @@ clipLine_M1:		LD 	A,H			; code1&code2!=0
 			AND 	L
 			JR	Z, clipLine_M2		; No, so skip
 			XOR	A
-			RET 				; A: Accept = 0
+			RET 				; A: Reject
 ;
 ; Check which point needs clipping (codeout)
 ;
