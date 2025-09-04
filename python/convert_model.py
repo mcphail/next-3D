@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 # The Next palette lookup
+# https://wiki.specnext.dev/File:256-palette-2.png
 #
 palette = {
 	"Black": "0x00",
@@ -24,6 +25,9 @@ palette = {
 	"Cyan": "0x1F",
 	"Yellow": "0xFC",
 	"White": "0xFF",
+	"Grey": "0x6E",
+	"Light_Grey": "0x6D",
+	"Dark_Grey": "0X6C",
 }
 
 # Open the file for reading
@@ -83,7 +87,6 @@ while True:
 			output.append(str(int(value[0])-1))	# Blender indexes vertices from 1, not 0
 		output.append(colour)					# Colour of face
 		faces.append(f"    {{ {', '.join(output)} }},")
-		pass
 	elif code == "l":							# Line data
 		pass
 	else:
