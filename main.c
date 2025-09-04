@@ -1,7 +1,13 @@
-
 /*
-3D Next engine, by Henrique Olifiers
-*/
+ * Title:			Spectrum Next 3D Engine
+ * Author:			Dean Belfield
+ * Contributors:	Henrique Olifiers, Michael "Flash" Ware
+ * Created:			20/08/2025
+ * Last Updated:	04/09/2025
+ *
+ * Modinfo:
+ * 04/09/2025:		Moved models to includes in models folder
+ */
 
 #pragma output REGISTER_SP = 0xbfff
 
@@ -21,46 +27,18 @@
 #include "maths.h"
 
 // ***************************************************************************************************************************************
-// Sample data, may move later
+// Model data
 // ***************************************************************************************************************************************
 
-const int pd = 256;				// The perspective distance
-uint8_t	renderMode = 0;			// 0: Wireframe, 1: Filled
-Point16 point_t[64];			// Buffer for the translated points 
-
-
-// Struct containing a single 3D objects data
+// Struct containing a single 3D objects position data
 //
 typedef struct SObject_3D {
 	Point16_3D pos;
 	Angle_3D theta;
 } Object3D;
- 
-// Some shape data
-//
-Point8_3D cube_p[] = {
-	 {-70, 70, 70},
-	 { 70, 70, 70},
-	 { 70,-70, 70},
-	 {-70,-70, 70},
-	 {-70, 70,-70},
-	 { 70, 70,-70},
-	 { 70,-70,-70},
-	 {-70,-70,-70},
-};
-Vertice_3D cube_v[] = {
-	{0,1,2,16},{2,3,0,16},
-	{0,4,5,17},{5,1,0,17},
-	{7,6,5,18},{5,4,7,18},
-	{3,2,6,19},{6,7,3,19},
-	{1,5,6,20},{6,2,1,20},
-	{0,3,7,21},{7,4,0,21},
-};
 
-// Cobra MkIII data courtesy of Mark Moxon
-// https://elite.bbcelite.com/6502sp/main/variable/ship_cobra_mk_3.html
+// Struct containing a single 3D objects model data
 //
-
 typedef struct SModel_3D {           
 	uint8_t numVertices;
 	uint8_t numFaces;
@@ -68,70 +46,20 @@ typedef struct SModel_3D {
 	Vertice_3D (*faces)[];
 } Model_3D;
 
-Model_3D cobra = {
-	28,
-	26,
-	&cobra_p,
-	&cobra_v,
-};
-Point8_3D cobra_p[] = {
-    { 30, 0, 72 },
-    { -30, 0, 72 },
-    { 0, 25, 23 },
-    { -122, -3, -8 },
-    { 122, -3, -8 },
-    { -84, 15, -38 },
-    { 84, 15, -38 },
-    { 122, -8, -38 },
-    { -122, -8, -38 },
-    { 0, 25, -38 },
-    { -30, -23, -38 },
-    { 30, -23, -38 },
-    { -34, 8, -38 },
-    { -8, 11, -38 },
-    { 8, 11, -38 },
-    { 34, 8, -38 },
-    { 34, -11, -38 },
-    { 8, -15, -38 },
-    { -8, -15, -38 },
-    { -34, -11, -38 },
-    { 0, 0, 72 },
-    { 0, 0, 86 },
-    { -76, -6, -38 },
-    { -76, 6, -38 },
-    { -84, 0, -38 },
-    { 76, 6, -38 },
-    { 84, 0, -38 },
-    { 76, -6, -38 },
-};
-Vertice_3D cobra_v[] = {
-    { 14, 16, 17, 0xFF },
-    { 13, 18, 19, 0xFF },
-    { 23, 22, 24, 0xFF },
-    { 27, 25, 26, 0xFF },
-    { 5, 9, 10, 0xFF },
-    { 1, 11, 0, 0xFF },
-    { 2, 6, 9, 0xFF },
-    { 9, 5, 2, 0xFF },
-    { 0, 2, 1, 0xFF },
-    { 0, 4, 6, 0xFF },
-    { 3, 1, 5, 0xFF },
-    { 8, 3, 5, 0xFF },
-    { 6, 4, 7, 0xFF },
-    { 2, 0, 6, 0xFF },
-    { 5, 1, 2, 0xFF },
-    { 10, 3, 8, 0xFF },
-    { 4, 11, 7, 0xFF },
-    { 4, 0, 11, 0xFF },
-    { 1, 10, 11, 0xFF },
-    { 10, 1, 3, 0xFF },
-    { 13, 19, 12, 0xFF },
-    { 14, 15, 16, 0xFF },
-    { 9, 6, 11, 0xFF },
-    { 6, 7, 11, 0xFF },
-    { 11, 10, 9, 0xFF },
-    { 10, 8, 5, 0xFF },
-};
+// Elite model data courtesy of Mark Moxon
+// https://elite.bbcelite.com/6502sp/main/variable/ship_cobra_mk_3.html
+//
+#include "models/cube.h"
+#include "models/cobra_mk3.h"
+#include "models/coriolis_station.h"
+
+// ***************************************************************************************************************************************
+// Sample data, may move later
+// ***************************************************************************************************************************************
+
+const int pd = 256;				// The perspective distance
+uint8_t	renderMode = 0;			// 0: Wireframe, 1: Filled
+Point16 point_t[64];			// Buffer for the translated points 
 
 // ***************************************************************************************************************************************
 //  Sample routines
@@ -259,7 +187,9 @@ void drawModel(Model_3D * model, Object3D * o) {
 //					testTClipped(p1,p2,p3,v->colour);
 					triangleL2CF(p1,p2,p3,v->colour);
 				}
-				triangleL2C(p1,p2,p3,0xFF);
+				else {
+					triangleL2C(p1,p2,p3,0xFF);
+				}
 			}
 		}
 	}
@@ -284,8 +214,13 @@ void main(void)
 //	int16_t dpn[64];			// Buffer for the face normal dot products
 //	Point8_3D cube_n[12];		// Buffer for the precalculated normals
 
-	Object3D o = {
+	Object3D o1 = {
 		{0, 0, pd * 2},			// Position
+		{0, 0, 0},				// Angle
+	};
+
+	Object3D o2 = {
+		{-10, -10, pd * 4},		// Position
 		{0, 0, 0},				// Angle
 	};
 
@@ -304,12 +239,12 @@ void main(void)
 		clearL2(0);
 		ReadKeyboard();
 		
-		if(Keys[VK_O])	o.pos.x -= 4;
-		if(Keys[VK_P])	o.pos.x += 4;
-		if(Keys[VK_Q])	o.pos.y -= 4;
-		if(Keys[VK_A])	o.pos.y += 4;
-		if(Keys[VK_W])	o.pos.z -= 4;
-		if(Keys[VK_S])	o.pos.z += 4;
+		if(Keys[VK_O])	o1.pos.x -= 4;
+		if(Keys[VK_P])	o1.pos.x += 4;
+		if(Keys[VK_Q])	o1.pos.y -= 4;
+		if(Keys[VK_A])	o1.pos.y += 4;
+		if(Keys[VK_W])	o1.pos.z -= 4;
+		if(Keys[VK_S])	o1.pos.z += 4;
 
 		if(Keys[VK_1])	setCPU(0);
 		if(Keys[VK_2])	setCPU(1);
@@ -320,13 +255,17 @@ void main(void)
 
 		Point8 c = {56,56};		// Draw a filled circle
 		circleL2F(c,35,0xFC);
-		drawModel(&cobra, &o);	// Draw the cobra model
+		drawModel(&station_m, &o2);
+		drawModel(&cobra_m, &o1);
 
 		// Do some rotation
 		//
-		o.theta.x+=1;
-		o.theta.y+=2;
-		o.theta.z-=1;
+		o1.theta.x+=1;
+		o1.theta.y+=2;
+		o1.theta.z-=1;
+		o2.theta.x-=2;
+		o2.theta.y+=3;
+		o2.theta.z+=1;
 		swapL2(); 		// Do the double-buffering
 	};
 }
