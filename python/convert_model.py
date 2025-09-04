@@ -3,25 +3,31 @@
 # Title:		Create C model data from an OBJ file exported from Blender
 # Author:		Dean Belfield
 # Created:		03/09/2025
-# Last Updated:	03/09/2025
+# Last Updated:	04/09/2025
 #
 # Modinfo:
+# 04/09/2025:	Removed debug code, fixed bugs, added scale arg
 
 import sys
 import os
+from datetime import datetime
+from pathlib import Path
 
 # Open the file for reading
 #
-# name = sys.argv[1]							# Get the filename
-# full_path = os.path.expanduser(name)			# Expand the full path to the file and
-
-full_path = "/Users/admin/Documents/Dev/Git/next-3D/models/cobra_mk3.obj"
+name = sys.argv[1]								# Get the filename
+try:
+	scale = float(sys.argv[2])
+except:
+	scale = 100
+full_path = os.path.expanduser(name)			# Expand the full path to the file and
 file = open(full_path, "r")						# Open it up as a text file
 
-file_stdout = sys.stdout						# Store the current stdout file handle
-# sys.stdout = open(full_path + ".h", "w")		# Redirect stdout for the detokenised file output
+file_stdout = sys.stdout						# Store the current stdout file handle for redirect output
+sys.stdout = open(Path(full_path).stem + ".h", "w")
 
-scale = 95										# Percentage scale
+now = datetime.now()
+
 line = ""										# Storage for line
 modelName = ""									# The model name
 vertices = []									# List of vertices
@@ -67,7 +73,12 @@ while True:
 	else:
 		pass
 
-print(f"Model_3D {modelName}_p[] = {{")
+print(f"// Generated automatically by convert_model.y on {now.strftime('%m/%d/%Y, %H:%M:%S')}")
+print(f"//")
+print(f"// Model: {name}")
+print(f"// Scale: {scale}")
+print(f"//")
+print(f"Model_3D {modelName}_m = {{")
 print(f"    {len(vertices)},");
 print(f"    {len(faces)},");
 print(f"    &{modelName}_p,");
