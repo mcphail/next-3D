@@ -13,6 +13,19 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+# The Next palette lookup
+#
+palette = {
+	"Black": "0x00",
+	"Blue": "0x07",
+	"Red": "0xE0",
+	"Magenta": "0xA3",
+	"Green": "0x5C",
+	"Cyan": "0x1F",
+	"Yellow": "0xFC",
+	"White": "0xFF",
+}
+
 # Open the file for reading
 #
 name = sys.argv[1]								# Get the filename
@@ -32,6 +45,7 @@ line = ""										# Storage for line
 modelName = ""									# The model name
 vertices = []									# List of vertices
 faces = []										# List of faces
+colour = "0x12"									# Default colour palette entry on Next
 
 # Iterate through the file
 # Use print to output to file
@@ -58,6 +72,8 @@ while True:
 		vertices.append(f"    {{ {', '.join(output)} }},")
 	elif code == "vn:":							# Normal data
 		pass
+	elif code == "usemtl":						# Blender material name
+		colour = palette[data[0]]
 	elif code == "f":							# Face data
 		if len(data) != 3:
 			sys.exit("Invalid face count")
@@ -65,7 +81,7 @@ while True:
 		for item in data:
 			value = item.split("//")
 			output.append(str(int(value[0])-1))	# Blender indexes vertices from 1, not 0
-		output.append("0xFF")					# Colour of face, stubbed
+		output.append(colour)					# Colour of face
 		faces.append(f"    {{ {', '.join(output)} }},")
 		pass
 	elif code == "l":							# Line data
