@@ -1,4 +1,4 @@
-// Generated automatically by convert_model.y on 09/04/2025, 09:23:18
+// Generated automatically by convert_model.py on 09/04/2025, 09:23:18
 //
 // Model: coriolis_station.obj
 // Scale: 50.0

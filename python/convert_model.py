@@ -73,7 +73,7 @@ while True:
 	else:
 		pass
 
-print(f"// Generated automatically by convert_model.y on {now.strftime('%m/%d/%Y, %H:%M:%S')}")
+print(f"// Generated automatically by convert_model.py on {now.strftime('%m/%d/%Y, %H:%M:%S')}")
 print(f"//")
 print(f"// Model: {name}")
 print(f"// Scale: {scale}")

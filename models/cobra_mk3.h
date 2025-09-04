@@ -1,4 +1,4 @@
-// Generated automatically by convert_model.y on 09/04/2025, 09:23:31
+// Generated automatically by convert_model.py on 09/04/2025, 09:23:31
 //
 // Model: cobra_mk3.obj
 // Scale: 95.0
