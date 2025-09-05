@@ -175,17 +175,17 @@ _RawKeys:   		DS  8
 
 DMAFillVal:		DB 0		; Storage for the DMA value to fill with
 
-DMAFillProg:		DB $83
-			DB %01111101
-DMAFillSrc:		DW DMAFillVal
-DMAFillLen:		DW 0
-			DB %00100100
-			DB %00010000
-			DB %10101101
-DMAFillDst:		DW 0
-			DB $CF
+DMAFillProg:		DB $83		; R6-Disable DMA
+			DB %01111101	; R0-Transfer mode, A -> B, write address
+DMAFillSrc:		DW DMAFillVal	; Address of the fill byte
+DMAFillLen:		DW 0		; Number of bytes to fill
+			DB %00100100	; R0-Block length, A->B
+			DB %00010000	; R1-Port A address incrementing
+			DB %10101101	; R4-Continuous mode
+DMAFillDst:		DW 0		; Destination address
+			DB $CF		; R6-Load	
 			DB $B3		; R6-Force Ready
-			DB $87
+			DB $87		; R6-Enable DMA
 
 			DC DMAFillProgL = ASMPC - DMAFillProg
 
