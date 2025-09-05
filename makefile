@@ -12,22 +12,26 @@ OBJS = \
 	obj/data.o \
 	obj/render.o \
 	obj/clipping.o \
-	obj/maths.o
+	obj/maths.o \
+	obj/experiments.o
 
 next-3D.nex: $(OBJS) 
-	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 $(OBJS) -o next-3D.nex -create-app -subtype=nex
+	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 --math16 --math32 $(OBJS) -o next-3D.nex -create-app -subtype=nex
 
 # Main program at $8000
 #
-obj/main.o: main.c kernel.h core.h render.h clipping.h
+obj/main.o: main.c main.h 
 	$(CC) $(CFLAGS) -o obj/main.o main.c
 
 # Comment in to compile the C portion of clipping (for debug/test purposes only)
 #
-# obj/clipping.o: clipping.c render.h clipping.h 
+# obj/clipping.o: clipping.c clipping.h 
 #	$(CC) $(CFLAGS) -o obj/clipping.o clipping.c clipping.asm 
 
-obj/data.o: data.c kernel.h core.h render.h clipping.h
+obj/experiments.o: experiments.c experiments.h 
+	$(CC) $(CFLAGS) -o obj/experiments.o experiments.c
+
+obj/data.o: data.c kernel.h core.h render.h clipping.h experiments.h
 	$(CC) $(CFLAGS) -o obj/data.o data.c
 
 # Kernel section
