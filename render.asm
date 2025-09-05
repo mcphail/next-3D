@@ -679,7 +679,7 @@ _drawShapeTable:	POP	IY
 ; B: Height
 ; A: Colour
 ;
-drawShapeTable:		LD (drawShapeTable_C+1),A	; Store the colour
+drawShapeTable:		LD (draw_horz_line_colour),A	; Store the colour
 			LD A,(screen_banks+1)		; Self-mod the screen bank in for performance
 			LD (drawShapeTable_B+1),A
 			LD C,L 				; Store the Y position in C
@@ -698,7 +698,6 @@ drawShapeTable_B:	ADD A, 0			; Add the bank in (self-modded at top of routine)
 			LD A,L
 			AND %00011111
 			LD H,A 				; H: The MSB of the screen address
-drawShapeTable_C:	LD C,0				; The colour (self-modded)
 			CALL draw_horz_line		; Draw the line
 			POP BC 				; Pop loop counter (B) and Y coordinate (C) off the stack
 			INC C 				; Go to the next line
@@ -709,7 +708,6 @@ drawShapeTable_C:	LD C,0				; The colour (self-modded)
 ; HL = Screen address (first character row)
 ; D = X pixel position 1
 ; E = X pixel position 2
-; C = Colour
 ;
 draw_horz_line:		LD A,E				; Check if E > D
 			SUB D 
@@ -718,12 +716,27 @@ draw_horz_line:		LD A,E				; Check if E > D
 			LD L,E 				; The second point is the start point
 			JR @S2				; Skip to carry on drawing the line
 @S1:			LD L,D 				; The first point is the start point
-@S2:			LD (HL),C			; The colour
-			RET Z				; Return if we're only plotting a single point
-			LD C,A				; BC: The horizontal length of the line
-			LD B,0
-			LD D,H				; DE: Screen address plus one
-			LD E,L
-			INC DE
-			LDIR				; Fill
-			RET 	
+@S2:			LD (draw_horz_line_dst),HL	; The destination address
+			LD H,0
+			LD L,A 
+			INC HL				; The line length
+			LD (draw_horz_line_len),HL 
+			LD HL,draw_horz_line_dma
+			LD BC,draw_horz_line_dma_len * 256 + Z80DMAPORT
+			OTIR 
+			RET 
+
+draw_horz_line_colour:	DB	0			; Storage for the DMA value to fill with
+draw_horz_line_dma:	DB	$83			; R6-Disable DMA
+			DB	%01111101		; R0-Transfer mode, A -> B, write address
+			DW	draw_horz_line_colour	; Address of the fill byte
+draw_horz_line_len:	DW	0			; Number of bytes to fill
+			DB	%00100100		; R0-Block length, A->B
+			DB	%00010000		; R1-Port A address incrementing
+			DB	%10101101		; R4-Continuous mode
+draw_horz_line_dst:	DW	0			; Destination address
+			DB	$CF			; R6-Load	
+			DB	$B3			; R6-Force Ready
+			DB	$87			; R6-Enable DMA
+
+			DC 	draw_horz_line_dma_len = ASMPC - draw_horz_line_dma
