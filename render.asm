@@ -718,9 +718,12 @@ draw_horz_line:		LD A,E				; Check if E > D
 			LD L,E 				; The second point is the start point
 			JR @S2				; Skip to carry on drawing the line
 @S1:			LD L,D 				; The first point is the start point
-@S2:			LD B,A				; The horizontal length of the line
-			INC B				; Line length is X2-X1+1
-@L1:			LD (HL),C 			; Plot the point
-			INC L				; Increment to next pixel
-			DJNZ @L1			; And loop
+@S2:			LD (HL),C			; The colour
+			RET Z				; Return if we're only plotting a single point
+			LD C,A				; BC: The horizontal length of the line
+			LD B,0
+			LD D,H				; DE: Screen address plus one
+			LD E,L
+			INC DE
+			LDIR				; Fill
 			RET 	
