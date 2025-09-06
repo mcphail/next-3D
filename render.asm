@@ -716,15 +716,41 @@ draw_horz_line:		LD A,E				; Check if E > D
 			LD L,E 				; The second point is the start point
 			JR @S2				; Skip to carry on drawing the line
 @S1:			LD L,D 				; The first point is the start point
-@S2:			LD (draw_horz_line_dst),HL	; The destination address
-			LD H,0
-			LD L,A 
-			INC HL				; The line length
-			LD (draw_horz_line_len),HL 
-			LD HL,draw_horz_line_dma
-			LD BC,draw_horz_line_dma_len * 256 + Z80DMAPORT
-			OTIR 
+@S2:			JR Z,@M1			; If it is a single point, then just plot it
+			LD (draw_horz_line_dst),HL	; HL: The destination address
+			LD B,0				
+			LD C,A 				; BC: The line length in pixels - 1
+			CP 16				; Check if less than 16
+			JR C,@M2			; It's quicker to LDIR fill short lines
+;
+; Now just DMA it (377 T-states)
+;
+			INC BC				; T:   6
+			LD (draw_horz_line_len),BC 	; T:  20 - Now just DMA it
+			LD HL,draw_horz_line_dma	; T:  10
+			LD BC,draw_horz_line_dma_len	; T:  10
+			OTIR 				; T: 331 (21 x 15 + 16)
 			RET 
+;
+; Plot a single point
+; 
+@M1:			LD A,(draw_horz_line_colour)	; Shortcut to plot a single point
+			LD (HL),A
+			RET
+;
+; LDIR fill short lines (34 T-states to set up, plus the LDIR)
+; Only worth doing if less than 377 T states (15 pixels long), otherwise do DMA
+; - 15 pixels = 365
+; - 16 pixels = 386
+;
+@M2:			LD A,(draw_horz_line_colour)	; T:  13
+			LD D,H				; T:   4
+			LD E,L				; T:   4
+			INC DE 				; T:   6
+			LD (HL),A			; T:   7
+			LDIR				; T: 331 (21 x 15 + 16)
+			RET
+
 
 draw_horz_line_colour:	DB	0			; Storage for the DMA value to fill with
 draw_horz_line_dma:	DB	$83			; R6-Disable DMA
@@ -739,4 +765,4 @@ draw_horz_line_dst:	DW	0			; Destination address
 			DB	$B3			; R6-Force Ready
 			DB	$87			; R6-Enable DMA
 
-			DC 	draw_horz_line_dma_len = ASMPC - draw_horz_line_dma
+			DC 	draw_horz_line_dma_len = (ASMPC - draw_horz_line_dma) * 256 + Z80DMAPORT
