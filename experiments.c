@@ -22,9 +22,9 @@ extern Point16_3D cam_pos;
 // ***************************************************************************************************************************************
 
 Point8_3D rotate8_3D(Point8_3D * p, Angle_3D * theta) {
-	Point8_3D r1 = rotateX(*p, theta->x);
-	Point8_3D r2 = rotateY(r1, theta->y);
-	Point8_3D r3 = rotateZ(r2, theta->z);
+	Point8_3D r1 = rotate8_X(*p, theta->x);
+	Point8_3D r2 = rotate8_Y(r1, theta->y);
+	Point8_3D r3 = rotate8_Z(r2, theta->z);
 	return r3;
 }
 

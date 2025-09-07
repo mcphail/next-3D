@@ -80,7 +80,7 @@ MUL8_DIV256:		EX	DE,HL
 
 
 
-; extern Point8_3D rotateX(Point8_3D p, uint8_t a) __z88dk_callee;
+; extern Point8_3D rotate8_X(Point8_3D p, uint8_t a) __z88dk_callee;
 ; This is an optimised version of this C routine
 ;
 ; Point8_3D r = {
@@ -90,9 +90,9 @@ MUL8_DIV256:		EX	DE,HL
 ; };
 ; return r;
 ;
-PUBLIC _rotateX
+PUBLIC _rotate8_X
 
-_rotateX:		POP	HL		; Pop the return address
+_rotate8_X:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; C: p.x, B: p.y
 			POP	DE		; E: p.z, D: a
@@ -106,7 +106,7 @@ _rotateX:		POP	HL		; Pop the return address
 			LD	(IY+2),A	; Set r.z
 			RET 
 
-; extern Point8_3D rotateY(Point8_3D p, uint8_t a) __z88dk_callee;
+; extern Point8_3D rotate8_Y(Point8_3D p, uint8_t a) __z88dk_callee;
 ; This is an optimised version of this C routine
 ;
 ; Point8_3D r2 = {
@@ -116,9 +116,9 @@ _rotateX:		POP	HL		; Pop the return address
 ; };
 ; return r;
 ;
-PUBLIC _rotateY
+PUBLIC _rotate8_Y
 
-_rotateY:		POP	HL		; Pop the return address
+_rotate8_Y:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; C: p.x, B: p.y
 			POP	DE		; E: p.z, D: a
@@ -132,7 +132,7 @@ _rotateY:		POP	HL		; Pop the return address
 			LD	(IY+2),A	; Set r.z
 			RET 
 
-; extern Point8_3D rotateZ(Point8_3D p, uint8_t a) __z88dk_callee;
+; extern Point8_3D rotate8_Z(Point8_3D p, uint8_t a) __z88dk_callee;
 ; This is an optimised version of this C routine
 ;
 ; Point8_3D r = {
@@ -142,9 +142,9 @@ _rotateY:		POP	HL		; Pop the return address
 ; };
 ; return r;
 ;
-PUBLIC _rotateZ
+PUBLIC _rotate8_Z
 
-_rotateZ:		POP	HL		; Pop the return address
+_rotate8_Z:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; C: p.x, B: p.y
 			POP	DE		; E: p.z, D: a
