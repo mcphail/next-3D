@@ -42,15 +42,27 @@
 // Global data
 // ***************************************************************************************************************************************
 
-const int pd = 256;				// The perspective distance
+#define MAX_POINTS	64				// Maximum points per shape
+#define MAX_OBJECTS 16				// Maximum number of objects in the universe
 
-uint8_t	renderMode = 0;			// 0: Wireframe, 1: Filled
-Point16 point_t[64];			// Buffer for the translated points 
-Angle_3D camera = { 0, 0, 0 };	// The global camera view
+const int pd = 256;					// The perspective distance
+
+uint8_t	renderMode = 0;				// 0: Wireframe, 1: Filled
+Point16 point_t[MAX_POINTS];		// Buffer for the translated points 
+Angle_3D cam_theta = { 0, 0, 0 };	// The global camera view
+Point16_3D cam_pos = { 0, 0, 0 };	// The global camera position
+Object_3D object[MAX_OBJECTS];		// List of objects to display
 
 // ***************************************************************************************************************************************
 //  Main startup and loop
 // ***************************************************************************************************************************************
+
+void rotate(int i) {
+	Object_3D * self = &object[i];
+	self->theta.x+=1;
+	self->theta.y+=2;
+	self->theta.z-=1;
+}
 
 void main(void)
 {
@@ -64,47 +76,41 @@ void main(void)
     initL2();
 	zx_border(INK_BLACK);
 
-//	int16_t dpn[64];			// Buffer for the face normal dot products
-//	Point8_3D cube_n[12];		// Buffer for the precalculated normals
+	int i = 0;
+	
+	Point16_3D pos = { 1000, 0, pd*15 };
+	Angle_3D theta = { 0,0,0 };
+	object[i].flags=1;
+	object[i].move = &rotate;
+	object[i].model = &cube_m;
+	object[i].theta = theta;
+	object[i++].pos = pos;
 
-	Object3D o1 = {
-		{0, 0, pd * 2},			// Position
-		{0, 0, 0},				// Angle
-	};
+	pos.x = -1000;
+	object[i].flags=1;
+	object[i].move = &rotate;
+	object[i].model = &cube_m;
+	object[i].theta = theta;
+	object[i++].pos = pos;
 
-	Object3D o2 = {
-		{0, 0, pd * 3},			// Position
-		{0, 128, 0},			// Angle
-	};
+	pos.x = 0;
+	pos.z = pd * 1.5;
+	object[i].flags=1;
+	object[i].move = &rotate;
+	object[i].model = &cube_m;
+	object[i].theta = theta;
+	object[i++].pos = pos;
 
-	// Precalculate the normals
-	//
-/*
-	for(i=0; i<12; i++) {
-		cube_n[i] = calculateNormal(
-			cube_p[cube_v[i].p1,
-			cube_p[cube_v[i].p2,
-			cube_p[cube_v[i].p3
-		);
-	}
-*/
 	while(1) {
 		clearL2(0);
 		ReadKeyboard();
-		
-		if(Keys[VK_O])	o2.pos.x -= 2;	// Move object left
-		if(Keys[VK_P])	o2.pos.x += 2;	// Move object right
-		if(Keys[VK_Q])	o2.pos.y -= 2;	// Move object up
-		if(Keys[VK_A])	o2.pos.y += 2;	// Move object down
-		if(Keys[VK_W])	o2.pos.z -= 2;	// Move object forward
-		if(Keys[VK_S])	o2.pos.z += 2;	// Move object back
 
-		if(Keys[VK_Z])	camera.z -= 1;	// Rotate camera around Z axis (in and out of screen)
-		if(Keys[VK_X])	camera.z += 1;
-		if(Keys[VK_E])	camera.x -= 1;	// Rotate camera around X axis (axis is horizontal on screen)
-		if(Keys[VK_D])	camera.x += 1;
-		if(Keys[VK_K])	camera.y -= 1;	// Rotate camera around Y axis (axis is vertical on screen)
-		if(Keys[VK_L])	camera.y += 1;
+		if(Keys[VK_Z])	cam_theta.z -= 1;	// Rotate camera around Z axis (in and out of screen)
+		if(Keys[VK_X])	cam_theta.z += 1;
+		if(Keys[VK_Q])	cam_theta.x -= 1;	// Rotate camera around X axis (axis is horizontal on screen)
+		if(Keys[VK_A])	cam_theta.x += 1;
+		if(Keys[VK_O])	cam_theta.y -= 1;	// Rotate camera around Y axis (axis is vertical on screen)
+		if(Keys[VK_P])	cam_theta.y += 1;
 
 		if(Keys[VK_1])	setCPU(0);
 		if(Keys[VK_2])	setCPU(1);
@@ -115,19 +121,15 @@ void main(void)
 
 //		Point8 c = {56,56};		// Draw a filled circle
 //		circleL2F(c,35,0xFC);
-		drawModel(&station_m, &o2);
-//		drawModel(&cobra_m, &o1);
 
-		// Do some rotation
-		//
-/*
-		o1.theta.x+=1;
-		o1.theta.y+=2;
-		o1.theta.z-=1;
-*/
-//		o2.theta.x-=2;
-//		o2.theta.y+=3;
-//		o2.theta.z+=1;
+		for(int i=0; i<MAX_OBJECTS; i++) {
+			if(object[i].flags) {
+				drawObject(&object[i]);
+				if(object[i].move) {
+					object[i].move(i);
+				}
+			}
+		}
 
 		swapL2(); 		// Do the double-buffering
 	};
