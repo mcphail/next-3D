@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <z80.h>
-#include <math.h>				// TODO: Delete from here and makefile once finished
 
 #include "core.h"
 #include "render.h"
@@ -29,33 +28,30 @@ Point8_3D rotate8_3D(Point8_3D * p, Angle_3D * theta) {
 }
 
 Point16_3D rotate16_X(Point16_3D p, uint8_t a) {
-	float r = a*M_PI/128;
-	Point16_3D q = {
+	Point16_3D r = {
 		p.x,
-		p.y * cos(r) - p.z * sin(r),
-		p.y * sin(r) + p.z * cos(r),
+		fastCos16(a, p.y) - fastSin16(a, p.z),
+		fastSin16(a, p.y) + fastCos16(a, p.z),
 	};
-	return q;
+	return r;
 }
 
 Point16_3D rotate16_Y(Point16_3D p, uint8_t a) {
-	float r = a*M_PI/128;
-	Point16_3D q = {
-		p.x * cos(r) - p.z * sin(r),
+	Point16_3D r = {
+		fastCos16(a, p.x) - fastSin16(a, p.z),
 		p.y,
-		p.x * sin(r) + p.z * cos(r),
+		fastSin16(a, p.x) + fastCos16(a, p.z),
 	};
-	return q;
+	return r;
 }
 
 Point16_3D rotate16_Z(Point16_3D p, uint8_t a) {
-	float r = a*M_PI/128;
-	Point16_3D q = {
-		p.x * cos(r) - p.y * sin(r),
-		p.x * sin(r) + p.y * cos(r),
+	Point16_3D r = {
+		fastCos16(a, p.x) - fastSin16(a, p.y),
+		fastSin16(a, p.x) + fastCos16(a, p.y),
 		p.z,
 	};
-	return q;
+	return r;
 }
 
 Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta) {
