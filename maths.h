@@ -41,6 +41,9 @@ extern Point8_3D rotate8_Z(Point8_3D p, uint8_t a) __z88dk_callee;
 extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
 extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
 
+extern int16_t fastSin16(uint8_t a, int16_t m);
+extern int16_t fastCos16(uint8_t a, int16_t m);
+
 extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 
 #endif 	//__MATHS_H__

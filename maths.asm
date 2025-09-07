@@ -7,8 +7,11 @@
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
 
-			EXTERN	l_z80n_muls_32_16x16	; DEHL =   HL x DE
-			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC
+			EXTERN	l_z80n_muls_32_16x16	; DEHL =   HL x DE (signed)
+			EXTERN	l_z80n_muls_16_16x8	;   HL =    L x DE (signed)
+			EXTERN	l_z80n_mulu_16_16x8	;   HL =    L x DE (unsigned)
+			EXTERN	l_z80n_mulu_24_16x8	;  AHL =    E x HL (unsigned)
+			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
 
 ; Negates HL
 ;
@@ -234,8 +237,8 @@ sin8_pos_angle:		AND	A			; The multiplicand is also positive
 ;	
 sin8_neg_angle:		AND	A			; The multiplicand is positive
 			JP	P,sin8_mul_neg 		; So return a negative result
-			NEG 
-			JR	sin8_mul_pos		; Otherwise return a positive result
+			NEG 				; Otherwise negate the multiplicand
+			JR	sin8_mul_pos		; And return a positive result
 ;
 sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
 			MUL	D,E
@@ -248,6 +251,64 @@ sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
 			NEG
 			RET
 
+
+; extern int16_t fastSin16(uint8_t a, int16_t m);
+; extern int16_t fastCos16(uint8_t a, int16_t m);
+;
+PUBLIC _fastSin16
+PUBLIC _fastCos16
+
+_fastSin16:		LD	HL,2
+			ADD	HL,SP			; Skip over return address
+			LD	A,(HL)			;  A: Angle
+			INC	HL
+			LD	E,(HL)
+			INC	HL
+			LD	D,(HL)			; DE: Multiplier
+			JR	sin16 
+
+_fastCos16:		LD	HL,2
+			ADD	HL,SP			; Skip over return address
+			LD	A,(HL)			;  A: Angle
+			INC	HL
+			LD	E,(HL)
+			INC	HL
+			LD	D,(HL)			; DE: Multiplier
+			JR	cos16 
+
+; HL=COS(A)*DE/256
+; HL=SIN(A)*DE/256
+; 
+cos16:			ADD	A,64			; Cosine is a quarter revolution copy of the sin wave
+sin16:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page boundary
+			LD	L,A			; Index into the table
+			RES	7,L			; It's only a 128 byte table, so clear the top bit
+			LD	L,(HL)			; Fetch the value from the sin table
+			RLCA				; Get the sign of the angle
+			LD	A,D			;  A: High byte of the multiplicand
+			JR	C,sin16_neg_angle	; Skip to the case where the sin angle is negative
+;
+sin16_pos_angle:	AND	A			; The multiplicand is also positive
+			JP	P,sin16_mul_pos		; So return a positive result
+			CALL	negDE			; Otherwise negate the multiplicand
+			JR	sin16_mul_neg		; And return a negative result
+;	
+sin16_neg_angle:	AND	A			; The multiplicand is positive
+			JP	P,sin16_mul_neg 	; So return a negative result
+			CALL	negDE			; Otherwise negate the multiplicand
+			JR	sin16_mul_pos		; And return a positive result
+;
+sin16_mul_pos:		EX	DE,HL
+			CALL	l_z80n_mulu_24_16x8	; AHL = E x HL
+			LD	L,H			; Divide by 256
+			LD	H,A
+			RET 
+;
+sin16_mul_neg:		EX	DE,HL
+			CALL	l_z80n_mulu_24_16x8	; AHL = E x HL
+			LD	L,H 			; Divide by 256
+			LD	H,A 
+			JP	negHL
 
 ; extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee
 ; Calculates a * b / c, with the internal calculation done in 32-bits
