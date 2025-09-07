@@ -38,8 +38,8 @@ extern Point8_3D rotate8_X(Point8_3D p, uint8_t a) __z88dk_callee;
 extern Point8_3D rotate8_Y(Point8_3D p, uint8_t a) __z88dk_callee;
 extern Point8_3D rotate8_Z(Point8_3D p, uint8_t a) __z88dk_callee;
 
-extern int8_t fastSin(uint8_t a, int8_t m) __z88dk_callee;
-extern int8_t fastCos(uint8_t a, int8_t m) __z88dk_callee;
+extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
+extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
 
 extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 

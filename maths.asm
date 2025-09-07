@@ -100,9 +100,9 @@ _rotate8_X:		POP	HL		; Pop the return address
 			LD	(IY+0),C	; Set r.x
 ;			LD	B,B		; B: p.y
 			LD	C,E		; C: p.z
-			CALL	fastCMS
+			CALL	fastCMS8
 			LD	(IY+1),A	; Set r.y
-			CALL	fastSPC	
+			CALL	fastSPC8	
 			LD	(IY+2),A	; Set r.z
 			RET 
 
@@ -126,9 +126,9 @@ _rotate8_Y:		POP	HL		; Pop the return address
 			LD	(IY+1),B	; Set r.y
 			LD	B,C		; B: p.y
 			LD	C,E		; C: p.z
-			CALL	fastCMS
+			CALL	fastCMS8
 			LD	(IY+0),A	; Set r.x
-			CALL	fastSPC
+			CALL	fastSPC8
 			LD	(IY+2),A	; Set r.z
 			RET 
 
@@ -153,24 +153,24 @@ _rotate8_Z:		POP	HL		; Pop the return address
 			LD	A,B
 			LD	B,C		; B: p.x
 			LD	C,A		; C: p.y
-			CALL	fastCMS
+			CALL	fastCMS8
 			LD	(IY+0),A	; Set r.x
-			CALL	fastSPC	
+			CALL	fastSPC8
 			LD	(IY+1),A	; Set r.y
 			RET 
 
 ; Do A=fastCos(B,D)-fastSin(C,D)
 ;
-fastCMS:		PUSH	BC		; BC: The multipliers
+fastCMS8:		PUSH	BC		; BC: The multipliers
 			PUSH	DE		;  E: The angle
 			LD	A,D		;  A: Angle
 			LD	E,C		;  E: Multiplier for sin
 			PUSH	AF		; Stack the angle
-			CALL	sin		;  A: fastSin(C,A)
+			CALL	sin8		;  A: fastSin(C,A)
 			LD	C,A		;  C: fastSin(C,A)
 			POP	AF
 			LD	E,B		;  E: Multiplier for cos
-			CALL	cos		;  A: fastCos(B,A)
+			CALL	cos8		;  A: fastCos(B,A)
 			SUB	C		;  A: fastCos(B,A)-fastSin(C,A)
 			POP	DE
 			POP	BC
@@ -178,39 +178,39 @@ fastCMS:		PUSH	BC		; BC: The multipliers
 
 ; Do A=fastSin(B,D)+fastCos(C,D)
 ; 
-fastSPC:		PUSH	BC		; BC: The multipliers
+fastSPC8:		PUSH	BC		; BC: The multipliers
 			PUSH	DE		;  E: The angle
 			LD	A,D		;  A: Angle
 			LD	E,C		; E: Multiplier for cos
 			PUSH	AF		; Stack the angle
-			CALL	cos		; A: fastCos(C,A)
+			CALL	cos8		; A: fastCos(C,A)
 			LD	C,A		; C: fastCos(C,A)
 			POP	AF
 			LD	E,B		; E: Multiplier for sin
-			CALL	sin		; A: fastSin(B,A)
+			CALL	sin8		; A: fastSin(B,A)
 			ADD	C		; A: fastSin(B,A)+fastCos(C,A)
 			POP	DE
 			POP	BC
 			RET
 
-; extern int8_t fastSin(uint8_t a, int8_t m) __z88dk_callee;
-; extern int8_t fastCos(uint8_t a, int8_t m) __z88dk_callee;
+; extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
+; extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
 ;
-PUBLIC _fastSin
-PUBLIC _fastCos
+PUBLIC _fastSin8
+PUBLIC _fastCos8
 
-_fastSin:		POP	BC
+_fastSin8:		POP	BC
 			POP	DE			; D: Angle, E: Multiplier
 			LD	A,D 			; A: Angle
-			CALL	sin
+			CALL	sin8
 			LD	L,A
 			PUSH	BC
 			RET
 
-_fastCos:		POP	BC
+_fastCos8:		POP	BC
 			POP	DE			; E: Angle, D: Multiplier
 			LD	A,D 
-			CALL	cos
+			CALL	cos8
 			LD	L,A
 			PUSH	BC
 			RET
@@ -218,63 +218,36 @@ _fastCos:		POP	BC
 ; A=COS(A)*E/256
 ; A=SIN(A)*E/256
 ; 
-cos:			ADD	A,64			; Cosine is a quarter revolution copy of the sin wave
-sin:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page boundary
+cos8:			ADD	A,64			; Cosine is a quarter revolution copy of the sin wave
+sin8:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page boundary
 			LD	L,A			; Index into the table
 			RES	7,L			; It's only a 128 byte table, so clear the top bit
 			LD 	D,(HL)			; Fetch the value from the sin table
 			RLCA				; Get the sign of the angle
 			LD	A,E			;  A: The multiplicand
-			JR	C,sin_neg_angle		; Skip to the case where the sin angle is negative
+			JR	C,sin8_neg_angle		; Skip to the case where the sin angle is negative
 ;
-sin_pos_angle:		AND	A			; The multiplicand is also positive
-			JP	P,sin_mul_pos		; So return a positive result
+sin8_pos_angle:		AND	A			; The multiplicand is also positive
+			JP	P,sin8_mul_pos		; So return a positive result
 			NEG				; Otherwise negate the multiplicand
-			JR	sin_mul_neg		; And return a negative result
+			JR	sin8_mul_neg		; And return a negative result
 ;	
-sin_neg_angle:		AND	A			; The multiplicand is positive
-			JP	P,sin_mul_neg 		; So return a negative result
+sin8_neg_angle:		AND	A			; The multiplicand is positive
+			JP	P,sin8_mul_neg 		; So return a negative result
 			NEG 
-			JR	sin_mul_pos		; Otherwise return a positive result
+			JR	sin8_mul_pos		; Otherwise return a positive result
 ;
-sin_mul_pos:		LD	E,A			; A = +(D*A/256)
+sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
 			MUL	D,E
 			LD	A,D 
 			RET 
 ;
-sin_mul_neg:		LD	E,A			; A = -(D*A/256)
+sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
 			MUL	D,E 
 			LD	A,D 
 			NEG
 			RET
 
-; Trig rotation
-; C = C*COS(A)-B*SIN(A)
-; B = C*SIN(A)+B*COS(A)
-;
-angle:			DB	0
-;
-rotate:			LD	(angle),A		; Store the angle for calculations
-			LD	E,B
-			CALL	sin			; A: B*SIN(A)
-			LD	(@M1+1),A 
-			LD	A,(angle)			
-			LD	E,C
-			CALL	cos			; A: C*COS(A)
-@M1:			SUB	A,0			; A: C*COS(A)-B*SIN(A)
-			LD	(@M3+1),A
-;
-			LD	A,(angle)
-			LD	E,B
-			CALL	cos			; A: B*COS(A)
-			LD	(@M1+2),A 
-			LD	A,(angle)			
-			LD	E,C
-			CALL	sin			; A: C*SIN(A)
-@M2:			ADD	A,0			; A: C*SIN(A)+B*COS(A)
-			LD	B,A 
-@M3:			LD	C,0
-			RET 
 
 ; extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee
 ; Calculates a * b / c, with the internal calculation done in 32-bits
