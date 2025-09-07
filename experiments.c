@@ -14,7 +14,8 @@
 extern int pd;
 extern uint8_t renderMode;
 extern Point16 point_t[64];
-extern Angle_3D camera;
+extern Angle_3D cam_theta;
+extern Point16_3D cam_pos;
 
 // ***************************************************************************************************************************************
 //  Sample routines
@@ -75,8 +76,8 @@ Point16 project3D(Point16_3D * pos, Point8_3D * r) {
 	//
 	int16_t z = pos->z + r->z;  
 	Point16 p = {
-		pos->x + fastMulDiv(r->x, pd, z) + 128, // r->x * pd / z
-		pos->y + fastMulDiv(r->y, pd, z) + 96,  // r->y * pd / z
+		fastMulDiv(pos->x + r->x, pd, z) + 128, // r->x * pd / z
+		fastMulDiv(pos->y + r->y, pd, z) + 96,  // r->y * pd / z
 	};
 	return p;
 }
@@ -154,26 +155,33 @@ void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
 	}
 }
 
-void drawModel(Model_3D * model, Object3D * o) {
+void drawObject(Object_3D * o) {
 	int i;
 
 	// Rotate the universe around the camera
 	//
-	Point16_3D u_pos = rotate16_3D(&o->pos, &camera);
+	Point16_3D u_pos = {
+		o->pos.x - cam_pos.x,
+		o->pos.y - cam_pos.y,
+		o->pos.z - cam_pos.z,
+	};
+	u_pos = rotate16_3D(&u_pos, &cam_theta);
 	Angle_3D u_ang = {
-		o->theta.x - camera.x,	// Why are these swapped round?
-		camera.y - o->theta.y,
-		camera.z - o->theta.z,
+		cam_theta.x - o->theta.x,
+		cam_theta.y - o->theta.y,
+		cam_theta.z - o->theta.z,
 	};
 
 	// Check if the ship is in our field of view, if so then draw it
 	// This might need fine-tuning for objects close up
 	//
-	if( abs(u_pos.x) >= u_pos.z/2 || abs(u_pos.y) >= u_pos.z/2 ) {
+	if(abs(u_pos.x) >= u_pos.z || abs(u_pos.y) >= u_pos.z ) {
 		zx_border(INK_RED);
 	}
 	else {
 		zx_border(INK_GREEN);
+
+		Model_3D * model = o->model;
 
 		// Translate the vertices in 3D space
 		//
