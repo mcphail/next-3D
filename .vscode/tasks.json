@@ -28,5 +28,12 @@
       "dependsOn": ["Build"],
       "problemMatcher": []
     },
+    {
+      "label": "Run in CSpect",
+      "type": "shell",
+      "command": "mono ~/Tools/CSpect/CSpect.exe -brk -zxnext -nextrom -exit -brk -w4 -basickeys -mouse ${workspaceFolder}/next-3D.nex",
+      "dependsOn": ["Build"],
+      "problemMatcher": []
+    },
   ]
 }
