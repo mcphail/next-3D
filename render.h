@@ -33,14 +33,14 @@ extern void setCPU(uint8 speed) __z88dk_fastcall;				// asm to set CPU speed.
 extern void initL2(void);                                           // asm to initialise Layer2 screen mode, addresses, banks etc.
 extern void swapL2(void);											// asm to swap the offscreen buffer in
 extern void clearL2(uint8 col) __z88dk_fastcall;					// asm to clear the offscreen buffer
-extern void PlotPixel8K(uint8_t xcoord, uint8_t ycoord, uint8 colour) __z88dk_callee;
-extern void lineL2(Point8 pt0, Point8 pt1, uint16 colour) __z88dk_callee;
-extern void triangleL2(Point8 pt0, Point8 pt1, Point8 pt2, uint16 colour) __z88dk_callee;
-extern void triangleL2F(Point8 pt0, Point8 pt1, Point8 pt2, uint16 colour) __z88dk_callee;
-extern void circleL2F(Point8 pt0, uint16 radius, uint16 colour) __z88dk_callee;
+extern void plotL2(uint8_t xcoord, uint8_t ycoord, uint8 colour) __z88dk_callee;
+extern void lineL2(Point8 pt0, Point8 pt1, uint8 colour) __z88dk_callee;
+extern void triangleL2(Point8 pt0, Point8 pt1, Point8 pt2, uint8 colour) __z88dk_callee;
+extern void triangleL2F(Point8 pt0, Point8 pt1, Point8 pt2, uint8 colour) __z88dk_callee;
+extern void circleL2F(Point8 pt0, uint16 radius, uint8 colour) __z88dk_callee;
 
 extern void lineT(Point8 pt0, Point8 pt1) __z88dk_callee;
-extern void drawShapeTable(uint8_t y, uint8_t h, uint16 colour) __z88dk_callee;
+extern void drawShapeTable(uint8_t y, uint8_t h, uint8 colour) __z88dk_callee;
 
 
 #endif 	//__RENDER_H__

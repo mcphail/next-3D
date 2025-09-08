@@ -90,15 +90,15 @@ _setCPU:		LD	A,L
 ; Initialises the Layer 2 Next screen mode into 256x192 256 colours in front of the ULA screen
 ; ============================================================================================
 PUBLIC _initL2
-_initL2:		LD BC, $123B		; L2 Access Port
-    			LD A, %00000010		; Bit 1: Enable
-    			OUT (C), A	
-			LD L, $12		; The initial visible screen (8K bank multiplier)
-			LD H, $18		; The initial offscreen buffer (8K bank multiplier)
-			LD (screen_banks), HL	; Initialise the paging register
-			LD A,L
-			SRL A 			; Divide by 2 for 16K bank multiplier
-			NEXTREG $12, A		; Display the visible screen 
+_initL2:		LD	BC,$123B		; L2 Access Port
+    			LD	A,%00000010		; Bit 1: Enable
+    			OUT	(C),A		
+			LD 	L,$12			; The initial visible screen (8K bank multiplier)
+			LD 	H,$18			; The initial offscreen buffer (8K bank multiplier)
+			LD 	(screen_banks),HL	; Initialise the paging register
+			LD	A,L	
+			SRL	A 			; Divide by 2 for 16K bank multiplier
+			NEXTREG $12, A			; Display the visible screen 
     			RET
 
 
@@ -106,13 +106,13 @@ _initL2:		LD BC, $123B		; L2 Access Port
 ; Swap the screen banks round and page the visible one in
 ;
 PUBLIC _swapL2
-_swapL2:		LD HL,(screen_banks)	; Swap the screen banks
-			LD A,H			; Get the current offscreen buffer 
-			LD H,L			; H: New offscreen buffer
-			LD L,A			; L: New visible buffer
-			LD (screen_banks), HL
-			SRL A 			; Divide by 2 for 16K bank multiplier
-			NEXTREG $12, A		; Set the current visible buffer
+_swapL2:		LD	HL,(screen_banks)	; Swap the screen banks
+			LD	A,H			; Get the current offscreen buffer 
+			LD	H,L			; H: New offscreen buffer
+			LD	L,A			; L: New visible buffer
+			LD	(screen_banks), HL	
+			SRL 	A 			; Divide by 2 for 16K bank multiplier
+			NEXTREG $12, A			; Set the current visible buffer
 			RET
 
 
@@ -126,6 +126,7 @@ _clearL2:		LD 	E, L			; Get the colour from HL
 ;===========================================================================
 ; E = colour
 ;===========================================================================
+
 clearL2:		LD      BC,$243B    		; Select NEXT register
 			LD	A,MMU_REGISTER_0
 			OUT     (C),A			; Read current bank register
@@ -171,166 +172,156 @@ get_pixel_address_y:	LD 	A,(screen_banks+1)
 			LD	H,A 
 			RET 
 
-; extern void PlotPixel8K(uint8_t xcoord, uint8_t ycoord, uint8_t colour) __z88dk_callee
+; extern void plotL2(uint8_t xcoord, uint8_t ycoord, uint8_t colour) __z88dk_callee
 ; Generic plotting routine that can be called from C
 ; ========================================================================================
-PUBLIC _PlotPixel8K, PlotPixel8K
-_PlotPixel8K:
-    	
-   	pop hl          ; Loads the stack value (sp) into hl for restoring later and moves variables into top of stack
-   	pop de          ; Loads next stack entry into e = x, d = y
-   	dec sp          ; Moves the stack up 1 byte, discarding a value and getting us to the third param, colour
-   	ex (sp), hl     ; Restores the original value of the stack from hl, and puts the colour on h from the stack 
-   	ex de, hl       ; Put y and x into hl and the colour into d
-    	ld iyl, d       ; Puts colour into iyl in order to free d for the drawline
+PUBLIC _plotL2, plotL2
 
-PlotPixel8K:
+_plotL2:		POP	HL			; Loads the stack value (sp) into hl for restoring later and moves variables into top of stack
+   			POP	DE			; Loads next stack entry into e = x, d = y
+   			DEC	SP			; Moves the stack up 1 byte, discarding a value and getting us to the third param, colour
+   			EX	(SP), HL		; Restores the original value of the stack from hl, and puts the colour on h from the stack 
+   			EX 	DE, HL      		; Put y and x into hl and the colour into d
+    			LD 	IYL, D       		; Puts colour into iyl in order to free d for the drawline
+
 ;===========================================================================
 ;	HL = YX, IYL = colour -- IMPORTANT: DESTROYS H (and A)
 ;===========================================================================
 
-	LD A,(screen_banks+1)		; Current offscreen bank
-	LD (PlotPixel8K_B+1),A		; Self-mod the plot
+plotL2:			LD	A,(screen_banks+1)	; Current offscreen bank
+			LD	(plotL2_B+1),A		; Self-mod the plot
 ;
-	ld a, h 			; 0-31 per bank (8k)
-	and %11100000			; 3 bits for the 8 banks we can use
-	swapnib
-	rrca
-PlotPixel8K_B:
-	add a, 0			; 8L bank for L2
-	nextreg MMU_REGISTER_0,a  	; Set bank to write into
-	ld a, h
-	and %00011111 		        ; This is our y (0-31)
-	ld h, a 			; Puts y it back in h
-    	ld a, iyl                   	; Loads colour from iyl into a
-	ld (hl), a			; Draw our pixel
-	ret
+			LD 	A,H 			; 0-31 per bank (8k)
+			AND 	%11100000		; 3 bits for the 8 banks we can use
+			SWAPNIB
+			RRCA
+plotL2_B:		ADD 	A,0			; 8L bank for L2
+			NEXTREG MMU_REGISTER_0,A  	; Set bank to write into
+			LD 	A,H
+			AND 	%00011111 	        ; This is our y (0-31)
+			LD 	H,A 			; Puts y it back in h
+    			LD 	A,IYL			; Loads colour from iyl into a
+			LD 	(HL),A			; Draw our pixel
+			RET
 
-
-PlotPixel8KCol:
 ;===========================================================================
 ; This has no C calls and must be called from assembly!!!
 ;
 ;	HL = YX -- IMPORTANT: DESTROYS H (and A)
 ; We preset the colour and bank so we can use it directly
-; by setting plotPixel8KColour and plotPixel8KBank with self-modifying code
+; by setting plotL2asm_colour and plotL2asm_bank with self-modifying code
 ;===========================================================================
 
-	ld a, h 			; 0-31 per bank (8k)
-	and %11100000			; 3 bits for the 8 banks we can use
-	swapnib
-	rrca
-plotPixel8KBank:			; Set the bank to write into (self-modded)
-	add a, 0			; 8L bank for L2
-	nextreg MMU_REGISTER_0,a  	; Set bank to write into
-	ld a, h
-	and %00011111 		        ; This is our y (0-31)
-	ld h, a 			; Puts y it back in h
-plotPixel8KColour:	
-    	ld (hl), 0			; Draw our pixel (colour is going to be set by automodifying the code)
-	ret    
+plotL2asm:		LD	A,H 			; 0-31 per bank (8k)
+			AND	%11100000		; 3 bits for the 8 banks we can use
+			SWAPNIB
+			RRCA				
+plotL2asm_bank:		ADD 	A,0			; 8L bank for L2 (self-modded)
+			NEXTREG MMU_REGISTER_0,A  	; Set bank to write into
+			LD	A,H
+			AND	%00011111		; This is our y (0-31)
+			LD	H,A 			; Puts y it back in h
+plotL2asm_colour:	LD 	(HL),0			; Draw our pixel (colour is going to be set by automodifying the code)
+			RET    
 
 
-; extern void lineL2(Point8 pt0, Point8 pt1, uint16 colour) __z88dk_callee
+; extern void lineL2(Point8 pt0, Point8 pt1, uintt8 colour) __z88dk_callee
 ; A Bresenham's line drawing catering for every type of line and direction, inspired by a bunch of Speccy algos online
 ; ====================================================================================================================
 ; Credits to Andy Dansby (https://github.com/andydansby/bresenham_torture_test/blob/main/bresenham_line3.asm)
 ; Credits to Dean Belfield (http://www.breakintoprogram.co.uk)
 ; Credits to Gabrield Gambetta's great book 'Computer Graphics From Scratch'
 ; Credits to Mike Flash Ware for helping optimise it!
+
 PUBLIC _lineL2, lineL2
 
-_lineL2:
-; or, even better, set the colour in AF, and store that in the PlotPixel8KCol
-    pop bc          ; Loads the stack value (sp) into bc for restoring later and moves variables into top of stack
-    pop hl          ; Loads y1x1 into hl
-    pop de          ; Loads y2x2 into de
-    pop iy          ; Use iyl for the colour
-    push bc         ; Restores the stack value from bc
+_lineL2:		POP	BC          		; Loads the stack value (sp) into bc for restoring later and moves variables into top of stack
+    			POP	HL          		; Loads y1x1 into hl
+    			POP	DE          		; Loads y2x2 into de
+    			DEC	SP
+    			POP	AF          		; Loads colour into A
+    			PUSH	BC         		; Restores the stack value from bc
+    			LD	(plotL2asm_colour+1),A	; Store the colour in plotL2asm through self-modifying the code
 
-lineL2:
+
 ;=========================================================================
-;   HL = Y1X1, DE = Y2X2, IYL = colour
+;   HL = Y1X1, DE = Y2X2, (plotL2asm_colour + 1) = colour
 ;=========================================================================
-    ld a, iyl           ; Loads colour into a
-    ld (plotPixel8KColour + 1), a ; Store the colour in the plotPixel8KColour through self-modifying the code
-    ld a,(screen_banks+1)
-    ld (plotPixel8KBank+1), a
-    ld a, d             ; Loads y2 into a. We'll see if we need to swap coords to draw downwards
-    cp h                ; Compares y1 with y2
-    jr nc, draw_line_1  ; No need to swap the coords, jump
-    ex de, hl           ; Swapped coordinates to ensure y2 > y1, so we draw downwards
-draw_line_1:
-    ld a, d             ; Loads y2 into a
-    sub h               ; y2 - y1
-    ld b, a             ; b becomes deltay
-    ld a, e             ; Loads x2 into a
-    sub l               ; x2 - x1, a now contains deltax
-    jr c, draw_line_x1  ; If carry is set (x2 - x1 is negative) we are drawing right to left
-    ld c, a             ; c becomes deltax
-    ld a, 0x2C          ; Replaces original code above to increase x1 as we're drawing left to right. 0x2C is inc l, and we modify the code to have this
-    jr draw_line_x2     ; Skips next part of the code
-draw_line_x1:
-    neg                 ; deltax in a is negative, make it positive
-    ld c, a             ; c becomes deltax
-    ld a, 0x2D          ; Replaces original code above to decrease x1 as we're drawing right to left. Self-modifying, puts dec l into the code
-draw_line_x2:
-    ld (draw_line_q1_m2), a ; a contains either inc l or dec l, and modifies the code accordingly
-    ld (draw_line_q2_m2), a ; Same as above for verticalish lines
-    ld a, b             ; We'll check if deltay (b) and deltax (ixl) are 0
-    or c                ; Checking...
-    jp z, PlotPixel8KCol    ; When reaching zero, we're done, draw last pixel
-    ; STATUS: b = deltay | c = deltax | d is free
-draw_line_q:            ; Find out what kind of diagonal we're dealing with, if horizontalish or verticalish
-    ld a, b             ; Loads deltay into a
-    cp c                ; Compares with deltax
-    jr nc, draw_line_q2 ; If no cary, line is verticalish (or perfectly diagonal)
-draw_line_q1:
-    ld a, c             ; a becomes deltax
-    ld (draw_line_q1_m1 + 1), a ; Self-modifying code: loads deltax onto the value of the opcode, in this case the loop
-    ld c, b             ; c becomes deltay
-    ld b, a             ; b becomes deltax for the loop counter
-    ld e, b             ; e becomes deltax temporarily...
-    srl e               ; now e = deltax / 2 -- aka Bresenham's error
-; loop uses d as temp, hl bc e
-draw_line_q1_l:
-    ld d, h             ; OPTIMISE? Backs up h into d
-    call PlotPixel8KCol ; PlotPixel8KCol destroys h, so we need to preserve it
-    ld h, d             ; OPTIMISE? Restores h from d
-    ld a, e             ; Loads Bresenham's error into a
-    sub c               ; error - deltay
-    ld e, a             ; Stores new error value into e
-    jr nc, draw_line_q1_m2  ; If there's no cary, jump
-draw_line_q1_m1:
-    add a, 0            ; This 0 here will be modified by the self-modifying code above e = e + deltax
-    ld e, a             ; Stores new error e = e + deltax back into e
-    inc h               ; Increases line slope by adding to y1
-draw_line_q1_m2:        ; This either increases or decreases l by the self modified code that targeted this
-    inc l               ; Self-modified code: It will be either inc l or dec l depending on direction of horizontal drawing
-draw_line_q1_s:         ; Tests to loop and keep drawing line
-    djnz draw_line_q1_l ; Loops until line is drawn and zero flag set
-    jp PlotPixel8KCol   ; This is the last pixel, draws and quits
-draw_line_q2:           ; Here the line is verticalish or perfectly diagonal
-    ld (draw_line_q2_m1 + 1), a ; Self-modifies the code to store deltay in the loop
-    ld e, b             ; e = deltay
-    srl e               ; e = deltay / 2 (Bressenham's error)
-; loop uses d as temp, hl bc e
-draw_line_q2_l:         ; The main drawline loop for this case
-    ld d, h             ; OPTIMISE? Backs up h into d
-    call PlotPixel8KCol ; PlotPixel8KCol destroys h, so we need to preserve it
-    ld h, d             ; OPTIMISE? Restores h from d
-    ld a, e             ; Adds deltax to the error
-    sub c               ; As above
-    jr nc, draw_line_q2_s   ; If we don't get a carry, skip the next part
-draw_line_q2_m1:
-    add a, 0            ; This is a target of self-modified code: e = e + deltax
-draw_line_q2_m2:
-    inc l               ; Self-modified code: It will be either inc l or dec l depending on direction of horizontal drawing
-draw_line_q2_s:
-    ld e, a             ; Restores the error value back in
-    inc h               ; Increases y1
-    djnz draw_line_q2_l ; While zero flag not set, loop back to main loop
-    jp PlotPixel8KCol   ; This is the last pixel drawn, all done
+lineL2:    		LD	A,(screen_banks+1)
+    			LD	(plotL2asm_bank+1),A
+    			LD	A,D             	; Loads y2 into a. We'll see if we need to swap coords to draw downwards
+    			CP 	H               	; Compares y1 with y2
+    			JR 	NC,lineL2_1  		; No need to swap the coords, jump
+    			EX 	DE,HL           	; Swapped coordinates to ensure y2 > y1, so we draw downwards
+;
+lineL2_1:		LD	A,D             	; Loads y2 into a
+    			SUB	H               	; y2 - y1
+    			LD	B,A             	; b becomes deltay
+    			LD	A,E             	; Loads x2 into a
+    			SUB	L               	; x2 - x1, a now contains deltax
+    			JR	C,lineL2_x1  		; If carry is set (x2 - x1 is negative) we are drawing right to left
+    			LD	C,A             	; c becomes deltax
+    			LD	A,0x2C          	; Replaces original code above to increase x1 as we're drawing left to right. 0x2C is inc l, and we modify the code to have this
+    			JR	lineL2_x2     		; Skips next part of the code
+lineL2_x1:		NEG                 		; deltax in a is negative, make it positive
+    			LD	C,A             	; c becomes deltax
+    			LD	A,0x2D          	; Replaces original code above to decrease x1 as we're drawing right to left. Self-modifying, puts dec l into the code
+lineL2_x2:
+    			LD	(lineL2_q1_m2), a	; a contains either inc l or dec l, and modifies the code accordingly
+    			LD	(lineL2_q2_m2), a	; Same as above for verticalish lines
+    			LD	A,B             	; We'll check if deltay (b) and deltax (ixl) are 0
+    			OR	C                	; Checking...
+    			JP	Z, plotL2asm		; When reaching zero, we're done, draw last pixel
+;
+; STATUS: b = deltay | c = deltax | d is free
+; Find out what kind of diagonal we're dealing with, if horizontalish or verticalish
+;
+lineL2_q:         	LD	A,B             	; Loads deltay into a
+    			CP 	C                	; Compares with deltax
+    			JR	NC,lineL2_q2 		; If no cary, line is verticalish (or perfectly diagonal)			
+lineL2_q1:		LD	A,C             	; a becomes deltax
+    			LD	(lineL2_q1_m1+1), a 	; Self-modifying code: loads deltax onto the value of the opcode, in this case the loop
+    			LD	C,B             	; c becomes deltay
+    			LD	B,A             	; b becomes deltax for the loop counter
+    			LD	E,B             	; e becomes deltax temporarily...
+    			SRL	E               	; now e = deltax / 2 -- aka Bresenham's error
+;
+; Loop uses d as temp, hl bc e
+;
+lineL2_q1_l:		LD	D,H             	; OPTIMISE? Backs up h into d
+    			CALL	plotL2asm 		; plotL2asm destroys h, so we need to preserve it
+    			LD 	H,D            		; OPTIMISE? Restores h from d
+    			LD	A,E             	; Loads Bresenham's error into a
+    			SUB	C               	; error - deltay
+    			LD	E,A            		; Stores new error value into e
+    			JR	NC,lineL2_q1_m2  	; If there's no cary, jump
+lineL2_q1_m1:		ADD	A,0            		; This 0 here will be modified by the self-modifying code above e = e + deltax
+    			LD	E,A             	; Stores new error e = e + deltax back into e
+    			INC	H               	; Increases line slope by adding to y1
+lineL2_q1_m2:       	INC	L               	; Self-modified code: It will be either inc l or dec l depending on direction of horizontal drawing
+lineL2_q1_s:         	DJNZ	lineL2_q1_l 		; Loops until line is drawn and zero flag set
+    			JP	plotL2asm  	 	; This is the last pixel, draws and quits
+;
+; Here the line is verticalish or perfectly diagonal
+;
+lineL2_q2:           	LD	(lineL2_q2_m1+1),A 	; Self-modifies the code to store deltay in the loop
+    			LD	E,B             	; e = deltay
+    			SRL	E               	; e = deltay / 2 (Bressenham's error)
+;
+; Loop uses d as temp, hl bc e	
+;
+lineL2_q2_l:         	LD	D,H             	; OPTIMISE? Backs up h into d
+    			CALL 	plotL2asm 		; plotL2asm destroys h, so we need to preserve it
+    			LD	H,D             	; OPTIMISE? Restores h from d
+    			LD	A,E             	; Adds deltax to the error
+    			SUB	C               	; As above
+    			JR	NC,lineL2_q2_s   	; If we don't get a carry, skip the next part
+lineL2_q2_m1:		ADD	A,0            		; This is a target of self-modified code: e = e + deltax
+lineL2_q2_m2:		INC	L               	; Self-modified code: It will be either inc l or dec l depending on direction of horizontal drawing
+lineL2_q2_s:		LD	E,A             	; Restores the error value back in
+    			INC	H               	; Increases y1
+    			DJNZ	lineL2_q2_l 		; While zero flag not set, loop back to main loop
+    			JP 	plotL2asm   		; This is the last pixel drawn, all done
 
 
 ;extern void triangleL2(Point8 pt0, Point8 pt1, Point8 pt2, uint8_t colour) __z88dk_callee;
@@ -348,12 +339,12 @@ _triangleL2:		POP	BC
 			LD	(shape_buffer+$08), HL	; 2nd point of line 2
 			LD	(shape_buffer+$0B), HL	; 1st point of line 3
 			LD	(shape_buffer+$0D), DE	; 2nd point of line 3
-			POP	HL			; Pops colour value into L
 			LD	A,1			; Set all line flags for draw as this is the non-
 			LD	(shape_buffer+$00),A	; clipped version of the line routine
 			LD	(shape_buffer+$05),A
 			LD	(shape_buffer+$0A),A
-			LD	A,L
+			DEC	SP
+			POP	AF			; Pops colour value into A
 			PUSH	BC
 
 ; Draw a wireframe triangle
@@ -363,7 +354,7 @@ _triangleL2:		POP	BC
 ; - x1y1: First point (two bytes)
 ; - x2y2: Second point (two bytes)
 ;
-triangleL2:		LD	IYL,A			; Put the colour into IYL
+triangleL2:		LD 	(plotL2asm_colour+1),A
 			LD	A,(shape_buffer+$00)
 			OR	A
 			JR	Z,@M1
@@ -399,15 +390,14 @@ _triangleL2F:		POP 	BC			; Pops SP into BC
 			LD	(shape_buffer+$08), HL	; 2nd point of line 2
 			LD	(shape_buffer+$0B), HL	; 1st point of line 3
 			LD	(shape_buffer+$0D), DE	; 2nd point of line 3
-			POP	HL			; Pops colour value into L
 			LD	A,1			; Set all line flags for draw as this is the non-
 			LD	(shape_buffer+$00),A	; clipped version of the line routine
 			LD	(shape_buffer+$05),A
 			LD	(shape_buffer+$0A),A
-;
-			LD A,L
-			PUSH BC				; Restore the stack
-			LD IY,shape_buffer
+			DEC	SP
+			POP	AF			; Pops colour value into A
+			PUSH 	BC			; Restore the stack
+			LD 	IY,shape_buffer
 
 ; Draw a filled triangle
 ; IY: Pointer to 6 bytes worth of coordinate data
@@ -440,21 +430,21 @@ triangleL2F_M1:		LD A,0				; Get the colour
 			RET Z
 			JP drawShapeTable		; Only draw if not zero
 
-; extern void circleL2F(Point8 pt0, uint16 radius, uint16 colour) __z88dk_callee;
+; extern void circleL2F(Point8 pt0, uint16 radius, uint8 colour) __z88dk_callee;
 ; A filled circle drawing routine
 ;=================================================================================================
 PUBLIC _circleL2F, circleL2F
 
-_circleL2F:		POP IY				; Pops SP into IY
-			POP BC				; The origin
-			POP HL 				; The radius
-			LD D,L 
-			POP HL				; The colour
-			LD A,L 
-			PUSH IY				; Restore the stack
-			PUSH IX
-			CALL circleL2F
-			POP IX 
+_circleL2F:		POP 	IY			; Pops SP into IY
+			POP 	BC			; The origin
+			POP 	HL 			; The radius
+			LD 	D,L 
+			DEC	SP
+			POP	AF			; Pops colour value into A
+			PUSH 	IY			; Restore the stack
+			PUSH 	IX
+			CALL 	circleL2F
+			POP 	IX 
 			RET
 
 ; Draw a filled circle
@@ -491,10 +481,10 @@ circleL2F:		PUSH AF				; Store the colour
 ;
 PUBLIC _lineT, lineT
 
-_lineT:			POP HL
-			POP BC          ; Loads y1x1 into BC
-			POP DE          ; Loads y2x2 into DE
-			PUSH HL
+_lineT:			POP 	HL
+			POP 	BC         		; Loads y1x1 into BC
+			POP 	DE          		; Loads y2x2 into DE
+			PUSH 	HL
 
 ; Draw a line into the shape table
 ; B = Y pixel position 1
@@ -663,15 +653,15 @@ circleT:		AND A
 			INC IXL				; X=X+1
 			JR @L1
 
-; extern void drawShapeTable(uint8_t y, uint8_t h, uint16 colour) __z88dk_callee
+; extern void drawShapeTable(uint8_t y, uint8_t h, uint8 colour) __z88dk_callee
 ;
 PUBLIC _drawShapeTable, drawShapeTable
 
 _drawShapeTable:	POP	IY
 			POP	BC			; C: y, B: h 
-			POP	DE			; A: colour
-			LD	A,E
-			LD	L,C 
+			DEC	SP			; Correct the stack address for single byte
+			POP	AF			; A: colour
+			LD	L,C
 			PUSH	IY
 
 ; Draw the contents of the shape tables
