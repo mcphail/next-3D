@@ -20,6 +20,8 @@ extern Point16_3D cam_pos;
 //  Sample routines
 // ***************************************************************************************************************************************
 
+// Rotate points (8-bit space)
+//
 Point8_3D rotate8_3D(Point8_3D * p, Angle_3D * theta) {
 	Point8_3D r1 = rotate8_X(*p, theta->x);
 	Point8_3D r2 = rotate8_Y(r1, theta->y);
@@ -27,11 +29,19 @@ Point8_3D rotate8_3D(Point8_3D * p, Angle_3D * theta) {
 	return r3;
 }
 
+// Rotate points (16-bit space)
+//
 Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta) {
 	Point16_3D r1 = rotate16_X(*p, theta->x);
 	Point16_3D r2 = rotate16_Y(r1, theta->y);
 	Point16_3D r3 = rotate16_Z(r2, theta->z);
 	return r3;
+}
+
+// Calculate whether a face is visible by winding order
+//
+uint8_t isVisible(Point16 p1, Point16 p2, Point16 p3) {
+	return p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0;
 }
 
 // Project an object in 3D space with perspective
@@ -144,7 +154,7 @@ void drawObject(Object_3D * o) {
 	// Check if the ship is in our field of view, if so then draw it
 	// This might need fine-tuning for objects close up
 	//
-	if(abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
+	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
 		Model_3D * model = o->model;
 
 		// Translate the vertices in 3D space
@@ -162,7 +172,7 @@ void drawObject(Object_3D * o) {
 			Point16 p1 = point_t[v->p1];
 			Point16 p2 = point_t[v->p2];
 			Point16 p3 = point_t[v->p3];
-			if(p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0) {
+			if(isVisible(p1,p2,p3)) {
 				if(renderMode == 1) {
 //					testTClipped(p1,p2,p3,v->colour);
 					triangleL2CF(p1,p2,p3,v->colour);
