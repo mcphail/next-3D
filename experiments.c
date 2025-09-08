@@ -27,33 +27,6 @@ Point8_3D rotate8_3D(Point8_3D * p, Angle_3D * theta) {
 	return r3;
 }
 
-Point16_3D rotate16_X(Point16_3D p, uint8_t a) {
-	Point16_3D r = {
-		p.x,
-		fastCos16(a, p.y) - fastSin16(a, p.z),
-		fastSin16(a, p.y) + fastCos16(a, p.z),
-	};
-	return r;
-}
-
-Point16_3D rotate16_Y(Point16_3D p, uint8_t a) {
-	Point16_3D r = {
-		fastCos16(a, p.x) - fastSin16(a, p.z),
-		p.y,
-		fastSin16(a, p.x) + fastCos16(a, p.z),
-	};
-	return r;
-}
-
-Point16_3D rotate16_Z(Point16_3D p, uint8_t a) {
-	Point16_3D r = {
-		fastCos16(a, p.x) - fastSin16(a, p.y),
-		fastSin16(a, p.x) + fastCos16(a, p.y),
-		p.z,
-	};
-	return r;
-}
-
 Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta) {
 	Point16_3D r1 = rotate16_X(*p, theta->x);
 	Point16_3D r2 = rotate16_Y(r1, theta->y);
@@ -171,12 +144,7 @@ void drawObject(Object_3D * o) {
 	// Check if the ship is in our field of view, if so then draw it
 	// This might need fine-tuning for objects close up
 	//
-	if(abs(u_pos.x) >= u_pos.z || abs(u_pos.y) >= u_pos.z ) {
-		zx_border(INK_RED);
-	}
-	else {
-		zx_border(INK_GREEN);
-
+	if(abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
 		Model_3D * model = o->model;
 
 		// Translate the vertices in 3D space
