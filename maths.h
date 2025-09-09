@@ -42,6 +42,7 @@ extern Point8_3D rotate8_Z(Point8_3D p, uint8_t a) __z88dk_callee;
 extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
 extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
 
+extern Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta) __z88dk_callee;
 extern Point16_3D rotate16_X(Point16_3D p, uint8_t a) __z88dk_callee;
 extern Point16_3D rotate16_Y(Point16_3D p, uint8_t a) __z88dk_callee;
 extern Point16_3D rotate16_Z(Point16_3D p, uint8_t a) __z88dk_callee;

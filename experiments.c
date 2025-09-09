@@ -21,15 +21,6 @@ extern Point16_3D cam_pos;
 //  Sample routines
 // ***************************************************************************************************************************************
 
-// Rotate points (16-bit space)
-//
-Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta) {
-	Point16_3D r1 = rotate16_X( p, theta.x);
-	Point16_3D r2 = rotate16_Y(r1, theta.y);
-	Point16_3D r3 = rotate16_Z(r2, theta.z);
-	return r3;
-}
-
 // Project an object in 3D space with perspective
 // Parameters:
 // - pos: The position of the object in space

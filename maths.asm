@@ -314,6 +314,97 @@ sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
 			RET
 
 
+; extern Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta) __z88dk_callee;
+; This is an optimised version of this C routine
+;
+; Point16_3D r1 = rotate16_X( p, theta.x);
+; Point16_3D r2 = rotate16_Y(r1, theta.y);
+; Point16_3D r3 = rotate16_Z(r2, theta.z);
+; return r3;
+;
+PUBLIC _rotate16_3D
+
+_rotate16_3D:		POP	HL		; Pop the return address
+			POP	IY		; Return data address
+			POP	BC		; BC: p.x
+			LD	(IY+0),C
+			LD	(IY+1),B
+			POP	BC		; BC: p.y
+			LD	(IY+2),C
+			LD	(IY+3),B
+			POP	BC		; BC: p.z
+			LD	(IY+4),C
+			LD	(IY+5),B
+			POP	DE		; E: theta.x, D: theta.y
+			DEC	SP
+			POP	AF		; A: theta.z
+			PUSH	HL		; Stack the return address
+;
+			PUSH	AF		; Stack theta.z
+;
+; Do rotate16_X
+;	
+			PUSH	DE		; Stack theta.x, theta.y		
+			LD	A,E		;  A: theta.x
+			LD	C,(IY+2)	; BC: p.y
+			LD	B,(IY+3)
+			LD	E,(IY+4)
+			LD	D,(IY+5)	; DE: p.z
+			PUSH	AF
+			PUSH	BC
+			PUSH	DE
+			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
+			LD	(IY+2),L
+			LD	(IY+3),H 
+			POP	DE
+			POP	BC
+			POP	AF
+			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
+			LD	(IY+4),L
+			LD	(IY+5),H
+			POP	DE		; Restore theta.x, theta.y
+;
+; Do rotate16_Y
+;
+			LD	A,D		;  A: theta.x
+			LD	C,(IY+0)	; BC: p.x
+			LD	B,(IY+1)
+			LD	E,(IY+4)
+			LD	D,(IY+5)	; DE: p.z
+			PUSH	AF
+			PUSH	BC
+			PUSH	DE
+			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
+			LD	(IY+0),L
+			LD	(IY+1),H 
+			POP	DE
+			POP	BC
+			POP	AF
+			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
+			LD	(IY+4),L
+			LD	(IY+5),H
+;
+; Do rotate16_Z
+;
+			POP	AF		;  A: theta.z
+			LD	C,(IY+0)	; BC: p.x
+			LD	B,(IY+1)
+			LD	E,(IY+2)
+			LD	D,(IY+3)	; DE: p.y
+			PUSH	AF
+			PUSH	BC
+			PUSH	DE
+			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
+			LD	(IY+0),L
+			LD	(IY+1),H 
+			POP	DE
+			POP	BC
+			POP	AF
+			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
+			LD	(IY+2),L
+			LD	(IY+3),H
+			RET
+
 ; extern Point16_3D rotate16_X(Point16_3D p, uint8_t a);
 ; This is an optimised version of this C routine
 ;
