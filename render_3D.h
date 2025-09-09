@@ -2,6 +2,9 @@
 #ifndef __RENDER_3D_H__
 #define __RENDER_3D_H__
 
+#define MAX_POINTS	64				// Maximum points per shape
+#define MAX_OBJECTS 16				// Maximum number of objects in the universe
+
 // Struct containing a single 3D objects model data
 //
 typedef struct SModel_3D {           

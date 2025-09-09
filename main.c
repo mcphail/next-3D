@@ -43,9 +43,6 @@
 // Global data
 // ***************************************************************************************************************************************
 
-#define MAX_POINTS	64				// Maximum points per shape
-#define MAX_OBJECTS 16				// Maximum number of objects in the universe
-
 const int pd = 256;					// The perspective distance
 
 uint8_t	renderMode = 0;				// 0: Wireframe, 1: Filled
