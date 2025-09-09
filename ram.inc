@@ -4,8 +4,9 @@
 ;
 ; ******************************************************************************************************************************
 
-		PUBLIC Scratchpad
-		PUBLIC sin_table
+		PUBLIC	Scratchpad
+		PUBLIC	sin_table
+		PUBLIC	R0,R1,R2,R3,R4,R5,R6,R7
 
 Scratchpad:	DS 512		; Used by the fast filled shape routines
 
@@ -27,3 +28,15 @@ sin_table:	DB 0x00, 0x06, 0x0C, 0x12, 0x18, 0x1F, 0x25, 0x2B
 		DB 0x8D, 0x88, 0x83, 0x7D, 0x78, 0x72, 0x6D, 0x67
 		DB 0x61, 0x5B, 0x55, 0x4F, 0x4A, 0x44, 0x3D, 0x37
 		DB 0x31, 0x2B, 0x25, 0x1F, 0x18, 0x12, 0x0C, 0x06
+
+; Pseudo registers
+;
+R0:		DW	0
+R1:		DW	0
+R2:		DW	0
+R3:		DW	0
+R4:		DW	0
+R5:		DW	0
+R6:		DW	0
+R7:		DW	0
+
