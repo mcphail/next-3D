@@ -51,4 +51,6 @@ extern int16_t fastCos16(uint8_t a, int16_t m);
 
 extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 
+extern uint8_t windingOrder(Point16 p1, Point16 p2, Point16 p3) __z88dk_callee;
+
 #endif 	//__MATHS_H__

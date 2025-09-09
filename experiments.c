@@ -29,12 +29,6 @@ Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta) {
 	return r3;
 }
 
-// Calculate whether a face is visible by winding order
-//
-uint8_t isVisible(Point16 p1, Point16 p2, Point16 p3) {
-	return p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0;
-}
-
 // Project an object in 3D space with perspective
 // Parameters:
 // - pos: The position of the object in space
@@ -163,7 +157,7 @@ void drawObject(Object_3D * o) {
 			Point16 p1 = point_t[v->p1];
 			Point16 p2 = point_t[v->p2];
 			Point16 p3 = point_t[v->p3];
-			if(isVisible(p1,p2,p3)) {
+			if(windingOrder(p1,p2,p3)) {
 				if(renderMode == 1) {
 //					testTClipped(p1,p2,p3,v->colour);
 					triangleL2CF(p1,p2,p3,v->colour);
