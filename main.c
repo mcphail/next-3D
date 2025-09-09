@@ -25,6 +25,7 @@
 #include "render.h"
 #include "clipping.h"
 #include "maths.h"
+#include "render_3D.h"
 #include "experiments.h"		// Work-in-progress stuff
 
 // ***************************************************************************************************************************************
@@ -144,7 +145,7 @@ void main(void)
 
 		for(int i=0; i<MAX_OBJECTS; i++) {
 			if(object[i].flags) {
-				drawObject(&object[i]);
+				drawObjectC(&object[i]);
 				if(object[i].move) {
 					object[i].move(i);
 				}

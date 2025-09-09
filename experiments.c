@@ -8,6 +8,7 @@
 #include "render.h"
 #include "clipping.h"
 #include "maths.h"
+#include "render_3D.h"
 #include "experiments.h"
 
 extern int pd;
@@ -119,8 +120,41 @@ void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
 	}
 }
 
-void drawObject(Object_3D * o) {
+void rotateModelC(Point16_3D p, Angle_3D a, Model_3D * m) {
 	int i;
+
+	// Translate the vertices in 3D space
+	//
+	for(i=0; i<m->numVertices; i++) {
+		Point8_3D v = (*m->vertices)[i];
+		Point8_3D r = rotate8_3D(v, a);
+		point_t[i] = project3D(&p, &r);
+	}
+}
+
+void renderModelC(Model_3D * m) {
+	int	 i;
+
+	// Draw the faces
+	//
+	for(i=0; i<m->numFaces; i++) {
+		Vertice_3D * v = &(*m->faces)[i];
+		Point16 p1 = point_t[v->p1];
+		Point16 p2 = point_t[v->p2];
+		Point16 p3 = point_t[v->p3];
+		if(windingOrder(p1,p2,p3)) {
+			if(renderMode == 1) {
+//					testTClipped(p1,p2,p3,v->colour);
+				triangleL2CF(p1,p2,p3,v->colour);
+			}
+			else {
+				triangleL2C(p1,p2,p3,0xFF);
+			}
+		}
+	}
+}
+
+void drawObjectC(Object_3D * o) {
 
 	// Rotate the universe around the camera
 	//
@@ -140,32 +174,7 @@ void drawObject(Object_3D * o) {
 	// This might need fine-tuning for objects close up
 	//
 	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
-		Model_3D * model = o->model;
-
-		// Translate the vertices in 3D space
-		//
-		for(i=0; i<model->numVertices; i++) {
-			Point8_3D v = (*model->vertices)[i];
-			Point8_3D r = rotate8_3D(v, u_ang);
-			point_t[i] = project3D(&u_pos, &r);
-		}
-
-		// Draw the faces
-		//
-		for(i=0; i<model->numFaces; i++) {
-			Vertice_3D * v = &(*model->faces)[i];
-			Point16 p1 = point_t[v->p1];
-			Point16 p2 = point_t[v->p2];
-			Point16 p3 = point_t[v->p3];
-			if(windingOrder(p1,p2,p3)) {
-				if(renderMode == 1) {
-//					testTClipped(p1,p2,p3,v->colour);
-					triangleL2CF(p1,p2,p3,v->colour);
-				}
-				else {
-					triangleL2C(p1,p2,p3,0xFF);
-				}
-			}
-		}
+		rotateModelC(u_pos, u_ang, o->model);
+		renderModelC(o->model);
 	}
 }
