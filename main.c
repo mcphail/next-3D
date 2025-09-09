@@ -77,18 +77,19 @@ void main(void)
 	zx_border(INK_BLACK);
 
 	int i = 0;
+	int v = 0;
 	
 	Point16_3D pos = { 1000, 0, pd*15 };
 	Angle_3D theta = { 0,0,0 };
 	object[i].flags=1;
-	object[i].move = &rotate;
+	object[i].move = NULL;
 	object[i].model = &cube_m;
 	object[i].theta = theta;
 	object[i++].pos = pos;
 
 	pos.x = -1000;
 	object[i].flags=1;
-	object[i].move = &rotate;
+	object[i].move = NULL;
 	object[i].model = &cube_m;
 	object[i].theta = theta;
 	object[i++].pos = pos;
@@ -97,7 +98,7 @@ void main(void)
 	pos.z = pd * 1.5;
 	object[i].flags=1;
 	object[i].move = &rotate;
-	object[i].model = &cube_m;
+	object[i].model = &cobra_m;
 	object[i].theta = theta;
 	object[i++].pos = pos;
 
@@ -111,6 +112,25 @@ void main(void)
 		if(Keys[VK_A])	cam_theta.x += 1;
 		if(Keys[VK_O])	cam_theta.y -= 1;	// Rotate camera around Y axis (axis is vertical on screen)
 		if(Keys[VK_P])	cam_theta.y += 1;
+		
+		if(Keys[VK_S])	v = 0;
+		if(Keys[VK_W])	{					
+			if(v < 80) v+=8;				
+		}
+		else {
+			if (v > 0) v--;
+		}
+
+		Point16_3D sp = { 0, 0, v/4 };
+		Angle_3D dr = {
+			-cam_theta.x,
+			-cam_theta.y,
+			-cam_theta.z,
+		};
+		Point16_3D zv = rotate16_3D(&sp, &dr);
+		cam_pos.x += zv.x;					
+		cam_pos.y += zv.y;					
+		cam_pos.z += zv.z;	
 
 		if(Keys[VK_1])	setCPU(0);
 		if(Keys[VK_2])	setCPU(1);
@@ -119,8 +139,8 @@ void main(void)
 
 		if(Keys[VK_SPACE])	renderMode = 1-renderMode;
 
-//		Point8 c = {56,56};		// Draw a filled circle
-//		circleL2F(c,35,0xFC);
+		Point8 c = {56,56};		// Draw a filled circle
+		circleL2F(c,35,0xFC);
 
 		for(int i=0; i<MAX_OBJECTS; i++) {
 			if(object[i].flags) {
@@ -130,7 +150,7 @@ void main(void)
 				}
 			}
 		}
-
+		WaitVBlank();	// Wait for the vblank before switching
 		swapL2(); 		// Do the double-buffering
 	};
 }
