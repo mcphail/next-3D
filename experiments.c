@@ -120,9 +120,8 @@ void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
 	}
 }
 
-void rotateModelC(Point16_3D p, Angle_3D a, Model_3D * m) {
+void rotateModelC(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) {
 	int i;
-	Point16 * buffer = &point_t[0];
 
 	// Translate the vertices in 3D space
 	//
@@ -133,9 +132,8 @@ void rotateModelC(Point16_3D p, Angle_3D a, Model_3D * m) {
 	}
 }
 
-void renderModelC(Model_3D * m) {
+void renderModelC(Point16 * buffer, Model_3D * m) {
 	int i;
-	Point16 * buffer = &point_t[0];
 
 	// Draw the faces
 	//
@@ -176,7 +174,7 @@ void drawObjectC(Object_3D * o) {
 	// This might need fine-tuning for objects close up
 	//
 	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
-		rotateModelC(u_pos, u_ang, o->model);
-		renderModelC(o->model);
+		rotateModelC(&point_t[0], u_pos, u_ang, o->model);
+		renderModelC(&point_t[0], o->model);
 	}
 }
