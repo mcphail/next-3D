@@ -13,7 +13,8 @@ OBJS = \
 	obj/render.o \
 	obj/clipping.o \
 	obj/maths.o \
-	obj/experiments.o
+	obj/experiments.o \
+	obj/render_3D.o
 
 next-3D.nex: $(OBJS) 
 	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 --math32 $(OBJS) -o next-3D.nex -create-app -subtype=nex
@@ -49,6 +50,9 @@ obj/clipping.o: clipping.asm globals.inc
 
 obj/maths.o: maths.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/maths.o maths.asm
+
+obj/render_3D.o: render_3D.asm globals.inc
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/render_3D.o render_3D.asm
 
 obj/irq.o: irq.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_IRQ --constsegPAGE_02_KERNEL_IRQ -o obj/irq.o irq.asm
