@@ -82,6 +82,66 @@ MUL8_DIV256:		EX	DE,HL
 			RET
 
 
+; extern Point8_3D rotate8_3D(Point8_3D p, Angle_3D theta) __z88dk_callee;
+; This is an optimised version of this C routine
+;
+; Point8_3D r1 = rotate8_X( p, theta.x);
+; Point8_3D r2 = rotate8_Y(r1, theta.y);
+; Point8_3D r3 = rotate8_Z(r2, theta.z);
+; return r3;
+;
+PUBLIC _rotate8_3D
+
+_rotate8_3D:		POP	HL		; Pop the return address
+			POP	IY		; Return data address
+			POP	BC		; C: p.x, B: p.y
+			POP	DE		; E: p.y, D: theta.x
+			LD	(IY+0),C	; p.x
+			LD	(IY+1),B	; p.y
+			LD	(IY+2),E	; p.z
+			POP	BC		; C: theta.y, B: theta.z
+			PUSH	HL		; Push the return stack back
+			PUSH	BC		; Store angles for later	
+;
+; Do rotate8_X
+;
+;			LD	D,D		; D: theta.x
+			LD	B,(IY+1)	; B: p.y
+			LD	C,(IY+2)	; C: p.z
+			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
+			EX	AF,AF'
+			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
+			LD	(IY+2),A	; Set r.z
+			EX	AF,AF'
+			LD	(IY+1),A	; Set r.y
+;
+; Do rotate8_Y
+;
+			POP	DE		; E: theta.y, D: theta.z
+			PUSH	DE
+			LD	D,E		; D: theta.y
+			LD	B,(IY+0)	; B: p.x
+			LD	C,(IY+2)	; C: p.z
+			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
+			EX	AF,AF'
+			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
+			LD	(IY+2),A	; Set r.z
+			EX 	AF,AF'
+			LD	(IY+0),A	; Set r.x
+;
+; Do rotate8_Z
+;
+			POP	DE		; E: theta.y, D: theta.z
+			LD	B,(IY+0)	; B: p.x
+			LD	C,(IY+1)	; C: p.y
+			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
+			EX	AF,AF'
+			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
+			LD	(IY+1),A	; Set r.y
+			EX	AF,AF'
+			LD	(IY+0),A	; Set r.x
+			RET
+
 
 ; extern Point8_3D rotate8_X(Point8_3D p, uint8_t a) __z88dk_callee;
 ; This is an optimised version of this C routine
@@ -103,9 +163,9 @@ _rotate8_X:		POP	HL		; Pop the return address
 			LD	(IY+0),C	; Set r.x
 ;			LD	B,B		; B: p.y
 			LD	C,E		; C: p.z
-			CALL	fastCMS8
+			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
 			LD	(IY+1),A	; Set r.y
-			CALL	fastSPC8	
+			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
 			LD	(IY+2),A	; Set r.z
 			RET 
 
@@ -129,9 +189,9 @@ _rotate8_Y:		POP	HL		; Pop the return address
 			LD	(IY+1),B	; Set r.y
 			LD	B,C		; B: p.y
 			LD	C,E		; C: p.z
-			CALL	fastCMS8
+			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
 			LD	(IY+0),A	; Set r.x
-			CALL	fastSPC8
+			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
 			LD	(IY+2),A	; Set r.z
 			RET 
 
@@ -156,9 +216,9 @@ _rotate8_Z:		POP	HL		; Pop the return address
 			LD	A,B
 			LD	B,C		; B: p.x
 			LD	C,A		; C: p.y
-			CALL	fastCMS8
+			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
 			LD	(IY+0),A	; Set r.x
-			CALL	fastSPC8
+			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
 			LD	(IY+1),A	; Set r.y
 			RET 
 

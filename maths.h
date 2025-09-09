@@ -34,6 +34,7 @@ typedef struct SVertice_3D {
 	uint8_t colour;
 } Vertice_3D;
 
+extern Point8_3D rotate8_3D(Point8_3D p, Angle_3D theta) __z88dk_callee;
 extern Point8_3D rotate8_X(Point8_3D p, uint8_t a) __z88dk_callee;
 extern Point8_3D rotate8_Y(Point8_3D p, uint8_t a) __z88dk_callee;
 extern Point8_3D rotate8_Z(Point8_3D p, uint8_t a) __z88dk_callee;

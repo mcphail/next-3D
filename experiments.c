@@ -20,15 +20,6 @@ extern Point16_3D cam_pos;
 //  Sample routines
 // ***************************************************************************************************************************************
 
-// Rotate points (8-bit space)
-//
-Point8_3D rotate8_3D(Point8_3D * p, Angle_3D * theta) {
-	Point8_3D r1 = rotate8_X(*p, theta->x);
-	Point8_3D r2 = rotate8_Y(r1, theta->y);
-	Point8_3D r3 = rotate8_Z(r2, theta->z);
-	return r3;
-}
-
 // Rotate points (16-bit space)
 //
 Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta) {
@@ -161,7 +152,7 @@ void drawObject(Object_3D * o) {
 		//
 		for(i=0; i<model->numVertices; i++) {
 			Point8_3D v = (*model->vertices)[i];
-			Point8_3D r = rotate8_3D(&v, &u_ang);
+			Point8_3D r = rotate8_3D(v, u_ang);
 			point_t[i] = project3D(&u_pos, &r);
 		}
 
