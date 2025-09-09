@@ -125,7 +125,7 @@ void main(void)
 			-cam_theta.y,
 			-cam_theta.z,
 		};
-		Point16_3D zv = rotate16_3D(&sp, &dr);
+		Point16_3D zv = rotate16_3D(sp, dr);
 		cam_pos.x += zv.x;					
 		cam_pos.y += zv.y;					
 		cam_pos.z += zv.z;	

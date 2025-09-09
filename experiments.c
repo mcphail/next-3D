@@ -23,10 +23,10 @@ extern Point16_3D cam_pos;
 
 // Rotate points (16-bit space)
 //
-Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta) {
-	Point16_3D r1 = rotate16_X(*p, theta->x);
-	Point16_3D r2 = rotate16_Y(r1, theta->y);
-	Point16_3D r3 = rotate16_Z(r2, theta->z);
+Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta) {
+	Point16_3D r1 = rotate16_X( p, theta.x);
+	Point16_3D r2 = rotate16_Y(r1, theta.y);
+	Point16_3D r3 = rotate16_Z(r2, theta.z);
 	return r3;
 }
 
@@ -163,7 +163,7 @@ void drawObjectC(Object_3D * o) {
 		o->pos.y - cam_pos.y,
 		o->pos.z - cam_pos.z,
 	};
-	u_pos = rotate16_3D(&u_pos, &cam_theta);
+	u_pos = rotate16_3D(u_pos, cam_theta);
 	Angle_3D u_ang = {
 		cam_theta.x - o->theta.x,
 		cam_theta.y - o->theta.y,
@@ -174,6 +174,7 @@ void drawObjectC(Object_3D * o) {
 	// This might need fine-tuning for objects close up
 	//
 	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
+		rotateModel(&point_t[0], u_pos, u_ang, o->model);
 		rotateModelC(&point_t[0], u_pos, u_ang, o->model);
 		renderModelC(&point_t[0], o->model);
 	}

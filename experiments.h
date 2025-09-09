@@ -2,7 +2,7 @@
 #ifndef __EXPERIMENTS_H__
 #define __EXPERIMENTS_H__
 
-Point16_3D rotate16_3D(Point16_3D *p, Angle_3D * theta);
+Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta);
 
 Point16 project3D(Point16_3D * pos, Point8_3D * r);
 
