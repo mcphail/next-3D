@@ -21,23 +21,6 @@ extern Point16_3D cam_pos;
 //  Sample routines
 // ***************************************************************************************************************************************
 
-// Project an object in 3D space with perspective
-// Parameters:
-// - pos: The position of the object in space
-// -   r: The point to project
-//
-Point16 project3D(Point16_3D pos, Point8_3D r) {
-	//
-	// NB: If pd is fixed at 256, could do a quick multiply by shifting 8 bits left
-	//
-	int16_t z = pos.z + r.z;  
-	Point16 p = {
-		fastMulDiv(pos.x + r.x, pd, z) + 128, // r.x * pd / z
-		fastMulDiv(pos.y + r.y, pd, z) + 96,  // r.y * pd / z
-	};
-	return p;
-}
-
 int16_t dotp(Point16_3D p1, Point16_3D p2) {
 	return (p1.x * p2.x) + (p1.y * p2.y) + (p1.z * p2.z);
 }

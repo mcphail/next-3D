@@ -675,3 +675,79 @@ _windingOrder:		POP	BC				; The returna address
 			RL	H				; Rotate the sign bit into L
 			RL	L				; Rotate it into L
 			RET 
+
+
+; extern Point16 project3D(Point16_3D pos, Point8_3D r) __z88dk_callee;
+; Optimised version of this C routine:
+;
+; int16_t z = pos.z + r.z;  
+; Point16 p = {
+;     fastMulDiv(pos.x + r.x, pd, z) + 128, // r.x * pd / z
+;     fastMulDiv(pos.y + r.y, pd, z) + 96,  // r.y * pd / z
+; };
+; return p;
+;
+; pos: he position of the object in space
+;   r: The point to project
+;
+PUBLIC _project3D
+
+_project3D:		POP	BC		; The return address
+			POP	IY		; Return data address
+			POP	HL		; BC: pos.x
+			LD	(IY+0),L
+			LD	(IY+1),H
+			POP	HL		; BC: pos.y
+			LD	(IY+2),L
+			LD	(IY+3),H
+			POP	HL		; HL: pos.z
+			POP	DE		;  E: r.x, D: r.y
+			DEC	SP
+			POP	AF		;  A: r.z
+			PUSH	BC		; Restore the return address
+;
+; Calculate z
+;
+			LD 	C,A		;  C: r.z - sign extend into BC
+   			ADD	A,A		; Sign bit of A into carry
+   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
+   			LD 	B,A		; BC: Sign-extended A
+   			ADD	HL,BC		; HL: pos.z + r.z
+			PUSH	HL
+			PUSH	DE		; DE: r.x, r.y
+			PUSH	HL
+;
+; Calculate x = fastMulDiv(pos.x + r.x, pd, z) + 128
+;
+			LD	L,(IY+0)	; HL: pos.x
+			LD	H,(IY+1)
+			LD	A,E		;  E: r.x
+   			ADD	A,A		; Sign bit of A into carry
+   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
+   			LD 	D,A		; DE: Sign-extended A
+   			ADD	HL,DE		; HL: pos.x + r.x
+			LD	DE,256		; DE: pd
+			POP 	BC		; BC: z
+			CALL	fastMulDiv	; HL: fastMulDiv(pos.x + r.x, pd, z)
+			ADD	HL,128		; Add screen X centre
+			LD 	(IY+0),L	; Store in return value
+			LD	(IY+1),H
+;
+; Calculate y = fastMulDiv(pos.y + r.y, pd, z) + 96,
+;
+			POP	DE		; DE: r.x, r.y
+			LD	L,(IY+2)	; HL: pos.Y
+			LD	H,(IY+3)
+			LD	E,D		;  E: r.y
+			LD	A,E		;  D: r.y
+   			ADD	A,A		; Sign bit of A into carry
+   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
+   			LD 	D,A		; BC: Sign-extended A
+   			ADD	HL,DE		; HL: pos.y + r.y
+			LD	DE,256		; DE: pd
+			POP 	BC		; BC: z
+			CALL	fastMulDiv	; HL: fastMulDiv(pos.y + r.y, pd, z)
+			ADD	HL,96		; Add screen Y centre
+			LD 	(IY+2),L	; Store in return value
+			LD	(IY+3),H
+			RET
