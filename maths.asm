@@ -92,7 +92,7 @@ MUL8_DIV256:		EX	DE,HL
 ; Point8_3D r3 = rotate8_Z(r2, theta.z);
 ; return r3;
 ;
-PUBLIC _rotate8_3D
+PUBLIC _rotate8_3D, rotate8_3D
 
 _rotate8_3D:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
@@ -103,10 +103,15 @@ _rotate8_3D:		POP	HL		; Pop the return address
 			LD	(IY+2),E	; p.z
 			POP	BC		; C: theta.y, B: theta.z
 			PUSH	HL		; Push the return stack back
-			PUSH	BC		; Store angles for later	
 ;
 ; Do rotate8_X
+; At this point:
+;  D: theta.x
+;  C: theta.y
+;  B: theta.z
+; IY: Pointer to buffer containing Point8 data
 ;
+rotate8_3D:		PUSH	BC		; Store angles for later	
 ;			LD	D,D		; D: theta.x
 			LD	B,(IY+1)	; B: p.y
 			LD	C,(IY+2)	; C: p.z
@@ -690,7 +695,7 @@ _windingOrder:		POP	BC				; The returna address
 ; pos: he position of the object in space
 ;   r: The point to project
 ;
-PUBLIC _project3D
+PUBLIC _project3D, project3D
 
 _project3D:		POP	BC		; The return address
 			POP	IY		; Return data address
@@ -706,9 +711,16 @@ _project3D:		POP	BC		; The return address
 			POP	AF		;  A: r.z
 			PUSH	BC		; Restore the return address
 ;
+; At this point
+; IY: Pointer to Point16 structure containing pos.x and pos.y
+; HL: pos.z
+;  E: r.x
+;  D: r.y
+;  A: r.z
 ; Calculate z
+; Returns Point16 value stored in IY
 ;
-			LD 	C,A		;  C: r.z - sign extend into BC
+project3D:		LD 	C,A		;  C: r.z - sign extend into BC
    			ADD	A,A		; Sign bit of A into carry
    			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
    			LD 	B,A		; BC: Sign-extended A

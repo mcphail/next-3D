@@ -149,7 +149,6 @@ void drawObjectC(Object_3D * o) {
 	//
 	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
 		rotateModel(&point_t[0], u_pos, u_ang, o->model);
-		rotateModelC(&point_t[0], u_pos, u_ang, o->model);
 		renderModelC(&point_t[0], o->model);
 	}
 }
