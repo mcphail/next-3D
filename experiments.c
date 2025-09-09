@@ -122,29 +122,31 @@ void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
 
 void rotateModelC(Point16_3D p, Angle_3D a, Model_3D * m) {
 	int i;
+	Point16 * buffer = &point_t[0];
 
 	// Translate the vertices in 3D space
 	//
 	for(i=0; i<m->numVertices; i++) {
 		Point8_3D v = (*m->vertices)[i];
 		Point8_3D r = rotate8_3D(v, a);
-		point_t[i] = project3D(&p, &r);
+		*buffer++ = project3D(&p, &r);
 	}
 }
 
 void renderModelC(Model_3D * m) {
-	int	 i;
+	int i;
+	Point16 * buffer = &point_t[0];
 
 	// Draw the faces
 	//
 	for(i=0; i<m->numFaces; i++) {
 		Vertice_3D * v = &(*m->faces)[i];
-		Point16 p1 = point_t[v->p1];
-		Point16 p2 = point_t[v->p2];
-		Point16 p3 = point_t[v->p3];
+		Point16 p1 = buffer[v->p1];
+		Point16 p2 = buffer[v->p2];
+		Point16 p3 = buffer[v->p3];
 		if(windingOrder(p1,p2,p3)) {
 			if(renderMode == 1) {
-//					testTClipped(p1,p2,p3,v->colour);
+//				testTClipped(p1,p2,p3,v->colour);
 				triangleL2CF(p1,p2,p3,v->colour);
 			}
 			else {
