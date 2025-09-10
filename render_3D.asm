@@ -111,7 +111,7 @@ _drawObject:		POP	HL		; The return address
 			RET
 
 
-; extern void renderModel(Point16 * buffer, Model_3D * m) __z88dk_callee;
+; extern void renderModel(Point16 * buffer, Model_3D * m, uint8_t mode) __z88dk_callee;
 ; This is an optimised version of this C routine
 ;
 ; for(i=0; i<m->numFaces; i++) {
@@ -120,7 +120,7 @@ _drawObject:		POP	HL		; The return address
 ;     Point16 p2 = buffer[v->p2];
 ;     Point16 p3 = buffer[v->p3];
 ;     if(windingOrder(p1,p2,p3)) {
-;         if(renderMode == 1) {
+;         if(mode == 1) {
 ;             triangleL2CF(p1,p2,p3,v->colour);
 ;         }
 ;         else {
@@ -134,11 +134,15 @@ PUBLIC _renderModel
 _renderModel:		POP	BC		; The return address
 			POP	HL: LD (R7),HL	; Pointer to the vector buffer
 			POP	IY		; Pointer to the model data
+			DEC	SP		; Correct the stack address for single byte
+			POP	AF		;  A: mode
 			PUSH	BC		; Restore the return address
 ;
-			LD	B,(IY+1)	; Fetch the number of faces
-			LD	L,(IY+4)	; Pointer to the face data
+			LD	B,(IY+1)	;  B: Number of faces
+			LD	L,(IY+4)	; HL: Pointer to the face data
 			LD	H,(IY+5)
+
+			LD	(R6+1),A	; R6H = mode
 ;
 @L1:			PUSH	BC		; Stack the loop counter
 ;
@@ -186,16 +190,24 @@ _renderModel:		POP	BC		; The return address
 			LD	(R5),DE		; R5: Y3
 			INC	HL
 ;
-			LD	A,(HL)		; Finally the colour
-			LD	(R6),A
+			LD	A,(HL)
+			LD	(R6),A		; R6L: The face colour
 			INC	HL
 ;
 			PUSH	HL		; Stack the pointer to the face data
 			CALL	windingOrder	; Do the backface culling calculation
-			LD	A,(R6)		; The colour
-			CALL	NZ,triangleL2CF	; Only draw triangles that are facing us
-			POP	HL		; Restore the pointer to the face data
+			JR	Z,@M1		; This face is culled, so skip
+			LD	HL,(R6)		;  L: face colour
+			DEC	H		;  H: mode (0 = wireframe, 1 = filled)
+			JR	NZ, @M2		; Not 1, so jump to wireframe version
+			LD	A,L		;  A: face colour
+			CALL	triangleL2CF	; Only draw triangles that are facing us
+@M1:			POP	HL		; Restore the pointer to the face data
 			POP	BC		; And loop
 			DEC	B
 			JP	NZ,@L1
 			RET
+;
+@M2:			LD	A,0xFF		; Always do wireframe in white
+			CALL	triangleL2C
+			JR	@M1
