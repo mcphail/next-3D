@@ -3,7 +3,6 @@
     			INCLUDE "globals.inc"
 
 			EXTERN	sin_table		; In ram.inc
-			EXTERN	Scratchpad		; In ram.inc
 
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
@@ -642,43 +641,44 @@ fastMulDiv:		PUSH	BC			; Save this somewhere
 ; Optimised version of this C routine:
 ; return p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0;
 ;
-PUBLIC _windingOrder
+PUBLIC _windingOrder,windingOrder
 
-_windingOrder:		POP	BC				; The returna address
-			POP	HL: LD (Scratchpad+0x00),HL	; p1.x
-			POP	HL: LD (Scratchpad+0x02),HL	; p1.y
-			POP	HL: LD (Scratchpad+0x04),HL	; p2.x
-			POP	HL: LD (Scratchpad+0x06),HL	; p2.y
-			POP	HL: LD (Scratchpad+0x08),HL	; p3.x
-			POP	HL: LD (Scratchpad+0x0A),HL	; p3.y
-			PUSH	BC				; Stack the return address
-			LD	DE,(Scratchpad+0x00)		; DE: p1.x
-			LD	HL,(Scratchpad+0x06)		; HL: p2.y
-			LD	BC,(Scratchpad+0x0A)		; BC: p3.y
+_windingOrder:		POP	BC			; The returna address
+			POP	HL: LD (R0),HL		; p1.x
+			POP	HL: LD (R1),HL		; p1.y
+			POP	HL: LD (R2),HL		; p2.x
+			POP	HL: LD (R3),HL		; p2.y
+			POP	HL: LD (R4),HL		; p3.x
+			POP	HL: LD (R5),HL		; p3.y
+			PUSH	BC			; Stack the return address
+
+windingOrder:		LD	DE,(R0)			; DE: p1.x
+			LD	HL,(R3)			; HL: p2.y
+			LD	BC,(R5)			; BC: p3.y
 			XOR	A
-			SBC	HL,BC				; HL = p2.y-p3.y
-			CALL	l_z80n_muls_16_16x16		; HL - p1.x*(p2.y-p3.y)
+			SBC	HL,BC			; HL = p2.y-p3.y
+			CALL	l_z80n_muls_16_16x16	; HL - p1.x*(p2.y-p3.y)
 			PUSH	HL
-			LD	DE,(Scratchpad+0x04)		; DE: p2.x
-			LD	HL,(Scratchpad+0x0A)		; HL: p3.y
-			LD	BC,(Scratchpad+0x02)		; BC: p1.y
+			LD	DE,(R2)			; DE: p2.x
+			LD	HL,(R5)			; HL: p3.y
+			LD	BC,(R1)			; BC: p1.y
 			XOR	A
-			SBC	HL,BC				; HL = p3.y-p1.y
-			CALL	l_z80n_muls_16_16x16		; HL - p2.x*(p3.y-p1.y)
+			SBC	HL,BC			; HL = p3.y-p1.y
+			CALL	l_z80n_muls_16_16x16	; HL - p2.x*(p3.y-p1.y)
 			PUSH	HL
-			LD	DE,(Scratchpad+0x08)		; DE: p3.x
-			LD	HL,(Scratchpad+0x02)		; HL: p1.y
-			LD	BC,(Scratchpad+0x06)		; BC: p2.y
+			LD	DE,(R4)			; DE: p3.x
+			LD	HL,(R1)			; HL: p1.y
+			LD	BC,(R3)			; BC: p2.y
 			XOR	A
-			SBC	HL,BC				; HL = p1.y-p2.y
-			CALL	l_z80n_muls_16_16x16		; HL - p3.x*(p1.y-p2.y)
+			SBC	HL,BC			; HL = p1.y-p2.y
+			CALL	l_z80n_muls_16_16x16	; HL - p3.x*(p1.y-p2.y)
 			POP	DE
 			POP	BC
 			ADD	HL,DE
 			ADD	HL,BC
 			LD	L,0
-			RL	H				; Rotate the sign bit into L
-			RL	L				; Rotate it into L
+			RL	H			; Rotate the sign bit into L
+			RL	L			; Rotate it into L
 			RET 
 
 
