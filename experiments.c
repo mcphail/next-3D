@@ -94,40 +94,6 @@ void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
 	}
 }
 
-void rotateModelC(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) {
-	int i;
-
-	// Translate the vertices in 3D space
-	//
-	for(i=0; i<m->numVertices; i++) {
-		Point8_3D v = (*m->vertices)[i];
-		Point8_3D r = rotate8_3D(v, a);
-		*buffer++ = project3D(p, r);
-	}
-}
-
-void renderModelC(Point16 * buffer, Model_3D * m) {
-	int i;
-
-	// Draw the faces
-	//
-	for(i=0; i<m->numFaces; i++) {
-		Vertice_3D * v = &(*m->faces)[i];
-		Point16 p1 = buffer[v->p1];
-		Point16 p2 = buffer[v->p2];
-		Point16 p3 = buffer[v->p3];
-		if(windingOrder(p1,p2,p3)) {
-			if(renderMode == 1) {
-//				testTClipped(p1,p2,p3,v->colour);
-				triangleL2CF(p1,p2,p3,v->colour);
-			}
-			else {
-				triangleL2C(p1,p2,p3,0xFF);
-			}
-		}
-	}
-}
-
 void drawObjectC(Object_3D * o) {
 
 	// Rotate the universe around the camera
@@ -149,6 +115,6 @@ void drawObjectC(Object_3D * o) {
 	//
 	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
 		rotateModel(&point_t[0], u_pos, u_ang, o->model);
-		renderModelC(&point_t[0], o->model);
+		renderModel(&point_t[0], o->model);
 	}
 }

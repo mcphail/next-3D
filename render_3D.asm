@@ -4,8 +4,11 @@
 
 			EXTERN	rotate8_3D	; In maths.asm
 			EXTERN	project3D	; In maths.asm
+			EXTERN	windingOrder	; In maths.asm
 			EXTERN	Scratchpad	; In ram.inc
-			EXTERN	R0,R1,R2,R3 	; In ram.inc
+			EXTERN	shape_buffer	; In render.asm
+			EXTERN	triangleL2C	; In clipping.asm
+			EXTERN	triangleL2CF	; In clipping.asm
 
 
 ; extern void rotateModel(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) __z88dk_callee;
@@ -105,4 +108,94 @@ PUBLIC _drawObject
 _drawObject:		POP	HL		; The return address	
 			POP	IY		; Pointer to the model data
 			PUSH	HL		; Restore the return address
+			RET
+
+
+; extern void renderModel(Point16 * buffer, Model_3D * m) __z88dk_callee;
+; This is an optimised version of this C routine
+;
+; for(i=0; i<m->numFaces; i++) {
+;     Vertice_3D * v = &(*m->faces)[i];
+;     Point16 p1 = buffer[v->p1];
+;     Point16 p2 = buffer[v->p2];
+;     Point16 p3 = buffer[v->p3];
+;     if(windingOrder(p1,p2,p3)) {
+;         if(renderMode == 1) {
+;             triangleL2CF(p1,p2,p3,v->colour);
+;         }
+;         else {
+;             triangleL2C(p1,p2,p3,0xFF);
+;         }
+;     }
+; }
+;
+PUBLIC _renderModel
+
+_renderModel:		POP	BC		; The return address
+			POP	HL: LD (R7),HL	; Pointer to the vector buffer
+			POP	IY		; Pointer to the model data
+			PUSH	BC		; Restore the return address
+;
+			LD	B,(IY+1)	; Fetch the number of faces
+			LD	L,(IY+4)	; Pointer to the face data
+			LD	H,(IY+5)
+;
+@L1:			PUSH	BC		; Stack the loop counter
+;
+; Fetch all the face data (four bytes)
+;
+			XOR	A		;  A: 0
+			LD	B,2		;  B: Multiplier for shift (x4)
+;
+			LD	D,A
+			LD	E,(HL)		;  E: Fetch the first face
+			BSLA	DE,B 		; DE: Multiply by 4
+			LD	IY,(R7)		; IY: Pointer to the vector buffer
+			ADD	IY,DE		; IY: Now points to the vertice
+			LD	E,(IY+0)	; DE: First point X coordinate
+			LD	D,(IY+1)
+			LD	(R0),DE		; R0: X1
+			LD	E,(IY+2)	; DE: First point Y coordinate
+			LD	D,(IY+3)
+			LD	(R1),DE		; R1: Y1
+			INC	HL
+;
+			LD	D,A
+			LD	E,(HL)		;  E: Fetch the second face
+			BSLA	DE,B		; DE: Multiply by 4
+			LD	IY,(R7)		; IY: Pointer to the vector buffer
+			ADD	IY,DE		; IY: Now points to the vertice
+			LD	E,(IY+0)	; DE: Second point X coordinate
+			LD	D,(IY+1)
+			LD	(R2),DE		; R2: X2
+			LD	E,(IY+2)	; DE: Second point Y coordinate
+			LD	D,(IY+3)
+			LD	(R3),DE		; R3: Y2
+			INC	HL
+;
+			LD	D,A
+			LD	E,(HL)		;  E: Fetch the third face
+			BSLA	DE,B		; DE: Multiply by 4
+			LD	IY,(R7)		; IY: Pointer to the vector buffer
+			ADD	IY,DE		; IY: Now points to the vertice
+			LD	E,(IY+0)	; DE: Third point X coordinate
+			LD	D,(IY+1)
+			LD	(R4),DE		; R4: X3
+			LD	E,(IY+2)	; DE: Third point Y coordinate
+			LD	D,(IY+3)
+			LD	(R5),DE		; R5: Y3
+			INC	HL
+;
+			LD	A,(HL)		; Finally the colour
+			LD	(R6),A
+			INC	HL
+;
+			PUSH	HL		; Stack the pointer to the face data
+			CALL	windingOrder	; Do the backface culling calculation
+			LD	A,(R6)		; The colour
+			CALL	NZ,triangleL2CF	; Only draw triangles that are facing us
+			POP	HL		; Restore the pointer to the face data
+			POP	BC		; And loop
+			DEC	B
+			JP	NZ,@L1
 			RET

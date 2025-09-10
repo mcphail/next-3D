@@ -10,7 +10,6 @@ void lineT_8(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
 uint8_t clipLineT(Point16 p1, Point16 p2);
 void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour);
 
-void renderModelC(Point16 * buffer, Model_3D * m);
 void drawObjectC(Object_3D * o);
 
 #endif 	//__EXPERIMENTS_H__
