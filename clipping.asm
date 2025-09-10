@@ -43,114 +43,85 @@ _lineL2C:		POP	BC
 			LD	A,(p2_y): LD D,A
 			JP	lineL2
 
-; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int16_t c) __z88dk_callee;
+; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int8_t c) __z88dk_callee;
 ;
-PUBLIC _triangleL2C:	
+PUBLIC _triangleL2C, triangleL2C:	
 
-_triangleL2C:		POP	HL
-			LD	(_triangleL2C_M3+1),HL
+_triangleL2C:		POP	BC			; The return address
+			POP	HL: LD (R0),HL		; R0: p1.x
+			POP	HL: LD (R1),HL		; R1: p1.y
+			POP	HL: LD (R2),HL		; R2: p2.x
+			POP	HL: LD (R3),HL		; R3: p2.y
+			POP	HL: LD (R4),HL		; R4: p3.x
+			POP	HL: LD (R5),HL		; R5: p3.y
+			DEC	SP
+			POP	AF			;  A: Colour
+			PUSH	BC			; Restore the return address
 ;
-			POP	HL: LD (p1_x),HL	; Parameter p1
-			POP	DE: LD (p1_y),DE
-			LD	(_triangleL2C_M1+1),HL 	; Store these unclipped points for later (self-modding)
-			LD	(_triangleL2C_M2+1),DE
-			POP	HL: LD (p2_x),HL	; Parameter p2
-			POP	DE: LD (p2_y),DE
-			PUSH	DE
-			PUSH	HL
-			CALL 	clipLine
-			LD	(shape_buffer+$00),A
-			LD	A,(p1_x): LD (shape_buffer+$01),A
-			LD	A,(p1_y): LD (shape_buffer+$02),A
-			LD	A,(p2_x): LD (shape_buffer+$03),A
-			LD	A,(p2_y): LD (shape_buffer+$04),A
-;
-			POP	HL: LD (p1_x),HL	; p2
-			POP	DE: LD (p1_y),DE
-			POP	HL: LD (p2_x),HL	; Parameter p3
-			POP	DE: LD (p2_y),DE
-			PUSH	DE
-			PUSH	HL
-			CALL	clipLine
-			LD	(shape_buffer+$05),A
-			LD	A,(p1_x): LD (shape_buffer+$06),A
-			LD	A,(p1_y): LD (shape_buffer+$07),A
-			LD	A,(p2_x): LD (shape_buffer+$08),A
-			LD	A,(p2_y): LD (shape_buffer+$09),A	
-;	
-			POP	HL: LD (p1_x),HL	; p3
-			POP	DE: LD (p1_y),DE
-_triangleL2C_M1:	LD	HL,0: LD (p2_x),HL	; p1
-_triangleL2C_M2:	LD	DE,0: LD (p2_y),DE
-			CALL	clipLine
-			LD	(shape_buffer+$0A),A
-			LD	A,(p1_x): LD (shape_buffer+$0B),A
-			LD	A,(p1_y): LD (shape_buffer+$0C),A
-			LD	A,(p2_x): LD (shape_buffer+$0D),A
-			LD	A,(p2_y): LD (shape_buffer+$0E),A
-;
-			POP	HL			; Parameter c (colour)
-			LD	A,L
-			CALL	triangleL2
-_triangleL2C_M3:	LD	HL,0			; The return address
-			PUSH	HL			
-			RET
+triangleL2C:		CALL	clipTriangle		; Clip the triangle
+			JP	triangleL2		; Draw it
 
 
-; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int16_t c) __z88dk_callee;
+; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int8_t c) __z88dk_callee;
 ;
-PUBLIC _triangleL2CF
+PUBLIC _triangleL2CF, triangleL2CF
 
-_triangleL2CF:		POP	HL
-			LD	(_triangleL2CF_M3+1),HL
+_triangleL2CF:		POP	BC			; The return address
+			POP	HL: LD (R0),HL		; R0: p1.x
+			POP	HL: LD (R1),HL		; R1: p1.y
+			POP	HL: LD (R2),HL		; R2: p2.x
+			POP	HL: LD (R3),HL		; R3: p2.y
+			POP	HL: LD (R4),HL		; R4: p3.x
+			POP	HL: LD (R5),HL		; R5: p3.y
+			DEC	SP
+			POP	AF			;  A: Colour
+			PUSH	BC			; Restore the return address
 ;
-			POP	HL: LD (p1_x),HL	; Parameter p1
-			POP	DE: LD (p1_y),DE
-			LD	(_triangleL2CF_M1+1),HL ; Store these unclipped points for later (self-modding)
-			LD	(_triangleL2CF_M2+1),DE
-			POP	HL: LD (p2_x),HL	; Parameter p2
-			POP	DE: LD (p2_y),DE
-			PUSH	DE
-			PUSH	HL
-			CALL 	clipLine
-			LD	(shape_buffer+$00),A
-			LD	A,(p1_x): LD (shape_buffer+$01),A
-			LD	A,(p1_y): LD (shape_buffer+$02),A
-			LD	A,(p2_x): LD (shape_buffer+$03),A
-			LD	A,(p2_y): LD (shape_buffer+$04),A
-;
-			POP	HL: LD (p1_x),HL	; p2
-			POP	DE: LD (p1_y),DE
-			POP	HL: LD (p2_x),HL	; Parameter p3
-			POP	DE: LD (p2_y),DE
-			PUSH	DE
-			PUSH	HL
-			CALL	clipLine
-			LD	(shape_buffer+$05),A
-			LD	A,(p1_x): LD (shape_buffer+$06),A
-			LD	A,(p1_y): LD (shape_buffer+$07),A
-			LD	A,(p2_x): LD (shape_buffer+$08),A
-			LD	A,(p2_y): LD (shape_buffer+$09),A	
-;	
-			POP	HL: LD (p1_x),HL	; p3
-			POP	DE: LD (p1_y),DE
-_triangleL2CF_M1:	LD	HL,0: LD (p2_x),HL	; p1
-_triangleL2CF_M2:	LD	DE,0: LD (p2_y),DE
-			CALL	clipLine
-			LD	(shape_buffer+$0A),A
-			LD	A,(p1_x): LD (shape_buffer+$0B),A
-			LD	A,(p1_y): LD (shape_buffer+$0C),A
-			LD	A,(p2_x): LD (shape_buffer+$0D),A
-			LD	A,(p2_y): LD (shape_buffer+$0E),A
-;
-			POP	HL			; Parameter c (colour)
-			LD	A,L
+triangleL2CF:		CALL	clipTriangle		; Clip the triangle
 			LD	IY,shape_buffer
-			CALL	triangleL2F		; Draw the triangle
+			JP	triangleL2F		; Draw it
+
+
+; Clips a triangle described by the points (R0,R1),(R2,R3),(R4,R5) 
+; Stores the resultant clipped lines in shape_buffer
 ;
-_triangleL2CF_M3:	LD	HL,0			; The return address
-			PUSH	HL			
-			RET
+clipTriangle:		EX 	AF,AF'			; Preserve the colour
+
+			LD	HL,(R0): LD (p1_x),HL	; p1
+			LD	HL,(R1): LD (p1_y),HL	
+			LD	HL,(R2): LD (p2_x),HL	; p2
+			LD	HL,(R3): LD (p2_y),HL
+			CALL	clipLine
+			LD	(shape_buffer+$00),A 
+			LD	A,(p1_x): LD (shape_buffer+$01),A
+			LD	A,(p1_y): LD (shape_buffer+$02),A
+			LD	A,(p2_x): LD (shape_buffer+$03),A
+			LD	A,(p2_y): LD (shape_buffer+$04),A
+;			
+			LD	HL,(R2): LD (p1_x),HL	; p2
+			LD	HL,(R3): LD (p1_y),HL
+			LD	HL,(R4): LD (p2_x),HL	; p3
+			LD	HL,(R5): LD (p2_y),HL
+			CALL	clipLine
+			LD	(shape_buffer+$05),A
+			LD	A,(p1_x): LD (shape_buffer+$06),A
+			LD	A,(p1_y): LD (shape_buffer+$07),A
+			LD	A,(p2_x): LD (shape_buffer+$08),A
+			LD	A,(p2_y): LD (shape_buffer+$09),A
+;
+			LD	HL,(R4): LD (p1_x),HL	; p3
+			LD	HL,(R5): LD (p1_y),HL
+			LD	HL,(R0): LD (p2_x),HL	; p1
+			LD	HL,(R1): LD (p2_y),HL
+			CALL	clipLine
+			LD	(shape_buffer+$0A),A
+			LD	A,(p1_x): LD (shape_buffer+$0B),A
+			LD	A,(p1_y): LD (shape_buffer+$0C),A
+			LD	A,(p2_x): LD (shape_buffer+$0D),A
+			LD	A,(p2_y): LD (shape_buffer+$0E),A
+
+			EX	AF,AF'		
+			RET 
 
 
 ; extern uint8_t clipRegion(Point16 * p) __z88dk_callee
