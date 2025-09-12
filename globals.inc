@@ -10,6 +10,12 @@
 		DB $fd,00
 	ENDM
 
+	MACRO CMP_HL reg16
+		OR	A
+		SBC	HL,reg16
+		ADD	HL,reg16	; C set if reg16 > HL
+	ENDM
+
 	START_16K_BANK = 9
 	START_8K_BANK = (START_16K_BANK * 2)
 
