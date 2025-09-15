@@ -14,36 +14,38 @@ dx:			DS	2
 dy:			DS 	2
 
 			EXTERN	fastMulDiv		; From maths.asm
-			EXTERN	negDE 
-
+			EXTERN	negDE 			; From maths.asm
+			EXTERN	plotL2asm_colour	; From render.asm
 			EXTERN	lineL2			; From render.asm
-			EXTERN	triangleL2		; From render.asm
-			EXTERN	triangleL2F		; From render.asm
-			EXTERN	shape_buffer		; From render.asm
+			EXTERN	lineL2_NC		; From render.asm
+			EXTERN	spriteDraw		; From sprites.asm
 
-; extern void lineL2C(Point16 p1, Point16 p2, int16_t c) __z88dk_callee
+
+; extern void lineL2C(Point16 p1, Point16 p2, uint8_t c) __z88dk_callee
 ;
-PUBLIC _lineL2C
+PUBLIC _lineL2C, lineL2C
 
-_lineL2C:		POP	BC
-			POP	HL: LD (p1_x),HL
-			POP	HL: LD (p1_y),HL
-			POP	HL: LD (p2_x),HL
-			POP	HL: LD (p2_y),HL
-			POP	HL			; L: The colour
-			PUSH	BC
-			PUSH	HL
-			CALL	clipLine
-			POP	IY			; IYL: The colour 
-			OR	A
-			RET	Z
-			LD	A,(p1_x): LD L,A
-			LD	A,(p1_y): LD H,A
-			LD	A,(p2_x): LD E,A
-			LD	A,(p2_y): LD D,A
-			JP	lineL2
+_lineL2C:		POP	BC			; Get the return address
+			POP	HL: LD (R0),HL
+			POP	HL: LD (R1),HL
+			POP	HL: LD (R2),HL
+			POP	HL: LD (R3),HL
+    			DEC	SP
+    			POP	AF          		; Loads colour into A
+			PUSH	BC			; Stack the return address
 
-; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int8_t c) __z88dk_callee;
+; Draw a clipped line
+; R0: p1.x
+; R1: p1.y
+; R2: p2.x
+; R3: p2.y
+;  A: colour
+;
+lineL2C:		LD	(plotL2asm_colour+1),A	; Store the colour
+			JR	triangleL2C_1		; Jump to the last part of the triangle routine
+
+
+; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, uint8_t c) __z88dk_callee;
 ;
 PUBLIC _triangleL2C, triangleL2C:	
 
@@ -58,11 +60,42 @@ _triangleL2C:		POP	BC			; The return address
 			POP	AF			;  A: Colour
 			PUSH	BC			; Restore the return address
 ;
-triangleL2C:		CALL	clipTriangle		; Clip the triangle
-			JP	triangleL2		; Draw it
+; Draw a clipped wireframe triangle
+; R0: p1.x
+; R1: p1.y
+; R2: p2.x
+; R3: p2.y
+; R4: p3.x
+; R5: p3.Y
+;  A: colour
+;
+triangleL2C:		LD	(plotL2asm_colour+1),A	; Store the colour
+			LD	HL,(R2): LD (p1_x),HL	; p2
+			LD	HL,(R3): LD (p1_y),HL	
+			LD	HL,(R4): LD (p2_x),HL	; p3
+			LD	HL,(R5): LD (p2_y),HL
+			CALL	clipLine
+			CALL	NZ,triangleL2C_L
+			LD	HL,(R0): LD (p1_x),HL	; p1
+			LD	HL,(R1): LD (p1_y),HL	
+			LD	HL,(R4): LD (p2_x),HL	; p3
+			LD	HL,(R5): LD (p2_y),HL
+			CALL	clipLine
+			CALL	NZ,triangleL2C_L
+triangleL2C_1:		LD	HL,(R0): LD (p1_x),HL	; p1
+			LD	HL,(R1): LD (p1_y),HL	
+			LD	HL,(R2): LD (p2_x),HL	; p2
+			LD	HL,(R3): LD (p2_y),HL
+			CALL	clipLine
+			RET	Z
+triangleL2C_L:		LD	A,(p1_x): LD L,A
+			LD	A,(p1_y): LD H,A
+			LD	A,(p2_x): LD E,A
+			LD	A,(p2_y): LD D,A
+			JP	lineL2_NC
 
 
-; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, int8_t c) __z88dk_callee;
+; extern void triangleL2CF(Point16 p1, Point16 p2, Point p3, uint8_t c) __z88dk_callee;
 ;
 PUBLIC _triangleL2CF, triangleL2CF
 
@@ -77,51 +110,145 @@ _triangleL2CF:		POP	BC			; The return address
 			POP	AF			;  A: Colour
 			PUSH	BC			; Restore the return address
 ;
-triangleL2CF:		CALL	clipTriangle		; Clip the triangle
-			LD	IY,shape_buffer
-			JP	triangleL2F		; Draw it
-
-
-; Clips a triangle described by the points (R0,R1),(R2,R3),(R4,R5) 
-; Stores the resultant clipped lines in shape_buffer
+triangleL2CF:		CALL	sortTriangle16		; Sort the triangle points from top to bottom
 ;
-clipTriangle:		EX 	AF,AF'			; Preserve the colour
-
+; Draw the first short line
+;
 			LD	HL,(R0): LD (p1_x),HL	; p1
 			LD	HL,(R1): LD (p1_y),HL	
 			LD	HL,(R2): LD (p2_x),HL	; p2
 			LD	HL,(R3): LD (p2_y),HL
 			CALL	clipLine
-			LD	(shape_buffer+$00),A 
-			LD	A,(p1_x): LD (shape_buffer+$01),A
-			LD	A,(p1_y): LD (shape_buffer+$02),A
-			LD	A,(p2_x): LD (shape_buffer+$03),A
-			LD	A,(p2_y): LD (shape_buffer+$04),A
-;			
+			LD	A,0x10
+			LD	HL,0x8000
+			CALL	NZ,@C1
+;
+; Store the clipped line end
+; Might need to be a bit clever here and check for an X of 0 or 255 to get the clipped end
+;
+			LD	HL,(p1_x):PUSH HL
+			LD	HL,(p1_y):PUSH HL
+			LD	HL,(p2_x):PUSH HL
+			LD	HL,(p2_y):PUSH HL
+;
+; Draw the second short line
+;
 			LD	HL,(R2): LD (p1_x),HL	; p2
-			LD	HL,(R3): LD (p1_y),HL
+			LD	HL,(R3): LD (p1_y),HL	
 			LD	HL,(R4): LD (p2_x),HL	; p3
 			LD	HL,(R5): LD (p2_y),HL
 			CALL	clipLine
-			LD	(shape_buffer+$05),A
-			LD	A,(p1_x): LD (shape_buffer+$06),A
-			LD	A,(p1_y): LD (shape_buffer+$07),A
-			LD	A,(p2_x): LD (shape_buffer+$08),A
-			LD	A,(p2_y): LD (shape_buffer+$09),A
+			LD	A,0x10
+			LD	HL,0x8002
+			CALL	NZ,@C1
 ;
-			LD	HL,(R4): LD (p1_x),HL	; p3
-			LD	HL,(R5): LD (p1_y),HL
-			LD	HL,(R0): LD (p2_x),HL	; p1
-			LD	HL,(R1): LD (p2_y),HL
+; Get the previous clipped line end and connect them up
+;
+			POP	HL: LD (p2_y),HL	; p2_y
+			POP	HL: LD (p2_x),HL	; p2_x
+			LD	A,0x10
+			LD	HL,0x8004
+			CALL	@C1
+;
+; Draw the long line
+;
+			LD	HL,(R0): LD (p1_x),HL	; p1
+			LD	HL,(R1): LD (p1_y),HL	
+			LD	HL,(R4): LD (p2_x),HL	; p3
+			LD	HL,(R5): LD (p2_y),HL
 			CALL	clipLine
-			LD	(shape_buffer+$0A),A
-			LD	A,(p1_x): LD (shape_buffer+$0B),A
-			LD	A,(p1_y): LD (shape_buffer+$0C),A
-			LD	A,(p2_x): LD (shape_buffer+$0D),A
-			LD	A,(p2_y): LD (shape_buffer+$0E),A
+			LD	A,0x60
+			LD	HL,0x8006
+			CALL	NZ,@C1
+;
+; Get the first clipped line end and connect them up
+;
+			POP	HL: LD (p2_y),HL
+			POP	HL: LD (p2_x),HL
+			LD	A,0x60
+			LD	HL,0x8008
+			CALL	@C1
+			RET
+;
+@C1:			EX	AF,AF'
+			CALL	debugEnd
+			LD	A,(p1_x): LD L,A
+			LD	A,(p1_y): LD H,A
+			LD	A,(p2_x): LD E,A
+			LD	A,(p2_y): LD D,A
+			EX 	AF,AF'
+			JP	lineL2
 
-			EX	AF,AF'		
-			RET 
+
+; Draw sprites, each line start marked with a cross and ending with a circle
+; H: Sprite pattern
+; L: Sprite number
+;
+debugEnd:		PUSH	HL
+			LD	HL,(p1_y)
+			LD	DE,(p2_y)
+			CMP_HL	DE
+			POP	HL
+			JR	NZ,debugEnd_1
+			PUSH	HL
+			LD	HL,(p1_x)
+			LD	DE,(p2_x)
+			CMP_HL	DE
+			POP	HL
+			JR	NZ,debugEnd_1
+			LD	H,0x00
+debugEnd_1:		LD 	BC,(p1_x)
+			LD	DE,(p1_y)
+			PUSH	HL
+			CALL	spriteDraw
+			POP	HL
+			LD 	BC,(p2_x)
+			LD	DE,(p2_y)
+			INC	H
+			INC 	L
+			JP	spriteDraw
+	
+
+; For the filled triangle
+; Need to sort the points from top to bottom
+;
+; if R1 > R3 swap({R2,R3},{R0,R1}); // if (p1.y > p2.y) swap(p2, p1)
+; if R1 > R5 swap({R4,R5},{R0,R1}); // if (p1.y > p3.y) swap(p3, p1)
+; if R3 > R5 swap({R4,R5},{R2,R3}); // if (p2.y > p3.y) swap(p3, p2)
+;
+sortTriangle16:		LD	HL,(R3)
+			LD	DE,(R1)
+			CMP_HL	DE	; C if R1 > R3, otherwise NC
+			JR	NC,@M1	
+			LD	(R3),DE
+			LD	(R1),HL
+			LD	HL,(R2)
+			LD	DE,(R0)
+			LD	(R2),DE
+			LD	(R0),HL
+;
+@M1:			LD	HL,(R5)
+			LD	DE,(R1)
+			CMP_HL	DE	; C if R1 > R5, otherwise NC
+			JR	NC,@M2
+			LD	(R5),DE
+			LD	(R1),HL
+			LD	HL,(R4)
+			LD	DE,(R0)
+			LD	(R4),DE
+			LD	(R0),HL
+;
+@M2:			LD	HL,(R5)
+			LD	DE,(R3)
+			CMP_HL	DE	; C if R3 > R5, otherwise NC
+			RET	NC
+			LD	(R5),DE
+			LD	(R3),HL
+			LD	HL,(R4)
+			LD	DE,(R2)
+			LD	(R4),DE
+			LD	(R2),HL
+			RET
 
 
 ; extern uint8_t clipRegion(Point16 * p) __z88dk_callee
@@ -232,6 +359,7 @@ clipLine_L1:		INC	IYL			; Increment iteration counter
 			OR	L
 			JR 	NZ, clipLine_M1		; No, so skip
 			LD	A,IYL			; A: Accept
+			OR	A			; Set the flags (for when called from assembler)
 			RET
 ;
 ; Trivial check if both points are off screen
