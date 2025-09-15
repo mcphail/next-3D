@@ -11,6 +11,8 @@
 
 #pragma output REGISTER_SP = 0xbfff
 
+#define test_triangles
+
 #include <arch/zxn.h>
 #include <stdint.h>             // standard names for ints with no ambiguity 
 #include <stdio.h>
@@ -26,7 +28,14 @@
 #include "clipping.h"
 #include "maths.h"
 #include "render_3D.h"
+#include "sprites.h"
 #include "experiments.h"		// Work-in-progress stuff
+
+// ***************************************************************************************************************************************
+// Sprites data
+// ***************************************************************************************************************************************
+
+#include "sprites/cursors.h"
 
 // ***************************************************************************************************************************************
 // Model data
@@ -68,14 +77,25 @@ void main(void)
     NextReg(0x57,2);          	// Page in kernel
     InitKernel();
     SetUpIRQs();
-    NextReg(0x8,0x4A);        	// Disable RAM contention, enable DAC and turbosound
-//  NextReg(0x5,0x04);			// 60Hz mode
+    NextReg(0x08,0x4A);        	// Disable RAM contention, enable DAC and turbosound
+//  NextReg(0x05,0x04);			// 60Hz mode
+	NextReg(0x15,0x21);			// Enable sprites and clipping, SLU priority
 	setCPU(3);					// 28Mhz
     initL2();
 	zx_border(INK_BLACK);
 
+	spriteInit(0x00, &sprite_circle[0]);
+	spriteInit(0x01, &sprite_cross[0]);
+
 	int i = 0;
 	int v = 0;
+
+	#ifdef test_triangles
+	Point16 p1 = { 10,10 };
+	Point16 p2 = { 250,50 };
+	Point16 p3 = { 60,170 };
+	Point16 *p = &p1;
+	#endif 
 	
 	Point16_3D pos = { 1000, 0, pd*15 };
 	Angle_3D theta = { 0,0,0 };
@@ -104,6 +124,32 @@ void main(void)
 		clearL2(0);
 		ReadKeyboard();
 
+		#ifdef test_triangles
+		if(renderMode) {
+			triangleL2CF(p1, p2, p3, 0xFC);
+		}
+		else {
+			triangleL2C(p1, p2, p3, 0xFF);
+		}
+		if(Keys[VK_Q]) p->y--;
+		if(Keys[VK_A]) p->y++;
+		if(Keys[VK_O]) p->x--;	
+		if(Keys[VK_P]) p->x++;
+		if(Keys[VK_ENTER]) {
+			renderMode = 1-renderMode;
+			while (Keys[VK_ENTER]) {
+				ReadKeyboard();
+			}
+		}
+		if(Keys[VK_SPACE]) {
+			if(p == &p1) p = &p2;
+			else if(p == &p2) p = &p3;
+			else p = &p1;
+			while (Keys[VK_SPACE]) {
+				ReadKeyboard();
+			}
+		}
+		#else
 		if(Keys[VK_Z])	cam_theta.z -= 1;	// Rotate camera around Z axis (in and out of screen)
 		if(Keys[VK_X])	cam_theta.z += 1;
 		if(Keys[VK_Q])	cam_theta.x -= 1;	// Rotate camera around X axis (axis is horizontal on screen)
@@ -135,7 +181,12 @@ void main(void)
 		if(Keys[VK_3])	setCPU(2);
 		if(Keys[VK_4])	setCPU(3);
 
-		if(Keys[VK_SPACE])	renderMode = 1-renderMode;
+		if(Keys[VK_SPACE]) {
+			renderMode = 1-renderMode;
+			while (Keys[VK_SPACE]) {
+				ReadKeyboard();
+			}
+		}
 
 		Point8 c = {56,56};		// Draw a filled circle
 		circleL2F(c,35,0xFC);
@@ -147,7 +198,8 @@ void main(void)
 					object[i].move(i);
 				}
 			}
-		}
+		}	
+		#endif
 		WaitVBlank();	// Wait for the vblank before switching
 		swapL2(); 		// Do the double-buffering
 	};
