@@ -51,7 +51,7 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 void lineT_8(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
 	Point8 p1 = { x1, y1 };
 	Point8 p2 = { x2, y2 };
-	lineT(p1,p2);
+	lineT(p1,p2,0);
 }
 
 uint8_t clipLineT(Point16 p1, Point16 p2) {

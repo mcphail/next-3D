@@ -4,15 +4,12 @@
 
     			INCLUDE "globals.inc"
 
-shape_buffer:		DS 15				; For up to 3 x/y pairs of coordinates and a flag
 screen_banks:		DB 0				; LSB: The visible screen
 			DB 0				; MSB: The offscreen buffer
 
 shapeT_X1:		EQU	Scratchpad 
 shapeT_X2:		EQU	Scratchpad + $100
 
-			PUBLIC	shape_buffer
- 
 MIN			MACRO	P1			; Get min of P1 and A in A
 			LOCAL 	S1
 			CP 	P1			; Compare A with P1
@@ -29,7 +26,7 @@ MAX			MACRO	P1			; Get max of P1 and A in A
 S1:			
 			ENDM
 
-DRAW_LINE_TABLE		MACRO	FLAG,PX1,PY1,PX2,PY2
+DRAW_LINE_TABLE		MACRO	FLAG,PX1,PY1,PX2,PY2,TABLE
 			LOCAL	S1
 			LD A,(IY+FLAG)
 			OR A
@@ -38,6 +35,7 @@ DRAW_LINE_TABLE		MACRO	FLAG,PX1,PY1,PX2,PY2
 			LD B,(IY+PY1)
 			LD E,(IY+PX2)
 			LD D,(IY+PY2)
+			LD A,TABLE
 			CALL lineT
 S1:
 			ENDM
@@ -212,6 +210,8 @@ plotL2_B:		ADD 	A,0			; 8L bank for L2
 ; by setting plotL2asm_colour and plotL2asm_bank with self-modifying code
 ;===========================================================================
 
+PUBLIC	plotL2asm, plotL2asm_colour
+
 plotL2asm:		LD	A,H 			; 0-31 per bank (8k)
 			AND	%11100000		; 3 bits for the 8 banks we can use
 			SWAPNIB
@@ -233,7 +233,7 @@ plotL2asm_colour:	LD 	(HL),0			; Draw our pixel (colour is going to be set by au
 ; Credits to Gabrield Gambetta's great book 'Computer Graphics From Scratch'
 ; Credits to Mike Flash Ware for helping optimise it!
 
-PUBLIC _lineL2, lineL2
+PUBLIC _lineL2, lineL2, lineL2_NC
 
 _lineL2:		POP	BC          		; Loads the stack value (sp) into bc for restoring later and moves variables into top of stack
     			POP	HL          		; Loads y1x1 into hl
@@ -241,13 +241,14 @@ _lineL2:		POP	BC          		; Loads the stack value (sp) into bc for restoring l
     			DEC	SP
     			POP	AF          		; Loads colour into A
     			PUSH	BC         		; Restores the stack value from bc
-    			LD	(plotL2asm_colour+1),A	; Store the colour in plotL2asm through self-modifying the code
 
-
-;=========================================================================
-;   HL = Y1X1, DE = Y2X2, (plotL2asm_colour + 1) = colour
-;=========================================================================
-lineL2:    		LD	A,(screen_banks+1)
+; Draw a line
+; H,L: Y1,X1
+; D,E: Y2,X2
+;   A: Colour
+;
+lineL2:   		LD	(plotL2asm_colour+1),A	; Store the colour in plotL2asm through self-modifying the code
+lineL2_NC:    		LD	A,(screen_banks+1)
     			LD	(plotL2asm_bank+1),A
     			LD	A,D             	; Loads y2 into a. We'll see if we need to swap coords to draw downwards
     			CP 	H               	; Compares y1 with y2
@@ -329,50 +330,30 @@ lineL2_q2_s:		LD	E,A             	; Restores the error value back in
 ;=================================================================================================
 PUBLIC _triangleL2, triangleL2
 
-_triangleL2:		POP	BC
-			POP	DE			; Pops pt0.y and pt0.x into DE
-			POP	HL			; Pops pt1.y and pt1.x into HL
-			LD	(shape_buffer+$01), DE	; 1st point of line 1
-			LD	(shape_buffer+$03), HL	; 2nd point of line 1
-			LD	(shape_buffer+$06), HL	; 1st point of line 2
-			POP	HL			; Pops pt2.y and pt2.x into HL
-			LD	(shape_buffer+$08), HL	; 2nd point of line 2
-			LD	(shape_buffer+$0B), HL	; 1st point of line 3
-			LD	(shape_buffer+$0D), DE	; 2nd point of line 3
-			LD	A,1			; Set all line flags for draw as this is the non-
-			LD	(shape_buffer+$00),A	; clipped version of the line routine
-			LD	(shape_buffer+$05),A
-			LD	(shape_buffer+$0A),A
+_triangleL2:		POP 	IY			; Pops SP into IY
+			POP	BC			; Pops pt0.y and pt0.x into B,C
+			POP	DE			; Pops pt1.y and pt1.x into D,E
+			POP	HL			; Pops pt2.y and pt2.x into H,L
 			DEC	SP
 			POP	AF			; Pops colour value into A
-			PUSH	BC
+			PUSH 	IY			; Restore the stack
 
 ; Draw a wireframe triangle
-; A: colour
-; Point data in shape_buffer, each line occupying 5 bytes:
-; - flag: Draw this line? (0: don't draw, 1: draw)
-; - x1y1: First point (two bytes)
-; - x2y2: Second point (two bytes)
+; BC: Point p1
+; DE: Point p2
+; HL: Point p3
+;  A: colour
 ;
-triangleL2:		LD 	(plotL2asm_colour+1),A
-			LD	A,(shape_buffer+$00)
-			OR	A
-			JR	Z,@M1
-			LD	HL,(shape_buffer+$01)
-			LD	DE,(shape_buffer+$03)
-			CALL	lineL2
-@M1:			LD	A,(shape_buffer+$05)
-			OR	A
-			JR	Z,@M2
-			LD	HL,(shape_buffer+$06)
-			LD	DE,(shape_buffer+$08)
-			CALL	lineL2
-@M2:			LD	A,(shape_buffer+$0A)
-			OR	A
-			RET	Z
-			LD	HL,(shape_buffer+$0B)
-			LD	DE,(shape_buffer+$0D)
-			JP	lineL2
+triangleL2:		LD 	(R0),BC			; Store the points
+			LD	(R1),DE
+			LD	(R2),HL		
+			CALL	lineL2			; Draw DE to HL AND store the colour for subsquent lines
+			LD	HL,(R0)
+			LD	DE,(R1)
+			CALL	lineL2_NC		; Draw BC to DE
+			LD	HL,(R0)
+			LD	DE,(R2)
+			JP	lineL2_NC		; Draw BC to HL
 
 
 ;extern void triangleL2F(Point8 pt0, Point8 pt1, Point8 pt2, uint8_t colour) __z88dk_callee;
@@ -380,55 +361,79 @@ triangleL2:		LD 	(plotL2asm_colour+1),A
 ;=================================================================================================
 PUBLIC _triangleL2F, triangleL2F
 
-_triangleL2F:		POP 	BC			; Pops SP into BC
-			POP	DE			; Pops pt0.y and pt0.x into DE
-			POP	HL			; Pops pt1.y and pt1.x into HL
-			LD	(shape_buffer+$01), DE	; 1st point of line 1
-			LD	(shape_buffer+$03), HL	; 2nd point of line 1
-			LD	(shape_buffer+$06), HL	; 1st point of line 2
-			POP	HL			; Pops pt2.y and pt2.x into HL
-			LD	(shape_buffer+$08), HL	; 2nd point of line 2
-			LD	(shape_buffer+$0B), HL	; 1st point of line 3
-			LD	(shape_buffer+$0D), DE	; 2nd point of line 3
-			LD	A,1			; Set all line flags for draw as this is the non-
-			LD	(shape_buffer+$00),A	; clipped version of the line routine
-			LD	(shape_buffer+$05),A
-			LD	(shape_buffer+$0A),A
+_triangleL2F:		POP 	IY			; Pops SP into IY
+			POP	BC			; Pops pt0.y and pt0.x into B,C
+			POP	DE			; Pops pt1.y and pt1.x into D,E
+			POP	HL			; Pops pt2.y and pt2.x into H,L
 			DEC	SP
 			POP	AF			; Pops colour value into A
-			PUSH 	BC			; Restore the stack
-			LD 	IY,shape_buffer
+			PUSH 	IY			; Restore the stack
 
 ; Draw a filled triangle
-; IY: Pointer to 6 bytes worth of coordinate data
-; A: Colour
+; BC: Point p1
+; DE: Point p2
+; HL: Point p3
+;  A: Colour
 ;
-triangleL2F:		LD (triangleL2F_M1+1),A		; Store the colour
+triangleL2F:		EX	AF,AF'			; Store the colour in AF'
 ;
-; Trivial reject if the polygon is off screen
+; Need to sort the points from top to bottom
 ;
-			LD A,(IY+$0)			; If all the lines are flagged 0
-			OR (IY+$5)			; then there is no polygon to draw
-			OR (IY+$A)
-			RET Z
+; if B > D swap(BC,DE); // if (p1.y > p2.y) swap(p1, p2)
+; if B > H swap(BC,HL); // if (p1.y > p3.y) swap(p1, p3)
+; if D > H swap(DE,HL); // if (p2.y > p3.y) swap(p2, p3)
+; 
+			LD	A,D
+			CP	B
+			JR	NC,@M1
+			LD	D,B
+			LD	B,A
+			LD	A,E
+			LD	E,C
+			LD	C,A
 ;
-			DRAW_LINE_TABLE $0,$1,$2,$3,$4	; Side 1
-			DRAW_LINE_TABLE $5,$6,$7,$8,$9	; Side 2
-			DRAW_LINE_TABLE $A,$B,$C,$D,$E	; Side 3
+@M1:			LD	A,H
+			CP	B
+			JR	NC,@M2
+			LD	H,B
+			LD	B,A
+			LD	A,L
+			LD	L,C
+			LD	C,A
 ;
-			LD A,(IY+$2)			; Get the min Y
-			MIN  ((IY+$7))
-			MIN  ((IY+$C))
-			LD L,A				; Store in L
-			LD A,(IY+$2)			; Get the max Y
-			MAX  ((IY+$7))
-			MAX  ((IY+$C))
-			SUB L				; Subtract from L (the min)
-			LD B,A				; Get the height
+@M2:			LD	A,H
+			CP	D
+			JR	NC,@M3 
+			EX	DE,HL 
 ;
-triangleL2F_M1:		LD A,0				; Get the colour
-			RET Z
-			JP drawShapeTable		; Only draw if not zero
+; The points are now ordered so that BC is the top point, DE is in the middle and HL is at the bottom
+; We need to draw 3 lines
+; From BC to DE, the first short line, in table 0
+; From DE to HL, the second short line, in table 0
+; From BC to HL, the long line, in table 1
+;
+@M3:			LD 	(R0),BC			; Store the points
+			LD	(R1),DE
+			LD	(R2),HL		
+			XOR	A			; Draw line from BC to DE in table 0, already in registers
+			CALL	lineT
+			LD	BC,(R1)			; Draw line from DE to HL in table 0
+			LD	DE,(R2)
+			XOR	A
+			CALL	lineT
+			LD	BC,(R0)			; Draw line from BC to HL in table 1
+			LD	DE,(R2)
+			LD	A,1
+			CALL	lineT
+			LD	A,(R0+1)		; Get the top Y point
+			LD	L,A 
+			LD	A,(R2+1)		; And the bottom Y point
+			SUB	L 
+			RET	Z			; 
+			LD	B,A			; B: The height
+			EX	AF,AF'			; The colour from AF'
+			JP 	drawShapeTable		; Draw the shape
+
 
 ; extern void circleL2F(Point8 pt0, uint16 radius, uint8 colour) __z88dk_callee;
 ; A filled circle drawing routine
@@ -477,32 +482,28 @@ circleL2F:		PUSH AF				; Store the colour
 			JP drawShapeTable		; Draw the table
 
 
-; extern void lineT(Point8 pt0, Point8 pt1) __z88dk_callee
+; extern void lineT(Point8 pt0, Point8 pt1, uint8_t table) __z88dk_callee
 ;
 PUBLIC _lineT, lineT
 
 _lineT:			POP 	HL
 			POP 	BC         		; Loads y1x1 into BC
 			POP 	DE          		; Loads y2x2 into DE
+			DEC	SP			; Correct the stack address for single byte
+			POP	AF			; A: table
 			PUSH 	HL
 
 ; Draw a line into the shape table
+; Assume the line is always being drawn downwards
+; A = table (0 or 1)
 ; B = Y pixel position 1
 ; C = X pixel position 1
 ; D = Y pixel position 2
 ; E = X pixel position 2
 ;
-lineT:			LD H,shapeT_X1 >> 8		; Default to drawing in this table
-			LD A,D				; Check whether we are going to be drawing up
-			CP B
-			JR NC, lineT_1
-			INC H				; If we're drawing up, then draw in second table
-			PUSH BC				; And use this neat trick to swaps BC and DE
-			PUSH DE				; using the stack, forcing the line to be always
-			POP BC				; drawn downwards
-			POP DE
-
-lineT_1:		LD L, B				; Y address -> index of table	
+lineT:			ADD A,shapeT_X1 >> 8		; Select the correct table
+			LD H, A
+			LD L, B				; Y address -> index of table	
 			LD A, C				; X address
 			PUSH AF				; Stack the X address	
 			LD A, D				; Calculate the line height in B
