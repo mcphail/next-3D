@@ -18,8 +18,7 @@ dy:			DS 	2
 			EXTERN	plotL2asm_colour	; From render.asm
 			EXTERN	lineL2			; From render.asm
 			EXTERN	lineL2_NC		; From render.asm
-			EXTERN	spriteDraw		; From sprites.asm
-
+			EXTERN	triangleL2F		; From render.asm
 
 ; extern void lineL2C(Point16 p1, Point16 p2, uint8_t c) __z88dk_callee
 ;
@@ -110,104 +109,15 @@ _triangleL2CF:		POP	BC			; The return address
 			POP	AF			;  A: Colour
 			PUSH	BC			; Restore the return address
 ;
-triangleL2CF:		CALL	sortTriangle16		; Sort the triangle points from top to bottom
-;
-; Draw the first short line
-;
-			LD	HL,(R0): LD (p1_x),HL	; p1
-			LD	HL,(R1): LD (p1_y),HL	
-			LD	HL,(R2): LD (p2_x),HL	; p2
-			LD	HL,(R3): LD (p2_y),HL
-			CALL	clipLine
-			LD	A,0x10
-			LD	HL,0x8000
-			CALL	NZ,@C1
-;
-; Store the clipped line end
-; Might need to be a bit clever here and check for an X of 0 or 255 to get the clipped end
-;
-			LD	HL,(p1_x):PUSH HL
-			LD	HL,(p1_y):PUSH HL
-			LD	HL,(p2_x):PUSH HL
-			LD	HL,(p2_y):PUSH HL
-;
-; Draw the second short line
-;
-			LD	HL,(R2): LD (p1_x),HL	; p2
-			LD	HL,(R3): LD (p1_y),HL	
-			LD	HL,(R4): LD (p2_x),HL	; p3
-			LD	HL,(R5): LD (p2_y),HL
-			CALL	clipLine
-			LD	A,0x10
-			LD	HL,0x8002
-			CALL	NZ,@C1
-;
-; Get the previous clipped line end and connect them up
-;
-			POP	HL: LD (p2_y),HL	; p2_y
-			POP	HL: LD (p2_x),HL	; p2_x
-			LD	A,0x10
-			LD	HL,0x8004
-			CALL	@C1
-;
-; Draw the long line
-;
-			LD	HL,(R0): LD (p1_x),HL	; p1
-			LD	HL,(R1): LD (p1_y),HL	
-			LD	HL,(R4): LD (p2_x),HL	; p3
-			LD	HL,(R5): LD (p2_y),HL
-			CALL	clipLine
-			LD	A,0x60
-			LD	HL,0x8006
-			CALL	NZ,@C1
-;
-; Get the first clipped line end and connect them up
-;
-			POP	HL: LD (p2_y),HL
-			POP	HL: LD (p2_x),HL
-			LD	A,0x60
-			LD	HL,0x8008
-			CALL	@C1
-			RET
-;
-@C1:			EX	AF,AF'
-			CALL	debugEnd
-			LD	A,(p1_x): LD L,A
-			LD	A,(p1_y): LD H,A
-			LD	A,(p2_x): LD E,A
-			LD	A,(p2_y): LD D,A
-			EX 	AF,AF'
-			JP	lineL2
-
-
-; Draw sprites, each line start marked with a cross and ending with a circle
-; H: Sprite pattern
-; L: Sprite number
-;
-debugEnd:		PUSH	HL
-			LD	HL,(p1_y)
-			LD	DE,(p2_y)
-			CMP_HL	DE
-			POP	HL
-			JR	NZ,debugEnd_1
-			PUSH	HL
-			LD	HL,(p1_x)
-			LD	DE,(p2_x)
-			CMP_HL	DE
-			POP	HL
-			JR	NZ,debugEnd_1
-			LD	H,0x00
-debugEnd_1:		LD 	BC,(p1_x)
-			LD	DE,(p1_y)
-			PUSH	HL
-			CALL	spriteDraw
-			POP	HL
-			LD 	BC,(p2_x)
-			LD	DE,(p2_y)
-			INC	H
-			INC 	L
-			JP	spriteDraw
-	
+triangleL2CF:;		CALL	sortTriangle16		; Sort the triangle points from top to bottom
+			LD 	A,(R0): LD C,A
+			LD	A,(R1): LD B,A
+			LD 	A,(R2): LD E,A
+			LD	A,(R3): LD D,A
+			LD	A,(R4): LD L,A
+			LD	A,(R5): LD H,A 
+			LD	A,0xFD
+			JP	triangleL2F
 
 ; For the filled triangle
 ; Need to sort the points from top to bottom
