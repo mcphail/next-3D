@@ -117,19 +117,19 @@ _triangleL2CF:		POP	BC			; The return address
 triangleL2CF:		PUSH	IX
 ;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
-			LD	A,$E0			
+			LD	A,$E0			; Red
 			LD	DE,(R0)			; Add the first coordinate
 			LD	HL,(R1)
-			LD	(triangleIn+$0),A	;  A: Side 0
+			LD	(triangleIn+$0),A
 			LD	(triangleIn+$1),DE	; DE: The X coordinate
 			LD	(triangleIn+$3),HL	; HL: The Y coordinate
-			LD	A,$FD
+			LD	A,$FD			; Yellow
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
 			LD	(triangleIn+$5),A
 			LD	(triangleIn+$6),DE
 			LD	(triangleIn+$8),HL
-			LD	A,$70			;  A: Side 1
+			LD	A,$70			; Green
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
 			LD	(triangleIn+$A),A
@@ -138,8 +138,8 @@ triangleL2CF:		PUSH	IX
 			LD	A,$FF
 			LD	(triangleIn+$F),A	; End of table marker
 
-			LD	(p2_x),DE		; The previous points for the clipping
-			LD	(p2_y),HL
+			LD	(p1_x),DE		; The previous points for the clipping
+			LD	(p1_y),HL
 			
 			LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
 			LD	IX,triangleIn 		; The input list
@@ -210,18 +210,18 @@ clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
 			LD	(IY+0),A
 			RET	Z			; Yes, so finish
 ;
-			LD	E,(IX+1)		; Fetch the current X coordinate
-			LD	D,(IX+2)
-			LD	(p1_x),DE
-			LD	HL,(p2_x)		; Calculate dx (p2_x - p1_x)
+			LD	L,(IX+1)		; Fetch the current X coordinate
+			LD	H,(IX+2)
+			LD	(p2_x),HL
+			LD	DE,(p1_x)		; Calculate dx (p2_x - p1_x)
 			OR	A
 			SBC	HL,DE
 			LD	(dx),HL 
 ;
-			LD	E,(IX+3)		; Fetch the current X coordinate
-			LD	D,(IX+4)
-			LD	(p1_y),DE
-			LD	HL,(p2_y)		; Calculate dy (p2_y - p1_y)
+			LD	L,(IX+3)		; Fetch the current X coordinate
+			LD	H,(IX+4)
+			LD	(p2_y),HL
+			LD	DE,(p1_y)		; Calculate dy (p2_y - p1_y)
 			OR	A
 			SBC	HL,DE
 			LD	(dy),HL
@@ -229,10 +229,10 @@ clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
 ; Test clip against the line Y=0
 ;
 clipTriangleCall:	CALL	0			; Self-modded
-			LD	HL,(p1_x)		; Get the current coordinates
-			LD	DE,(p1_y)
-			LD	(p2_x),HL		; Store the new previous coordinates
-			LD	(p2_y),DE
+			LD	DE,(p2_x)		; Get the current coordinates
+			LD	HL,(p2_y)
+			LD	(p1_x),DE		; Store the new previous coordinates
+			LD	(p1_y),HL
 			LD	BC,5
 			ADD	IX,BC
 			JR	clipTriangle_L
@@ -240,9 +240,9 @@ clipTriangleCall:	CALL	0			; Self-modded
 
 ; Clip the triangle at the top edge
 ;
-clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point		
+clipTriangleTop:	LD	HL,(p2_y)		; HL: The current Y point		
 			BIT	7,H			; Check if the current point is inside clip edge
-			LD	HL,(p2_y)		; HL: The previous Y point
+			LD	HL,(p1_y)		; HL: The previous Y point
 			JR	NZ,@M1			; No, so go here
 ;
 ; Here the current point is inside the clip edge
@@ -250,9 +250,7 @@ clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point
 ;
 			BIT	7,H			; HL: The previous point	
 			CALL	NZ,@M2			; It is outside, so add the intersection
-			LD	DE,(p1_x)		; Finally add the current point in
-			LD	HL,(p1_y)
-			JR	clipTriangleOutVertex		
+			JR	clipTriangleOutCurrent	; Finally add the current point in
 ;
 ; Here, the current point is outside the clip edge
 ;
@@ -267,9 +265,9 @@ clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point
 
 ; Clip the triangle at the left edge
 ;
-clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point		
+clipTriangleLeft:	LD	HL,(p2_x)		; HL: The current X point		
 			BIT	7,H			; Check if the current point is inside clip edge
-			LD	HL,(p2_x)		; HL: The previous Y point
+			LD	HL,(p1_x)		; HL: The previous Y point
 			JR	NZ,@M1			; No, so go here
 ;
 ; Here the current point is inside the clip edge
@@ -277,9 +275,7 @@ clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point
 ;
 			BIT	7,H			; HL: The previous point	
 			CALL	NZ,@M2			; It is outside, so add the intersection
-			LD	DE,(p1_x)		; Finally add the current point in
-			LD	HL,(p1_y)
-			JR	clipTriangleOutVertex		
+			JR	clipTriangleOutCurrent	; Finally add the current point in
 ;
 ; Here, the current point is outside the clip edge
 ;
@@ -294,10 +290,10 @@ clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point
 
 ; Clip the triangle at the right edge
 ;
-clipTriangleRight:	LD	HL,(p1_x)		; HL: The current X point		
+clipTriangleRight:	LD	HL,(p2_x)		; HL: The current X point		
 			LD	A,H
 			OR	A			; Check if the current point is inside clip edge
-			LD	HL,(p2_x)		; HL: The previous Y point
+			LD	HL,(p1_x)		; HL: The previous Y point
 			JR	NZ,@M1			; No, so go here
 ;
 ; Here the current point is inside the clip edge
@@ -306,9 +302,7 @@ clipTriangleRight:	LD	HL,(p1_x)		; HL: The current X point
 			LD	A,H			; HL: The previous point
 			OR	A
 			CALL	NZ,@M2			; It is outside, so add the intersection
-			LD	DE,(p1_x)		; Finally add the current point in
-			LD	HL,(p1_y)
-			JR	clipTriangleOutVertex		
+			JR	clipTriangleOutCurrent	; Finally add the current point in
 ;
 ; Here, the current point is outside the clip edge
 ;
@@ -324,10 +318,10 @@ clipTriangleRight:	LD	HL,(p1_x)		; HL: The current X point
 
 ; Clip the triangle at the bottom edge
 ;
-clipTriangleBottom:	LD	HL,(p1_y)		; HL: The current X point	
+clipTriangleBottom:	LD	HL,(p2_y)		; HL: The current X point	
 			LD	DE,192			; The bottom of the screen
 			CMP_HL	DE	
-			LD	HL,(p2_y)		; HL: The previous Y point
+			LD	HL,(p1_y)		; HL: The previous Y point
 			JR	NC,@M1			; No, so go here
 ;
 ; Here the current point is inside the clip edge
@@ -335,9 +329,7 @@ clipTriangleBottom:	LD	HL,(p1_y)		; HL: The current X point
 ;	
 			CMP_HL	DE			; Check if the previous point is inside the clip edge
 			CALL	NC,@M2			; It is outside, so add the intersection
-			LD	DE,(p1_x)		; Finally add the current point in
-			LD	HL,(p1_y)
-			JR	clipTriangleOutVertex		
+			JR	clipTriangleOutCurrent	; Finally add the current point in
 ;
 ; Here, the current point is outside the clip edge
 ;		
@@ -349,6 +341,9 @@ clipTriangleBottom:	LD	HL,(p1_y)		; HL: The current X point
 @M2:			CALL	clipBottom
 			JR	clipTriangleOutVertex
 
+
+clipTriangleOutCurrent:	LD	DE,(p2_x)		; Add the current point in
+			LD	HL,(p2_y)
 
 ; Output a vertex and increment to the next slot
 ; DE: X coordinate
