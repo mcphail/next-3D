@@ -2,7 +2,7 @@
 
     			INCLUDE "globals.inc"
 ;
-; Clipping algorithm courtesy of 
+; Line clipping algorithm pseudocode courtesy of 
 ; https://www.geeksforgeeks.org/dsa/line-clipping-set-1-cohen-sutherland-algorithm/
 ;
 
@@ -185,7 +185,7 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			JP	lineL2			; Draw the final connecting line
 
 
-; Clip a triangle using the Sunderland-Hodgman algorithm
+; Clip a triangle using the Sutherland-Hodgman algorithm
 ; https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
 ;
 ; Clipping uses the following algorithm
@@ -588,6 +588,10 @@ clipLine_Next:		POP	AF			; A: codeout, flag set from previous calculation
 
 
 ; Clip a line against the top edge
+; p1_x,y: The start point of the line to be clipped
+; p2_x,y: The end point of the line to be clipped
+; dx: p2_x - p1_x
+; dy: p2_y - p1_y
 ; Returns:
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
@@ -605,6 +609,10 @@ clipTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
 
 
 ; Clip a line against the left edge
+; p1_x,y: The start point of the line to be clipped
+; p2_x,y: The end point of the line to be clipped
+; dx: p2_x - p1_x
+; dy: p2_y - p1_y
 ; Returns:
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
@@ -621,6 +629,10 @@ clipLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
 
 
 ; Clip a line against the bottom edge
+; p1_x,y: The start point of the line to be clipped
+; p2_x,y: The end point of the line to be clipped
+; dx: p2_x - p1_x
+; dy: p2_y - p1_y
 ; Returns:
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
@@ -641,6 +653,10 @@ clipBottom:		LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
 
 
 ; Clip a line against the right edge
+; p1_x,y: The start point of the line to be clipped
+; p2_x,y: The end point of the line to be clipped
+; dx: p2_x - p1_x
+; dy: p2_y - p1_y
 ; Returns:
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
