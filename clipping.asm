@@ -13,12 +13,46 @@ p2_y:			DS	2
 dx:			DS	2
 dy:			DS 	2
 
+			EXTERN	Scratchpad		; From ram.inc
 			EXTERN	fastMulDiv		; From maths.asm
 			EXTERN	negDE 			; From maths.asm
 			EXTERN	plotL2asm_colour	; From render.asm
 			EXTERN	lineL2			; From render.asm
 			EXTERN	lineL2_NC		; From render.asm
 			EXTERN	triangleL2F		; From render.asm
+
+
+; Clip a line against the top edge
+; Returns:
+; HL: X coordinate of clipped point
+; DE: Y coordinate of clipped point
+;
+clipVertexTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
+			LD	DE,(p1_y)
+			LD	BC,(dy)
+			CALL	negDE 
+			CALL	fastMulDiv		; HL: fastMulDiv(dx, -p1->y, dy); 
+			LD	DE,(p1_x)
+			ADD	HL,DE 			; HL: p1_x +fastMulDiv(dx, -p1->y, dy)
+			EX	DE,HL			; DE: X
+			LD	HL,0			; HL: Y
+
+
+; Clip a line against the left edge
+; Returns:
+; HL: X coordinate of clipped point
+; DE: Y coordinate of clipped point
+;
+clipVertexLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
+			LD	DE,(p1_x)		
+			LD	BC,(dx)
+			CALL	negDE
+			CALL	fastMulDiv
+			LD	DE,(p1_y)
+			ADD	HL,DE			; HL: Y
+			LD	DE,0			; DE: X
+			RET
+
 
 ; extern void lineL2C(Point16 p1, Point16 p2, uint8_t c) __z88dk_callee
 ;
@@ -98,6 +132,9 @@ triangleL2C_L:		LD	A,(p1_x): LD L,A
 ;
 PUBLIC _triangleL2CF, triangleL2CF
 
+triangleIn:		EQU	Scratchpad
+triangleOut:		EQU	Scratchpad + $100
+
 _triangleL2CF:		POP	BC			; The return address
 			POP	HL: LD (R0),HL		; R0: p1.x
 			POP	HL: LD (R1),HL		; R1: p1.y
@@ -109,15 +146,186 @@ _triangleL2CF:		POP	BC			; The return address
 			POP	AF			;  A: Colour
 			PUSH	BC			; Restore the return address
 ;
-triangleL2CF:;		CALL	sortTriangle16		; Sort the triangle points from top to bottom
-			LD 	A,(R0): LD C,A
-			LD	A,(R1): LD B,A
-			LD 	A,(R2): LD E,A
-			LD	A,(R3): LD D,A
-			LD	A,(R4): LD L,A
-			LD	A,(R5): LD H,A 
-			LD	A,0xFD
-			JP	triangleL2F
+triangleL2CF:		PUSH	IX
+;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
+
+			LD	A,$E0			
+			LD	DE,(R0)			; Add the first coordinate
+			LD	HL,(R1)
+			LD	(triangleIn+$0),A	;  A: Side 0
+			LD	(triangleIn+$1),DE	; DE: The X coordinate
+			LD	(triangleIn+$3),HL	; HL: The Y coordinate
+			LD	A,$FD
+			LD	DE,(R2)			; Add the second coordinate
+			LD	HL,(R3)
+			LD	(triangleIn+$5),A
+			LD	(triangleIn+$6),DE
+			LD	(triangleIn+$8),HL
+			LD	A,$70			;  A: Side 1
+			LD	DE,(R4)			; Add the third coordinate
+			LD	HL,(R5)
+			LD	(triangleIn+$A),A
+			LD	(triangleIn+$B),DE
+			LD	(triangleIn+$D),HL
+			LD	A,$FF
+			LD	(triangleIn+$F),A	; End of table marker
+
+			LD	(p2_x),DE		; The previous points for the clipping
+			LD	(p2_y),HL
+			
+			LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
+			LD	IX,triangleIn 		; The input list
+			LD	IY,triangleOut		; The output list
+			CALL	clipTriangle		; Clip the triangle
+			;
+			LD	HL,clipTriangleTop	; The callback routine to clip the top edge
+			LD	IX,triangleOut 		; The input list (the previous output list)
+			LD	IY,triangleIn		; The output list (the previous input list)
+			CALL	clipTriangle		; Clip the triangle
+;
+			CALL	drawTriangle
+			POP	IX
+			RET
+;
+drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
+@L1:			LD	A,(IY+5)	
+			CP 	$FF
+			LD	A,(IY+0)
+			LD	L,(IY+1)		; The first coordinate
+			LD	H,(IY+3)
+			JR	Z,@M1			; If there is no second point, then skip to the end
+			LD	E,(IY+6)		; The second coordinate
+			LD	D,(IY+8)	
+			CALL	lineL2			; Draw the lines
+			LD	BC,5
+			ADD	IY,BC
+			JR	@L1
+;
+@M1:			LD	IY,triangleIn		; Reset the list
+			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
+			LD	D,(IY+3)
+			JP	lineL2			; Draw the final connecting line
+
+; Clip a triangle using the Sunderland-Hodgman algorithm
+; https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+;
+; Clipping uses the following algorithm
+;
+; if (currentPoint inside clipEdge) {
+;     if (previousPoint not inside clipEdge) {
+;         outputList.add(intersectingPoint);
+;     }
+;     outputList.add(currentPoint);
+; }
+; else if (previousPoint inside clipEdge) {
+;     outputList.add(intersectingPoint);
+; }
+;
+clipTriangle:		LD	(clipTriangleCall+1),HL	; The clipping operation self-modded code
+;
+; Loop through and clip top, bottom, left, then right
+; Checks the current point (IX+5) with the previous (IX+0)
+;
+clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
+			CP	$FF
+			LD	(IY+0),A
+			RET	Z			; Yes, so finish
+;
+			LD	E,(IX+1)		; Fetch the current X coordinate
+			LD	D,(IX+2)
+			LD	(p1_x),DE
+			LD	HL,(p2_x)		; Calculate dx (p2_x - p1_x)
+			OR	A
+			SBC	HL,DE
+			LD	(dx),HL 
+;
+			LD	E,(IX+3)		; Fetch the current X coordinate
+			LD	D,(IX+4)
+			LD	(p1_y),DE
+			LD	HL,(p2_y)		; Calculate dy (p2_y - p1_y)
+			OR	A
+			SBC	HL,DE
+			LD	(dy),HL
+;
+; Test clip against the line Y=0
+;
+clipTriangleCall:	CALL	0			; Self-modded
+			LD	HL,(p1_x)		; Get the current coordinates
+			LD	DE,(p1_y)
+			LD	(p2_x),HL		; Store the new previous coordinates
+			LD	(p2_y),DE
+			LD	BC,5
+			ADD	IX,BC
+			JR	clipTriangle_L
+;
+; Clip the triangle at the top edge
+;
+clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point		
+			BIT	7,H			; Check if the current point is inside clip edge
+			LD	HL,(p2_y)		; HL: The previous Y point
+			JR	NZ,@M1			; No, so go here
+;
+; Here the current point is inside the clip edge
+; Need to check if the previous point is outside the clip edge
+;
+			BIT	7,H			; HL: The previous point	
+			CALL	NZ,@M2			; It is outside, so add the intersection
+			LD	DE,(p1_x)		; Finally add the current point in
+			LD	HL,(p1_y)
+			JR	clipTriangleOutVertex		
+;
+; Here, the current point is outside the clip edge
+;
+@M1:			BIT	7,H			; Check if the previous point is inside the clip edge
+			RET	NZ			; No, so do nothing
+;
+; Here, the current point is outside the clip edge, but the previous point is in it
+;
+@M2:			CALL	clipVertexTop
+			JR	clipTriangleOutVertex
+;
+; Clip the triangle at the left edge
+;
+clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point		
+			BIT	7,H			; Check if the current point is inside clip edge
+			LD	HL,(p2_x)		; HL: The previous Y point
+			JR	NZ,@M1			; No, so go here
+;
+; Here the current point is inside the clip edge
+; Need to check if the previous point is outside the clip edge
+;
+			BIT	7,H			; HL: The previous point	
+			CALL	NZ,@M2			; It is outside, so add the intersection
+			LD	DE,(p1_x)		; Finally add the current point in
+			LD	HL,(p1_y)
+			JR	clipTriangleOutVertex		
+;
+; Here, the current point is outside the clip edge
+;
+@M1:			BIT	7,H			; Check if the previous point is inside the clip edge
+			RET	NZ			; No, so do nothing
+;
+; Here, the current point is outside the clip edge, but the previous point is in it
+;
+@M2:			CALL	clipVertexLeft
+			JR	clipTriangleOutVertex
+;
+; Output a vertex and increment to the next slot
+; DE: X coordinate
+; HL: Y coordinate
+;
+clipTriangleOutVertex:	LD	A,(IX+0)		; Copy the current attribute
+			LD	(IY+0),A		
+			LD	(IY+1),E		; Store a point in the output table
+			LD	(IY+2),D
+			LD	(IY+3),L
+			LD	(IY+4),H
+			LD	BC,5
+			ADD	IY,BC
+			RET
+
+
+
 
 ; For the filled triangle
 ; Need to sort the points from top to bottom
