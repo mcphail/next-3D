@@ -145,8 +145,18 @@ triangleL2CF:		PUSH	IX
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
-			;
+;
 			LD	HL,clipTriangleTop	; The callback routine to clip the top edge
+			LD	IX,triangleOut 		; The input list (the previous output list)
+			LD	IY,triangleIn		; The output list (the previous input list)
+			CALL	clipTriangle		; Clip the triangle
+;
+			LD	HL,clipTriangleRight	; The callback routine to clip the right edge
+			LD	IX,triangleIn 		; The input list
+			LD	IY,triangleOut		; The output list
+			CALL	clipTriangle		; Clip the triangle
+;
+			LD	HL,clipTriangleBottom	; The callback routine to clip the bottom edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
@@ -173,6 +183,7 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
 			LD	D,(IY+3)
 			JP	lineL2			; Draw the final connecting line
+
 
 ; Clip a triangle using the Sunderland-Hodgman algorithm
 ; https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
@@ -225,7 +236,8 @@ clipTriangleCall:	CALL	0			; Self-modded
 			LD	BC,5
 			ADD	IX,BC
 			JR	clipTriangle_L
-;
+
+
 ; Clip the triangle at the top edge
 ;
 clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point		
@@ -251,7 +263,8 @@ clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point
 ;
 @M2:			CALL	clipTop
 			JR	clipTriangleOutVertex
-;
+
+
 ; Clip the triangle at the left edge
 ;
 clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point		
@@ -277,7 +290,66 @@ clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point
 ;
 @M2:			CALL	clipLeft
 			JR	clipTriangleOutVertex
+
+
+; Clip the triangle at the right edge
 ;
+clipTriangleRight:	LD	HL,(p1_x)		; HL: The current X point		
+			LD	A,H
+			OR	A			; Check if the current point is inside clip edge
+			LD	HL,(p2_x)		; HL: The previous Y point
+			JR	NZ,@M1			; No, so go here
+;
+; Here the current point is inside the clip edge
+; Need to check if the previous point is outside the clip edge
+;	
+			LD	A,H			; HL: The previous point
+			OR	A
+			CALL	NZ,@M2			; It is outside, so add the intersection
+			LD	DE,(p1_x)		; Finally add the current point in
+			LD	HL,(p1_y)
+			JR	clipTriangleOutVertex		
+;
+; Here, the current point is outside the clip edge
+;
+@M1:			LD	A,H			; Check if the previous point is inside the clip edge
+			OR	A	
+			RET	NZ			; No, so do nothing
+;
+; Here, the current point is outside the clip edge, but the previous point is in it
+;
+@M2:			CALL	clipRight
+			JR	clipTriangleOutVertex
+
+
+; Clip the triangle at the bottom edge
+;
+clipTriangleBottom:	LD	HL,(p1_y)		; HL: The current X point	
+			LD	DE,192			; The bottom of the screen
+			CMP_HL	DE	
+			LD	HL,(p2_y)		; HL: The previous Y point
+			JR	NC,@M1			; No, so go here
+;
+; Here the current point is inside the clip edge
+; Need to check if the previous point is outside the clip edge
+;	
+			CMP_HL	DE			; Check if the previous point is inside the clip edge
+			CALL	NC,@M2			; It is outside, so add the intersection
+			LD	DE,(p1_x)		; Finally add the current point in
+			LD	HL,(p1_y)
+			JR	clipTriangleOutVertex		
+;
+; Here, the current point is outside the clip edge
+;		
+@M1:			CMP_HL	DE			; Check if the previous point is inside the clip edge
+			RET	NC			; No, so do nothing
+;
+; Here, the current point is outside the clip edge, but the previous point is in it
+;
+@M2:			CALL	clipBottom
+			JR	clipTriangleOutVertex
+
+
 ; Output a vertex and increment to the next slot
 ; DE: X coordinate
 ; HL: Y coordinate
