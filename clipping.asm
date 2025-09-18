@@ -22,38 +22,6 @@ dy:			DS 	2
 			EXTERN	triangleL2F		; From render.asm
 
 
-; Clip a line against the top edge
-; Returns:
-; HL: X coordinate of clipped point
-; DE: Y coordinate of clipped point
-;
-clipVertexTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
-			LD	DE,(p1_y)
-			LD	BC,(dy)
-			CALL	negDE 
-			CALL	fastMulDiv		; HL: fastMulDiv(dx, -p1->y, dy); 
-			LD	DE,(p1_x)
-			ADD	HL,DE 			; HL: p1_x +fastMulDiv(dx, -p1->y, dy)
-			EX	DE,HL			; DE: X
-			LD	HL,0			; HL: Y
-
-
-; Clip a line against the left edge
-; Returns:
-; HL: X coordinate of clipped point
-; DE: Y coordinate of clipped point
-;
-clipVertexLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
-			LD	DE,(p1_x)		
-			LD	BC,(dx)
-			CALL	negDE
-			CALL	fastMulDiv
-			LD	DE,(p1_y)
-			ADD	HL,DE			; HL: Y
-			LD	DE,0			; DE: X
-			RET
-
-
 ; extern void lineL2C(Point16 p1, Point16 p2, uint8_t c) __z88dk_callee
 ;
 PUBLIC _lineL2C, lineL2C
@@ -281,7 +249,7 @@ clipTriangleTop:	LD	HL,(p1_y)		; HL: The current Y point
 ;
 ; Here, the current point is outside the clip edge, but the previous point is in it
 ;
-@M2:			CALL	clipVertexTop
+@M2:			CALL	clipTop
 			JR	clipTriangleOutVertex
 ;
 ; Clip the triangle at the left edge
@@ -307,7 +275,7 @@ clipTriangleLeft:	LD	HL,(p1_x)		; HL: The current X point
 ;
 ; Here, the current point is outside the clip edge, but the previous point is in it
 ;
-@M2:			CALL	clipVertexLeft
+@M2:			CALL	clipLeft
 			JR	clipTriangleOutVertex
 ;
 ; Output a vertex and increment to the next slot
@@ -384,8 +352,8 @@ _clipRegion:		POP	BC
 			LD	L,A		; Return the clip region
 			RET
 
-; BC: X coordinate of interest
-; DE: Y coordinate of interest
+; DE: X coordinate of interest
+; HL: Y coordinate of interest
 ; Returns:
 ;  A: Clip region(s) the point is in, with the following bits set:
 ;  Bit 0: Top
@@ -395,19 +363,19 @@ _clipRegion:		POP	BC
 ;
 clipRegion:		XOR	A		; The return value
 ;
-clipRegionV:		RLC	D 		; D: Test the Y coordinate MSB
+clipRegionV:		RLC	H 		; H: Test the Y coordinate MSB
 			JR	C, clipRegionT	; Off top of the screen
 			JR	NZ, clipRegionB ; Off bottom of screen 
-			LD	D,A		; Store A temporarily
-			LD	A,E		; E: Y (LSB)
+			LD	H,A		; Store A temporarily
+			LD	A,L		; L: Y (LSB)
 			CP	192
-			LD	A,D		; Restore A
+			LD	A,H		; Restore A
 			JR	C, clipRegionH 	; We're in the top 192 lines of the screen, so skip 
 clipRegionB:		OR	2		; Bottom
 			JR	clipRegionH
 clipRegionT:		OR	1		; Top
 ;		
-clipRegionH:		RLC 	B		; B: Test the X coordinate MSB
+clipRegionH:		RLC 	D		; B: Test the X coordinate MSB
 			RET	Z 		; We're on screen, so ignore
 			JR	C, clipRegionL	; We're off the left of the screen, so skip to that
 			OR	4		; Right
@@ -460,21 +428,21 @@ _clipLine_M2:		LD	DE,0
 ;	0 if the line does not need to be drawn as both points are off screen
 ;   Otherwise returns number of iterations of clipping required
 ;
-clipLine:		LD	BC,(p1_x)
-			LD	DE,(p1_y)
+clipLine:		LD	DE,(p1_x)
+			LD	HL,(p1_y)
 			CALL	clipRegion	
-			LD	L,A 			; L: code1		
-			LD	BC,(p2_x)
-			LD	DE,(p2_y)
+			LD	C,A 			; C: code1		
+			LD	DE,(p2_x)
+			LD	HL,(p2_y)
 			CALL	clipRegion
-			LD	H,A			; H: code2
+			LD	B,A			; B: code2
 			LD	IYL, 0			; Iteration counter
 ;
 ; Trivial check if both points are on screen
 ;
 clipLine_L1:		INC	IYL			; Increment iteration counter
-			LD	A,H 			; code1|code2==0
-			OR	L
+			LD	A,B 			; code1|code2==0
+			OR	C
 			JR 	NZ, clipLine_M1		; No, so skip
 			LD	A,IYL			; A: Accept
 			OR	A			; Set the flags (for when called from assembler)
@@ -482,22 +450,22 @@ clipLine_L1:		INC	IYL			; Increment iteration counter
 ;
 ; Trivial check if both points are off screen
 ;
-clipLine_M1:		LD 	A,H			; code1&code2!=0	
-			AND 	L
+clipLine_M1:		LD 	A,B			; code1&code2!=0	
+			AND 	C
 			JR	Z, clipLine_M2		; No, so skip
 			XOR	A
 			RET 				; A: Reject
 ;
 ; Check which point needs clipping (codeout)
 ;
-clipLine_M2:		LD	A,L			; Is L (code1) on screen
+clipLine_M2:		LD	A,C			; Is L (code1) on screen
 			OR	A
 			JR	NZ, clipLine_M3		; NZ - L (code1) is codeout
-			LD	A,H 			;  Z - H (code2) is codeout
+			LD	A,B 			;  Z - H (code2) is codeout
 ;
 ; Calculate the deltas
 ;	
-clipLine_M3:		PUSH	HL			; Stack code1 and code2
+clipLine_M3:		PUSH	BC			; Stack code1 and code2
 			PUSH	AF			; Stack codeout and Z flag
 			LD	C,A			; C: codeout
 ;
@@ -515,73 +483,77 @@ clipLine_M3:		PUSH	HL			; Stack code1 and code2
 ;
 ; Do the clipping
 ;
+			PUSH	clipLine_Next		; Stack the return address
 			SRL	C
-			JR	C, clipLine_Top
+			JR	C,clipTop
 			SRL	C			
-			JR	C, clipLine_Bottom
+			JR	C,clipBottom
 			SRL	C
-			JR	C, clipLine_Right
-;
-; Clip Left
-; Returns
-;  BC: Clipped X point
-;  DE: Clipped Y point
-;
-clipLine_Left:		LD	DE,(p1_x)		; Do p1->y + fastMulDiv(dy, -p1->x, dx)
-			CALL	negDE
-			LD	HL,(dy)
-			LD	BC,(dx)
-			CALL	fastMulDiv
-			LD	DE,(p1_y)
-			ADD	HL,DE
-			EX	HL,DE			; DE: Y
-			LD	BC, 0			; BC: X
+			JR	C,clipRight
+			JR	clipLeft
 ;
 ; Set up for next iteration
 ;
 clipLine_Next:		POP	AF			; A: codeout, flag set from previous calculation
-			POP	HL			; L: code1, H: code2
+			POP	BC			; The codes
 			JR	NZ, @M1 		; F: NZ if code1=codeout
 ;
 ; codeout = H (code2) at this point
 ;
-			LD	(p2_x),BC
-			LD	(p2_y),DE
+			LD	(p2_x),DE
+			LD	(p2_y),HL
 			CALL	clipRegion
-			LD	H,A			; H: code2
-			JP	clipLine_L1
+			LD	B,A			; B: code2
+			JR	clipLine_L1
 ;
 ; codeout = L (code1) at this point
 ;
-@M1:			LD	(p1_x),BC
-			LD	(p1_y),DE
+@M1:			LD	(p1_x),DE
+			LD	(p1_y),HL
 			CALL	clipRegion		
-			LD 	L,A			; L: code1
-			JP	clipLine_L1
+			LD 	C,A			; C: code1
+			JR	clipLine_L1
+
+
+; Clip a line against the top edge
+; Returns:
+; DE: X coordinate of clipped point
+; HL: Y coordinate of clipped point
 ;
-; Clip Top
-; Returns
-;  BC: Clipped X point
-;  DE: Clipped Y point
-;
-clipLine_Top:		LD	DE,(p1_y)		; Do p1->x + fastMulDiv(dx, -p1->y, dy)
+clipTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
+			LD	DE,(p1_y)
+			LD	BC,(dy)
 			CALL	negDE 
-			LD	HL,(dx)			; HL: dx
-			LD	BC,(dy)			; BC: dy
 			CALL	fastMulDiv		; HL: fastMulDiv(dx, -p1->y, dy); 
 			LD	DE,(p1_x)
 			ADD	HL,DE 			; HL: p1_x +fastMulDiv(dx, -p1->y, dy)
-			PUSH	HL
-			POP	BC			; BC: X
-			LD	DE,0			; DE: Y
-			JR 	clipLine_Next
+			EX	DE,HL			; DE: X
+			LD	HL,0			; HL: Y
+			RET
+
+
+; Clip a line against the left edge
+; Returns:
+; DE: X coordinate of clipped point
+; HL: Y coordinate of clipped point
 ;
-; Clip Bottom
-; Returns
-;  BC: Clipped X point
-;  DE: Clipped Y point
-;					
-clipLine_Bottom:	LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
+clipLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
+			LD	DE,(p1_x)		
+			LD	BC,(dx)
+			CALL	negDE
+			CALL	fastMulDiv
+			LD	DE,(p1_y)
+			ADD	HL,DE			; HL: Y
+			LD	DE,0			; DE: X
+			RET
+
+
+; Clip a line against the bottom edge
+; Returns:
+; DE: X coordinate of clipped point
+; HL: Y coordinate of clipped point
+;
+clipBottom:		LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
 			LD	DE,(p1_y)
 			OR	A
 			SBC	HL,DE
@@ -590,18 +562,18 @@ clipLine_Bottom:	LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
 			LD	BC,(dy)
 			CALL	fastMulDiv
 			LD	DE,(p1_x)
-			ADD	HL,DE
-			PUSH	HL
-			POP	BC			; BC: X
-			LD	DE, 191			; DE: Y
-			JR	clipLine_Next
+			ADD	HL,DE			; HL: X
+			EX	DE,HL			; DE: X
+			LD	HL,191			; HL: Y
+			RET
+
+
+; Clip a line against the right edge
+; Returns:
+; DE: X coordinate of clipped point
+; HL: Y coordinate of clipped point
 ;
-; Clip Right
-; Returns
-;  BC: Clipped X point
-;  DE: Clipped Y point
-; 
-clipLine_Right:		LD	HL,256			; Do p1->y + fastMulDiv(dy, 256-p1->x, dx)
+clipRight:		LD	HL,256			; Do p1->y + fastMulDiv(dy, 256-p1->x, dx)
 			LD	DE,(p1_x)
 			OR	A
 			SBC	HL,DE
@@ -610,8 +582,6 @@ clipLine_Right:		LD	HL,256			; Do p1->y + fastMulDiv(dy, 256-p1->x, dx)
 			LD	BC,(dx)
 			CALL	fastMulDiv	
 			LD	DE,(p1_y)
-			ADD	HL,DE
-			EX	DE,HL			; DE: Y
-			LD	BC,255			; BC: X			
-			JR 	clipLine_Next
-
+			ADD	HL,DE			; HL: Y
+			LD	DE,255			; DE: X		
+			RET
