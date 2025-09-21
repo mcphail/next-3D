@@ -117,7 +117,7 @@ _triangleL2CF:		POP	BC			; The return address
 triangleL2CF:		PUSH	IX
 ;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
-			LD	A,$E0			; Red
+			XOR	A
 			LD	DE,(R0)			; Add the first coordinate
 			LD	HL,(R1)
 			LD	(triangleIn+$0),A
@@ -125,7 +125,7 @@ triangleL2CF:		PUSH	IX
 			LD	(triangleIn+$3),HL	; HL: The Y coordinate
 			CALL	clipRegion
 			LD	C,A 			; The first clipping region
-			LD	A,$E0			; Red
+			XOR	A
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
 			LD	(triangleIn+$5),A
@@ -134,7 +134,7 @@ triangleL2CF:		PUSH	IX
 			CALL	clipRegion		; The second clipping region
 			OR	C 			; OR it with the first
 			LD	C,A
-			LD	A,$FD			; Green
+			XOR	A
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
 			LD	(triangleIn+$A),A
@@ -182,13 +182,13 @@ triangleL2CF:		PUSH	IX
 drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 @L1:			LD	A,(IY+5)	
 			CP 	$FF
-			LD	A,(IY+0)
 			LD	L,(IY+1)		; The first coordinate
 			LD	H,(IY+3)
 			JR	Z,@M1			; If there is no second point, then skip to the end
 			LD	E,(IY+6)		; The second coordinate
 			LD	D,(IY+8)	
-			CALL	lineL2			; Draw the lines
+			CALL	@C1			; Get the colour
+			CALL	NZ,lineL2		; Don't draw horizontal lines
 			LD	A,IYL
 			ADD	A,5
 			LD	IYL,A
@@ -197,8 +197,16 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 @M1:			LD	IY,triangleIn		; Reset the list
 			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
 			LD	D,(IY+3)
-			LD	A,$FD
-			JP	lineL2			; Draw the final connecting line
+			CALL	@C1
+			CALL	NZ,lineL2		; Draw the final connecting line
+			RET
+;
+@C1:			LD	A,H			; Calculate the colour depending upon
+			CP	D			; which way the line is being drawn
+			LD	A,$E0			; up or down
+			RET	C
+			LD	A,$FD 
+			RET
 
 ; Clip a triangle using the Sutherland-Hodgman algorithm
 ; https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
@@ -361,8 +369,7 @@ clipTriangleOutCurrent:	LD	DE,(p2_x)		; Add the current point in
 ; DE: X coordinate
 ; HL: Y coordinate
 ;
-clipTriangleOutVertex:	LD	A,(IX+0)		; Copy the current attribute
-			LD	(IY+0),A		
+clipTriangleOutVertex:	LD	(IY+0),0		; Mark as being a valid vertex		
 			LD	(IY+1),E		; Store a point in the output table
 			LD	(IY+2),D
 			LD	(IY+3),L
