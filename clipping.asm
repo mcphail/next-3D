@@ -115,7 +115,7 @@ _triangleL2CF:		POP	BC			; The return address
 			PUSH	BC			; Restore the return address
 ;
 triangleL2CF:		PUSH	IX
-;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
+			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
 			LD	A,$E0			; Red
 			LD	DE,(R0)			; Add the first coordinate
@@ -123,13 +123,13 @@ triangleL2CF:		PUSH	IX
 			LD	(triangleIn+$0),A
 			LD	(triangleIn+$1),DE	; DE: The X coordinate
 			LD	(triangleIn+$3),HL	; HL: The Y coordinate
-			LD	A,$FD			; Yellow
+			LD	A,$E0			; Red
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
 			LD	(triangleIn+$5),A
 			LD	(triangleIn+$6),DE
 			LD	(triangleIn+$8),HL
-			LD	A,$70			; Green
+			LD	A,$FD			; Green
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
 			LD	(triangleIn+$A),A
@@ -145,16 +145,19 @@ triangleL2CF:		PUSH	IX
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
+			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
 			LD	HL,clipTriangleTop	; The callback routine to clip the top edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
+			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
 			LD	HL,clipTriangleRight	; The callback routine to clip the right edge
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
+			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
 			LD	HL,clipTriangleBottom	; The callback routine to clip the bottom edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
@@ -164,6 +167,8 @@ triangleL2CF:		PUSH	IX
 			CALL	drawTriangle
 			POP	IX
 			RET
+
+; Draw the triangle
 ;
 drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 @L1:			LD	A,(IY+5)	
@@ -182,8 +187,8 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 @M1:			LD	IY,triangleIn		; Reset the list
 			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
 			LD	D,(IY+3)
+			LD	A,$FD
 			JP	lineL2			; Draw the final connecting line
-
 
 ; Clip a triangle using the Sutherland-Hodgman algorithm
 ; https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
@@ -226,9 +231,8 @@ clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
 			SBC	HL,DE
 			LD	(dy),HL
 ;
-; Test clip against the line Y=0
+clipTriangleCall:	CALL	0			; Call the relevant clip routine, self-modded
 ;
-clipTriangleCall:	CALL	0			; Self-modded
 			LD	DE,(p2_x)		; Get the current coordinates
 			LD	HL,(p2_y)
 			LD	(p1_x),DE		; Store the new previous coordinates
@@ -359,7 +363,15 @@ clipTriangleOutVertex:	LD	A,(IX+0)		; Copy the current attribute
 			ADD	IY,BC
 			RET
 
-
+; Initialise the clipping for the next pass
+;
+clipTriangleInit:	LD	E,(IY-4)		; Fetch the last points entered in the output list
+			LD	D,(IY-3)
+			LD	L,(IY-2)
+			LD	H,(IY-1)
+			LD	(p1_x),DE		; Store in p1_x and p1_y
+			LD	(p1_y),HL		; ready for clipping against the next screen edge
+			RET
 
 
 ; For the filled triangle
@@ -632,7 +644,7 @@ clipLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
 ;
-clipBottom:		LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
+clipBottom:		LD	HL,191			; Do p1->x + fastMulDiv(dx, 191-p1->y, dy)
 			LD	DE,(p1_y)
 			OR	A
 			SBC	HL,DE
@@ -656,7 +668,7 @@ clipBottom:		LD	HL,192			; Do p1->x + fastMulDiv(dx, 192-p1->y, dy)
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
 ;
-clipRight:		LD	HL,256			; Do p1->y + fastMulDiv(dy, 256-p1->x, dx)
+clipRight:		LD	HL,255			; Do p1->y + fastMulDiv(dy, 255-p1->x, dx)
 			LD	DE,(p1_x)
 			OR	A
 			SBC	HL,DE
