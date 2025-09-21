@@ -164,7 +164,9 @@ triangleL2CF:		PUSH	IX
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 ;
-			CALL	drawTriangle
+			LD	A,(triangleIn)		; Check if the first entry in the list is $FF
+			INC	A			; indicating nothing to draw
+			CALL	NZ,drawTriangle		; No, so draw the triangle
 			POP	IX
 			RET
 
