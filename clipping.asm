@@ -117,7 +117,7 @@ _triangleL2CF:		POP	BC			; The return address
 triangleL2CF:		PUSH	IX
 ;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
-			XOR	A
+			LD	A,1
 			LD	DE,(R0)			; Add the first coordinate
 			LD	HL,(R1)
 			LD	(triangleIn+$0),A
@@ -125,7 +125,7 @@ triangleL2CF:		PUSH	IX
 			LD	(triangleIn+$3),HL	; HL: The Y coordinate
 			CALL	clipRegion
 			LD	C,A 			; The first clipping region
-			XOR	A
+			LD	A,1
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
 			LD	(triangleIn+$5),A
@@ -134,7 +134,7 @@ triangleL2CF:		PUSH	IX
 			CALL	clipRegion		; The second clipping region
 			OR	C 			; OR it with the first
 			LD	C,A
-			XOR	A
+			LD	A,1
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
 			LD	(triangleIn+$A),A
@@ -144,7 +144,7 @@ triangleL2CF:		PUSH	IX
 			LD	(p1_y),HL
 			CALL	clipRegion		; The third clipping region
 			OR	C			; OR it with the first two
-			LD	A,$FF
+			LD	A,0
 			LD	(triangleIn+$F),A	; End of table marker
 			JR	Z,@M1			; All clipping regions are on screen, so just draw
 ;
@@ -171,8 +171,8 @@ triangleL2CF:		PUSH	IX
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 ;
-@M1:			LD	A,(triangleIn)		; Check if the first entry in the list is $FF
-			INC	A			; indicating nothing to draw
+@M1:			LD	A,(triangleIn)		; Check if the first entry in the list is $00
+			OR	A			; indicating nothing to draw
 			CALL	NZ,drawTriangle		; No, so draw the triangle
 			POP	IX
 			RET
@@ -181,7 +181,7 @@ triangleL2CF:		PUSH	IX
 ;
 drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 @L1:			LD	A,(IY+5)	
-			CP 	$FF
+			OR	A
 			LD	L,(IY+1)		; The first coordinate
 			LD	H,(IY+3)
 			JR	Z,@M1			; If there is no second point, then skip to the end
@@ -229,7 +229,7 @@ clipTriangle:		LD	(clipTriangleCall+1),HL	; The clipping operation self-modded c
 ; Checks the current point (IX+5) with the previous (IX+0)
 ;
 clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
-			CP	$FF
+			OR	A
 			LD	(IY+0),A
 			RET	Z			; Yes, so finish
 ;
@@ -237,7 +237,7 @@ clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
 			LD	H,(IX+2)
 			LD	(p2_x),HL
 			LD	DE,(p1_x)		; Calculate dx (p2_x - p1_x)
-			OR	A
+;			OR	A			; We don't need to do this, C is clear at this point
 			SBC	HL,DE
 			LD	(dx),HL 
 ;
@@ -369,7 +369,7 @@ clipTriangleOutCurrent:	LD	DE,(p2_x)		; Add the current point in
 ; DE: X coordinate
 ; HL: Y coordinate
 ;
-clipTriangleOutVertex:	LD	(IY+0),0		; Mark as being a valid vertex		
+clipTriangleOutVertex:	LD	(IY+0),1		; Mark as being a valid vertex		
 			LD	(IY+1),E		; Store a point in the output table
 			LD	(IY+2),D
 			LD	(IY+3),L
