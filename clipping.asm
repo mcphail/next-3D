@@ -100,8 +100,8 @@ triangleL2C_L:		LD	A,(p1_x): LD L,A
 ;
 PUBLIC _triangleL2CF, triangleL2CF
 
-triangleIn:		EQU	Scratchpad
-triangleOut:		EQU	Scratchpad + $100
+triangleIn:		EQU	Scratchpad + $0C0
+triangleOut:		EQU	Scratchpad + $1C0
 
 _triangleL2CF:		POP	BC			; The return address
 			POP	HL: LD (R0),HL		; R0: p1.x
@@ -246,24 +246,24 @@ clipTriangleCall:	CALL	0			; Call the relevant clip routine, self-modded
 
 ; Clip the triangle at the top edge
 ;
-clipTriangleTop:	LD	HL,(p2_y)		; HL: The current Y point		
-			BIT	7,H			; Check if the current point is inside clip edge
-			LD	HL,(p1_y)		; HL: The previous Y point
-			JR	NZ,@M1			; No, so go here
+clipTriangleTop:	LD	A,(p2_y+1)		;  A: The current Y point (MSB)	
+			RLA				;  F: C set if point is OUTSIDE the clip area
+			LD	A,(p1_y+1)		;  A: The previous Y point (MSB)
+			JR	C,@M1			; If the current point is OUTSIDE then jump here
 ;
-; Here the current point is inside the clip edge
-; Need to check if the previous point is outside the clip edge
+; Here the current point is INSIDE the clip edge
+; Need to check if the previous point is OUTSIDE the clip edge
 ;
-			BIT	7,H			; HL: The previous point	
-			CALL	NZ,@M2			; It is outside, so add the intersection
-			JR	clipTriangleOutCurrent	; Finally add the current point in
+			RLA				;  A: The previous Y point (MSB)
+			CALL	C,@M2			; It is OUTSIDE, so add the intersection
+			JR	clipTriangleOutCurrent	; And add the current point in
 ;
-; Here, the current point is outside the clip edge
+; Here, the current point is OUTSIDE the clip edge
 ;
-@M1:			BIT	7,H			; Check if the previous point is inside the clip edge
-			RET	NZ			; No, so do nothing
+@M1:			RLA				; Check if the previous point is also OUTSIDE the clip edge
+			RET	C			; Yes, so do nothing
 ;
-; Here, the current point is outside the clip edge, but the previous point is in it
+; Here, the current point is OUTSIDE the clip edge and the previous point is INSIDE it.
 ;
 @M2:			CALL	clipTop
 			JR	clipTriangleOutVertex
@@ -271,24 +271,24 @@ clipTriangleTop:	LD	HL,(p2_y)		; HL: The current Y point
 
 ; Clip the triangle at the left edge
 ;
-clipTriangleLeft:	LD	HL,(p2_x)		; HL: The current X point		
-			BIT	7,H			; Check if the current point is inside clip edge
-			LD	HL,(p1_x)		; HL: The previous Y point
-			JR	NZ,@M1			; No, so go here
+clipTriangleLeft:	LD	A,(p2_x+1)		;  A: The current X point (MSB)	
+			RLA				; F: C set if point is OUTSIDE the clip area
+			LD	A,(p1_x+1)		;  A: The previous Y point (MSB)
+			JR	C,@M1			; If the current point is OUTSIDE then jump here
 ;
-; Here the current point is inside the clip edge
-; Need to check if the previous point is outside the clip edge
+; Here the current point is INSIDE the clip edge
+; Need to check if the previous point is OUTSIDE the clip edge
 ;
-			BIT	7,H			; HL: The previous point	
-			CALL	NZ,@M2			; It is outside, so add the intersection
+			RLA				;  A: The previous X point (MSB)
+			CALL	C,@M2			; It is OUTSIDE, so add the intersection
 			JR	clipTriangleOutCurrent	; Finally add the current point in
 ;
-; Here, the current point is outside the clip edge
+; Here, the current point is OUTSIDE the clip edge
 ;
-@M1:			BIT	7,H			; Check if the previous point is inside the clip edge
-			RET	NZ			; No, so do nothing
+@M1:			RLA				; Check if the previous point is INSIDE the clip edge
+			RET	C			; No, so do nothing
 ;
-; Here, the current point is outside the clip edge, but the previous point is in it
+; Here, the current point is OUTSIDE the clip edge and the previous point is INSIDE it.
 ;
 @M2:			CALL	clipLeft
 			JR	clipTriangleOutVertex
@@ -296,24 +296,21 @@ clipTriangleLeft:	LD	HL,(p2_x)		; HL: The current X point
 
 ; Clip the triangle at the right edge
 ;
-clipTriangleRight:	LD	HL,(p2_x)		; HL: The current X point		
-			LD	A,H
-			OR	A			; Check if the current point is inside clip edge
-			LD	HL,(p1_x)		; HL: The previous Y point
+clipTriangleRight:	LD	A,(p2_x+1)		;  A: The current X point (MSB)	
+			OR	A			;  F: NZ if point is OUTSIDE the clip area
+			LD	A,(p1_x+1)		;  A: The previous Y point (MSB)
 			JR	NZ,@M1			; No, so go here
 ;
-; Here the current point is inside the clip edge
+; Here the current point is INSIDE the clip edge
 ; Need to check if the previous point is outside the clip edge
 ;	
-			LD	A,H			; HL: The previous point
-			OR	A
-			CALL	NZ,@M2			; It is outside, so add the intersection
+			OR	A			;  A: The previous X point (MSB)
+			CALL	NZ,@M2			; It is OUTSIDE, so add the intersection
 			JR	clipTriangleOutCurrent	; Finally add the current point in
 ;
-; Here, the current point is outside the clip edge
+; Here, the current point is OUTSIDE the clip edge
 ;
-@M1:			LD	A,H			; Check if the previous point is inside the clip edge
-			OR	A	
+@M1:			OR	A			; Check if the previous point is INSIDE the clip edge
 			RET	NZ			; No, so do nothing
 ;
 ; Here, the current point is outside the clip edge, but the previous point is in it
