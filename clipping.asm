@@ -115,7 +115,7 @@ _triangleL2CF:		POP	BC			; The return address
 			PUSH	BC			; Restore the return address
 ;
 triangleL2CF:		PUSH	IX
-			CALL	sortTriangle16		; Sort the triangle points from top to bottom
+;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
 			LD	A,$E0			; Red
 			LD	DE,(R0)			; Add the first coordinate
@@ -123,24 +123,31 @@ triangleL2CF:		PUSH	IX
 			LD	(triangleIn+$0),A
 			LD	(triangleIn+$1),DE	; DE: The X coordinate
 			LD	(triangleIn+$3),HL	; HL: The Y coordinate
+			CALL	clipRegion
+			LD	C,A 			; The first clipping region
 			LD	A,$E0			; Red
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
 			LD	(triangleIn+$5),A
 			LD	(triangleIn+$6),DE
 			LD	(triangleIn+$8),HL
+			CALL	clipRegion		; The second clipping region
+			OR	C 			; OR it with the first
+			LD	C,A
 			LD	A,$FD			; Green
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
 			LD	(triangleIn+$A),A
 			LD	(triangleIn+$B),DE
 			LD	(triangleIn+$D),HL
-			LD	A,$FF
-			LD	(triangleIn+$F),A	; End of table marker
-
 			LD	(p1_x),DE		; The previous points for the clipping
 			LD	(p1_y),HL
-			
+			CALL	clipRegion		; The third clipping region
+			OR	C			; OR it with the first two
+			LD	A,$FF
+			LD	(triangleIn+$F),A	; End of table marker
+			JR	Z,@M1			; All clipping regions are on screen, so just draw
+;
 			LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
@@ -164,7 +171,7 @@ triangleL2CF:		PUSH	IX
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 ;
-			LD	A,(triangleIn)		; Check if the first entry in the list is $FF
+@M1:			LD	A,(triangleIn)		; Check if the first entry in the list is $FF
 			INC	A			; indicating nothing to draw
 			CALL	NZ,drawTriangle		; No, so draw the triangle
 			POP	IX
@@ -182,8 +189,9 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	E,(IY+6)		; The second coordinate
 			LD	D,(IY+8)	
 			CALL	lineL2			; Draw the lines
-			LD	BC,5
-			ADD	IY,BC
+			LD	A,IYL
+			ADD	A,5
+			LD	IYL,A
 			JR	@L1
 ;
 @M1:			LD	IY,triangleIn		; Reset the list
@@ -239,8 +247,9 @@ clipTriangleCall:	CALL	0			; Call the relevant clip routine, self-modded
 			LD	HL,(p2_y)
 			LD	(p1_x),DE		; Store the new previous coordinates
 			LD	(p1_y),HL
-			LD	BC,5
-			ADD	IX,BC
+			LD	A,IXL
+			ADD	A,5
+			LD	IXL,A
 			JR	clipTriangle_L
 
 
@@ -358,8 +367,9 @@ clipTriangleOutVertex:	LD	A,(IX+0)		; Copy the current attribute
 			LD	(IY+2),D
 			LD	(IY+3),L
 			LD	(IY+4),H
-			LD	BC,5
-			ADD	IY,BC
+			LD	A,IYL
+			ADD	A,5
+			LD	IYL,A
 			RET
 
 ; Initialise the clipping for the next pass
