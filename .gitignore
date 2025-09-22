@@ -1,5 +1,6 @@
 # Exclude any build files
 #
+notes.txt
 .DS_Store
 *.lis
 *.list
