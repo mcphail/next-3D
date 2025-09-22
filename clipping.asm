@@ -20,6 +20,8 @@ dy:			DS 	2
 			EXTERN	lineL2			; From render.asm
 			EXTERN	lineL2_NC		; From render.asm
 			EXTERN	triangleL2F		; From render.asm
+			EXTERN	lineT			; From render.asm
+			EXTERN	drawShapeTable		; From render.asm
 
 
 ; extern void lineL2C(Point16 p1, Point16 p2, uint8_t c) __z88dk_callee
@@ -115,6 +117,7 @@ _triangleL2CF:		POP	BC			; The return address
 			PUSH	BC			; Restore the return address
 ;
 triangleL2CF:		PUSH	IX
+			LD	(@M2+1),A		; Store the colour for later
 ;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
 			LD	A,1
@@ -173,6 +176,7 @@ triangleL2CF:		PUSH	IX
 ;
 @M1:			LD	A,(triangleIn)		; Check if the first entry in the list is $00
 			OR	A			; indicating nothing to draw
+@M2:			LD	A,0			; The colour
 			CALL	NZ,drawTriangle		; No, so draw the triangle
 			POP	IX
 			RET
@@ -181,6 +185,7 @@ triangleL2CF:		PUSH	IX
 ;
 drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	IX,$FF00		; IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
+			LD	(@M2+1),A		; Self-mod the colour for later
 @L1:			LD	A,(IY+5)	
 			OR	A
 			LD	L,(IY+1)		; The first coordinate
@@ -190,7 +195,9 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	D,(IY+8)	
 			CALL	drawTriangleSide	; Get the side
 			LD	A,C
-			CALL	lineL2			; Draw the line
+			LD	B,H
+			LD	C,L
+			CALL	lineT			; Draw the line
 			LD	A,IYL
 			ADD	A,5
 			LD	IYL,A
@@ -201,32 +208,30 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	D,(IY+3)
 			CALL	drawTriangleSide	; Get the side
 			LD	A,C
-			CALL	NZ,lineL2		; Draw the final connecting line
-; 
-; Some final debugging code
-; The drawShapeTable code will eventually go in here
+			LD	B,H
+			LD	C,L
+			CALL	lineT			; Draw the final connecting line
 ;
-			LD	E,0
-			LD	D,IXL
-			LD	L,255
-			LD	H,D
-			LD	A,$E0
-			CALL	lineL2			; Draw a horizontal RED line at the lowest position
-			LD	E,0
-			LD	D,IXH
-			LD	L,255
-			LD	H,D
-			LD	A,$FD
-			CALL	lineL2			; Draw a horizontal YELLOW line at the highest position
-			RET
+; Finally, draw the triangle
+;
+			LD	A,IXH			; Get the top Y point
+			LD	L,A 
+			LD	A,IXL			; And the bottom Y point
+			SUB	L 
+			RET	Z			; Don't do anything here
+			RET	C			; Bit of a bodge to fix bug where bottom is above the top
+			LD	B,A			; B: The height
+@M2:			LD	A,0 			; A: The colour (self-modded)
+			JP 	drawShapeTable		; Draw the shape
+
 ;
 drawTriangleSide:	LD	A,H			; Calculate the colour depending upon
 			CP	D			; which way the line is being drawn up or down
-			JR	NC,@M1			;  F: NC set if we are drawing up
+			JR	NC,drawTriangleSideUp	;  F: NC set if we are drawing up
 ;
 ; Drawing down at this point
 ;
-			LD	C,$E0			;   C: The side (set to RED for debugging)
+			LD	C,0			;   C: The side 
 			LD	A,D			;   A: The vertice to check against
 			CP	IXL			; IXL: The current lowest point
 			RET	C 			; Return if D < current lowest point
@@ -235,7 +240,7 @@ drawTriangleSide:	LD	A,H			; Calculate the colour depending upon
 ;
 ; Drawing up at this point
 ;
-@M1:			LD	C,$FD			;  C: The side (set to YELLOW for debugging)
+drawTriangleSideUp:	LD	C,1			;  C: The side 
 			EX	DE,HL
 			LD	A,H			;  A: The vertice to check against
 			CP	IXH			;  D: The vertice to check against
@@ -432,39 +437,39 @@ clipTriangleInit:	LD	E,(IY-4)		; Fetch the last points entered in the output lis
 ; if R1 > R5 swap({R4,R5},{R0,R1}); // if (p1.y > p3.y) swap(p3, p1)
 ; if R3 > R5 swap({R4,R5},{R2,R3}); // if (p2.y > p3.y) swap(p3, p2)
 ;
-sortTriangle16:		LD	HL,(R3)
-			LD	DE,(R1)
-			CMP_HL	DE	; C if R1 > R3, otherwise NC
-			JR	NC,@M1	
-			LD	(R3),DE
-			LD	(R1),HL
-			LD	HL,(R2)
-			LD	DE,(R0)
-			LD	(R2),DE
-			LD	(R0),HL
+;sortTriangle16:	LD	HL,(R3)
+;			LD	DE,(R1)
+;			CMP_HL	DE	; C if R1 > R3, otherwise NC
+;			JR	NC,@M1	
+;			LD	(R3),DE
+;			LD	(R1),HL
+;			LD	HL,(R2)
+;			LD	DE,(R0)
+;			LD	(R2),DE
+;			LD	(R0),HL
 ;
-@M1:			LD	HL,(R5)
-			LD	DE,(R1)
-			CMP_HL	DE	; C if R1 > R5, otherwise NC
-			JR	NC,@M2
-			LD	(R5),DE
-			LD	(R1),HL
-			LD	HL,(R4)
-			LD	DE,(R0)
-			LD	(R4),DE
-			LD	(R0),HL
+;@M1:			LD	HL,(R5)
+;			LD	DE,(R1)
+;			CMP_HL	DE	; C if R1 > R5, otherwise NC
+;			JR	NC,@M2
+;			LD	(R5),DE
+;			LD	(R1),HL
+;			LD	HL,(R4)
+;			LD	DE,(R0)
+;			LD	(R4),DE
+;			LD	(R0),HL
 ;
-@M2:			LD	HL,(R5)
-			LD	DE,(R3)
-			CMP_HL	DE	; C if R3 > R5, otherwise NC
-			RET	NC
-			LD	(R5),DE
-			LD	(R3),HL
-			LD	HL,(R4)
-			LD	DE,(R2)
-			LD	(R4),DE
-			LD	(R2),HL
-			RET
+;@M2:			LD	HL,(R5)
+;			LD	DE,(R3)
+;			CMP_HL	DE	; C if R3 > R5, otherwise NC
+;			RET	NC
+;			LD	(R5),DE
+;			LD	(R3),HL
+;			LD	HL,(R4)
+;			LD	DE,(R2)
+;			LD	(R4),DE
+;			LD	(R2),HL
+;			RET
 
 
 ; extern uint8_t clipRegion(Point16 * p) __z88dk_callee
