@@ -1,62 +1,85 @@
 # Next3D - a 3D engine for the ZX Spectrum Next
 
-## v0.4 -- DEBUG MODE, NOT READY FOR PRODUCTION
+## v0.5 BETA (Not production ready)
 
-The Next3D implementation is meant to be used in C via z88dk, but since we are aiming for high performance, all its core functionalities (plot, draw, triangle, filled triangle, projections, lightining etc.) are implemented in Z80 Assembly fully documented and built to take advantage of the Next hardware as much as possible.
+The Next-3D implementation is meant to be used in C via z88dk, but since we are aiming for high performance, all its core functionalities (rendering, projects, etc) are implemented in Z80 assembler, fully documented and built to take advantage of the Next hardware as much as possible.
 
 This means the core library is easily portable to any environment, and its parts (such as plot or triangle) can easily be used in any C, Boriel Basic or other languages inline.
 
-I took a lot of care to describe each single line of the asm code for easiness of following what's going on, targetting anyone willing to reuse it (or improve!)
+For sake of simplicity, the engine requires Layer 2 set to a resolution of 256x192.
 
-For now, this is what works:
+## Why am I doing this?
 
-### render.h/asm
+Henrique Olifiers reached out to me the beginning of August 2025 - he had started coding this as part of the KS3 offering, and had discovered a couple of rendering bugs in the filled triangle routine I'd written for BBC BASIC for Next. I was aware of one of them, and got back to him to say that I'd be happy for either of us to work on a solution, and I'd roll it back into BBC BASIC for Next.
 
-**initL2: 256x192 video mode with 256 colours**  
-I haven't implemented other video modes as they would require 16 bit logic and for now, Next3D is a 8 bit engine.
+Long story short, he asked me that, given my experience, would I like to take this on as a project.
 
-**setCPU: sets CPU speed**  
-Your choice of MHz. Default value is 3 (28MHz).
+## Who is this for?
 
-**swapL2: Swaps the offscreen buffer in***
-All rendering is done in an offscreen buffer to avoid flicker; this swaps the offscreen buffer onto the visible screen.
+The code is targetting:
 
-**clearL2: clear the screen**  
-Clear the offscreen buffer with the colour of your choice.  
+- Folk who want to understand how to write a 3D engine from scratch
+- Folk who want a springboard to develop their own 3D games on the Next
 
-**PlotPixel8K: fast plotting (soon to be renamed plotL2)**  
-Plots a pixel on the screen at x, y with colour.
+As ever, the code is designed for readability, with each block of the assembler code commented.
 
-**lineL2: fast drawing**  
-Draws a line from x1, y1 to x2, y2 with colour.
+## Etiquette
 
-**triangleL2: fast wireframe triangle**  
-Draws a triangle between pt0, pt1, pt2 with colour (p being a structure containing x, y coordinates).
+This software is a public BETA. Please do not submit any pull requests or issues at this point in time; they will be ignored.
 
-**triangleL2F: fast filled triangle**  
-Draws a filled triangle between pt0, pt1 and pt2 with colour (p being a structure containing x, y coordinates).
+## Creating Models
 
-**circleL2F: fast filled circle**
-Draws a filled circle centred on pt0 with a radius and colour.
+Models can be imported from Blender via an intermediate step:
 
-### clipping.h/asm
+- Export from Blender as an Wavefront (.obj) file
+- Convert to a C file using the script convert_model.py in the [python](./python/) directory
 
-**clipRegion**
-Support function for the Cohen Sutherland clip routine to establish whether a point is on-screen and, if offscreen, which region(s) it is in.
+Models can contain colour information and must be scaled to fit within the 8-bit model space.
 
-**clipLine**
-Clip two points describing the line p1,p2 to screen.
+There are example models and converted files in the [models](./models/) directory:
 
-**lineL2C: Fast clipped line**
-Draws a clipped line between p1 and p2 with given colour.
+- *.blend: The models in Blender format
+- *.obj: The models exported from Blender in Wavefront (.obj) format
+- *.h: The models as converted by convert_model.py
 
-**triangleL2C: Fast clipped wireframe triangle**
-Draws a clipped triangle between p1,p2 and p3, with given colour.
+## Core Modules
 
-**triangleL2CF: Fast clipped filled triangle**
-Draws a clipped and filled triangle between p1,p2 and p3, with given colour.
+### [clipping.h/asm](documentation/clipping.md)
 
-### maths.h/asm
+This includes an implementation of the Cohen-Sutherland line clipping algorithm and Sutherland-Hodgman polygon clipping algorithm, along with routines to draw the following clipped primitives:
 
-**fastMulDiv: Fast multiple and divide***
-Calculates a * b / c, 32-bit signed internally, with 16-bit parameters and result.
+- lines
+- wireframe triangles
+- filled triangles
+
+### [kernel.h/asm](documentation/kernel.md)
+
+This contains routines to initialise the Next kernel along with low-level routines for reading the keyboard, DMA, and interrupts.
+
+### [maths.h/asm](documentation/maths.md)
+
+This contains fast routines for rotating and projecting vertices in 8-bit (model) and 16-bit (universe) space.
+
+### [render_3D.h/asm](documentation/render_3D.md)
+
+This contains high level routines for rendering and moving models in 16-bit (universe) space
+
+### [render.h/asm](documentation/render.md)
+
+This contains low level routines for rendering unclipped 2D primitives on Layer 2 (256x192 resolution only), including:
+
+- plot
+- lines
+- wireframe triangles
+- filled triangles
+- filled circles
+
+Primitives are drawn on an offscreen Layer 2 surface, and there are functions for clearing it and swapping it with the onscreen Layer 2 surface.
+
+### [sprites.h/asm](documentation/sprites.md)
+
+This contains low level routines for manipulating Next sprites
+
+### experiments.h/c
+
+This file contains experimental routines that I'm evaluating prior to porting to Z80. These may never see the light of day. Use at your peril.
