@@ -180,6 +180,7 @@ triangleL2CF:		PUSH	IX
 ; Draw the triangle
 ;
 drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
+			LD	IX,$FF00		; IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
 @L1:			LD	A,(IY+5)	
 			OR	A
 			LD	L,(IY+1)		; The first coordinate
@@ -187,8 +188,9 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			JR	Z,@M1			; If there is no second point, then skip to the end
 			LD	E,(IY+6)		; The second coordinate
 			LD	D,(IY+8)	
-			CALL	@C1			; Get the colour
-			CALL	NZ,lineL2		; Don't draw horizontal lines
+			CALL	drawTriangleSide	; Get the side
+			LD	A,C
+			CALL	lineL2			; Draw the line
 			LD	A,IYL
 			ADD	A,5
 			LD	IYL,A
@@ -197,15 +199,48 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 @M1:			LD	IY,triangleIn		; Reset the list
 			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
 			LD	D,(IY+3)
-			CALL	@C1
+			CALL	drawTriangleSide	; Get the side
+			LD	A,C
 			CALL	NZ,lineL2		; Draw the final connecting line
+; 
+; Some final debugging code
+; The drawShapeTable code will eventually go in here
+;
+			LD	E,0
+			LD	D,IXL
+			LD	L,255
+			LD	H,D
+			LD	A,$E0
+			CALL	lineL2			; Draw a horizontal RED line at the lowest position
+			LD	E,0
+			LD	D,IXH
+			LD	L,255
+			LD	H,D
+			LD	A,$FD
+			CALL	lineL2			; Draw a horizontal YELLOW line at the highest position
 			RET
 ;
-@C1:			LD	A,H			; Calculate the colour depending upon
-			CP	D			; which way the line is being drawn
-			LD	A,$E0			; up or down
-			RET	C
-			LD	A,$FD 
+drawTriangleSide:	LD	A,H			; Calculate the colour depending upon
+			CP	D			; which way the line is being drawn up or down
+			JR	NC,@M1			;  F: NC set if we are drawing up
+;
+; Drawing down at this point
+;
+			LD	C,$E0			;   C: The side (set to RED for debugging)
+			LD	A,D			;   A: The vertice to check against
+			CP	IXL			; IXL: The current lowest point
+			RET	C 			; Return if D < current lowest point
+			LD	IXL,A			; IXL: Now the lowest point
+			RET
+;
+; Drawing up at this point
+;
+@M1:			LD	C,$FD			;  C: The side (set to YELLOW for debugging)
+			EX	DE,HL
+			LD	A,H			;  A: The vertice to check against
+			CP	IXH			;  D: The vertice to check against
+			RET	NC
+			LD	IXH,A
 			RET
 
 ; Clip a triangle using the Sutherland-Hodgman algorithm
