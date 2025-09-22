@@ -25,11 +25,6 @@ next-3D.nex: $(OBJS)
 obj/main.o: main.c main.h 
 	$(CC) $(CFLAGS) -o obj/main.o main.c
 
-# Comment in to compile the C portion of clipping (for debug/test purposes only)
-#
-# obj/clipping.o: clipping.c clipping.h 
-#	$(CC) $(CFLAGS) -o obj/clipping.o clipping.c clipping.asm 
-
 obj/experiments.o: experiments.c experiments.h 
 	$(CC) $(CFLAGS) -o obj/experiments.o experiments.c
 
@@ -44,8 +39,6 @@ obj/kernel.o: kernel.asm globals.inc
 obj/render.o: render.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/render.o render.asm
 
-# Comment out when compiling the C portion of clipping (for debug/test purposes only)
-#
 obj/clipping.o: clipping.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/clipping.o clipping.asm
 
