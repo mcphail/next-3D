@@ -58,31 +58,6 @@ PLOT_CIRCLE_TABLE:	MACRO	TABLE, OPX, OPY
 			LD (HL),A
 			ENDM
 
-; extern void stop(void)
-; A debugging tool. Jump here (jp _stop) from your code so you can stop and inspect registers etc.
-; ============================================================================================
-PUBLIC _stop
-_stop:			JP _stop
-    
-
-; extern void test(void)
-; A debugging tool. Used for testing asm functions
-; ============================================================================================
-PUBLIC _test
-
-_test:	
-			RET
-
-
-; extern void setCPU(uint8 speed) __z88dk_fastcall
-; Sets the Next CPU to maximum speed, 28MHz
-; ===========================================================================================
-PUBLIC _setCPU
-
-_setCPU:		LD	A,L
-			NEXTREG 07h,A           ; Set CPU speed
-    			RET
-
 
 ; void initL2(void)
 ; Initialises the Layer 2 Next screen mode into 256x192 256 colours in front of the ULA screen

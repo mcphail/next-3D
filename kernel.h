@@ -64,11 +64,13 @@ extern void InitKernel(void);
 extern void SetUpIRQs(void) __preserves_regs(b,c,d,e,h,l,iyl,iyh);
 extern void WaitVBlank(void)  __preserves_regs(b,c,d,e,h,l,iyl,iyh);
 extern void Layer2Enable(uint16 onoff) __z88dk_fastcall __preserves_regs(d,e,h,l,iyl,iyh);
+extern void stop(void);
+extern void setCPU(uint8 speed) __z88dk_fastcall;
 extern void DMACopy(uint16 src, uint16 dst, uint16 len) __z88dk_callee __preserves_regs(a,d,e,iyl,iyh);
 extern void DMAFill(uint16 dst, uint16 len, uint8 val) __z88dk_callee __preserves_regs(a,d,e,iyl,iyh);
 extern void ReadKeyboard(void) __z88dk_callee;
 
-extern uint16 	ReadNextReg(uint16 reg) __z88dk_callee __preserves_regs(iyl,iyh);
+extern uint16 ReadNextReg(uint16 reg) __z88dk_callee __preserves_regs(iyl,iyh);
 
 #endif	//__KERNEL_H__
 
