@@ -3,15 +3,16 @@
  * Author:			Dean Belfield
  * Contributors:	Henrique Olifiers, Michael "Flash" Ware
  * Created:			20/08/2025
- * Last Updated:	04/09/2025
+ * Last Updated:	22/09/2025
  *
  * Modinfo:
  * 04/09/2025:		Moved models to includes in models folder
+ * 22/09/2025:		Beta version 0.5
  */
 
 #pragma output REGISTER_SP = 0xbfff
 
-#define test_triangles
+//#define test_triangles
 
 #include <arch/zxn.h>
 #include <stdint.h>             // standard names for ints with no ambiguity 
@@ -75,8 +76,8 @@ void main(void)
 {
 //  BREAK;
     NextReg(0x57,2);          	// Page in kernel
-    InitKernel();
-    SetUpIRQs();
+    initKernel();
+    initIRQs();
     NextReg(0x08,0x4A);        	// Disable RAM contention, enable DAC and turbosound
 //  NextReg(0x05,0x04);			// 60Hz mode
 	NextReg(0x15,0x21);			// Enable sprites and clipping, SLU priority
@@ -122,7 +123,7 @@ void main(void)
 
 	while(1) {
 		clearL2(0);
-		ReadKeyboard();
+		readKeyboard();
 
 		#ifdef test_triangles
 		if(renderMode) {
@@ -138,7 +139,7 @@ void main(void)
 		if(Keys[VK_ENTER]) {
 			renderMode = 1-renderMode;
 			while (Keys[VK_ENTER]) {
-				ReadKeyboard();
+				readKeyboard();
 			}
 		}
 		if(Keys[VK_SPACE]) {
@@ -146,7 +147,7 @@ void main(void)
 			else if(p == &p2) p = &p3;
 			else p = &p1;
 			while (Keys[VK_SPACE]) {
-				ReadKeyboard();
+				readKeyboard();
 			}
 		}
 		#else
@@ -184,7 +185,7 @@ void main(void)
 		if(Keys[VK_SPACE]) {
 			renderMode = 1-renderMode;
 			while (Keys[VK_SPACE]) {
-				ReadKeyboard();
+				readKeyboard();
 			}
 		}
 
@@ -200,7 +201,7 @@ void main(void)
 			}
 		}	
 		#endif
-		WaitVBlank();	// Wait for the vblank before switching
+		waitVBlank();	// Wait for the vblank before switching
 		swapL2(); 		// Do the double-buffering
 	};
 }
