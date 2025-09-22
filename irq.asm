@@ -1,69 +1,62 @@
-
-                SECTION KERNEL_IRQ
+		SECTION KERNEL_IRQ
                 
-                PUBLIC _SetUpIRQs
+                PUBLIC _initIRQs
                 PUBLIC _VBlank,_Port123b
 
-
 ; ******************************************************************************************************************************
-;   Main IRQ vector - org'd at $FCFC  (as per sepctrum IM2 rules of Lo/Hi need to be the same value)
+;   Main IRQ vector - org'd at $FCFC  (as per Spectrum IM2 rules of Lo/Hi need to be the same value)
 ; ******************************************************************************************************************************
                 
-IM2Routine:     ei
-                jp      IRQHandler
+IM2Routine:     EI
+                JP      IRQHandler
 
-                ; $fd00    ($fcfc + 4 bytes)
-VectorTable:            
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
-                dw      IM2Routine
-
+; $FD00    ($FCFC + 4 bytes)
+;
+vectorTable:	DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine,IM2Routine
+                DW	IM2Routine
 
 ; ******************************************************************************************************************************
 ;   Setup IRQ function - 512 bytes left at this point
 ; ******************************************************************************************************************************
-_SetUpIRQs:      
-                di
-                ld      a,VectorTable>>8
-                ld      i,a    
-                im      2                       ; Setup IM2 mode
-                ei                
-                ret
+
+_initIRQs:      DI
+                LD	A,vectorTable>>8
+                LD	I,A    
+                IM	2
+                EI                
+                RET
 
 ; ******************************************************************************************************************************
 ;   Main IRQ function - 512 bytes left at this point
 ; ******************************************************************************************************************************
-IRQHandler:
-                push    af                
 
-                ; Flag VBlank
-                ld      a,1
-                ld      (_VBlank),a
-
-ExitIRQ:
-                pop     af
-                reti
-
+IRQHandler:	PUSH	AF               
+                LD	A,1
+                LD	(_VBlank),a	; Flag VBlank
+		POP	AF
+                RETI
 
 ; ******************************************************************************************************************************
-; IRQ Data
+;   IRQ Data
 ; ******************************************************************************************************************************
-_VBlank:        db      0
-_Port123b:      db      0
 
-
+_VBlank:        DB	0
+_Port123b:      DB	0
 
 ; ******************************************************************************************************************************
-; write this so that we can detect overruns from the IRQ segment
+;   Write this so that we can detect overruns from the IRQ segment
 ; ******************************************************************************************************************************
+
 SECTION KERNEL_END
-ENDIRQ:         ret     
+
+ENDIRQ:         RET     
 
 
 

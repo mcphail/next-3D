@@ -1,194 +1,186 @@
-
 			SECTION KERNEL_CODE
 
-    			PUBLIC  _WaitVBlank, _Layer2Enable, _DMACopy, DMACopy, _DMAFill, DMAFill, _ReadKeyboard, _InitKernel
-    			PUBLIC  _Keys, _RawKeys, _ReadNextReg
+    			PUBLIC  _waitVBlank, _enableL2, _DMACopy, DMACopy, _DMAFill, DMAFill, _readKeyboard, _initKernel
+			PUBLIC  _readNextReg, _setCPU, _stop
+    			PUBLIC  _Keys, _RawKeys
 
-    			EXTERN  _VBlank, _Port123b, _SpriteData, _SpriteShape
+    			EXTERN  _VBlank, _Port123b
 
     			include "globals.inc"
     			include "ram.inc"
 
-
 ; ******************************************************************************************************************************
+;   Function: void initKernel(void);
 ;   Init the Kernel
 ; ******************************************************************************************************************************
-_InitKernel:
-			RET
 
+_initKernel:		RET
 
 ; ******************************************************************************************************************************
+;   Function: void waitVBlank(void)
 ;   Wait for a Vertical Blank (uses VBlank IRQ)
 ; ******************************************************************************************************************************
-_WaitVBlank:
-    			xor a
-    			ld  (_VBlank),a
 
-WaitForVBlank:
-    			ld  a,(_VBlank)
-    			and a
-    			jr  z,WaitForVBlank
-    			ret
+_waitVBlank:		XOR	A
+    			LD 	(_VBlank),A
 
+waitForVBlank:		LD	A,(_VBlank)
+    			AND	A
+    			JR	Z,waitForVBlank
+    			RET
 
-; ************************************************************************
+; ******************************************************************************************************************************
+;   Function: void enableL2(uint16 onoff)
 ;   Enable the 256 colour Layer 2 bitmap
 ;
 ;   In:     L=0  off        (fastcall passes bool as a byte in L)
 ;           L!=0 on
-; ************************************************************************
+; ******************************************************************************************************************************
 
-_Layer2Enable:		ld  a,l
-			and a
-			jr  z,@Layer2Off
-			ld  l,2
+_enableL2:		LD	A,L
+			AND	A
+			JR	Z,@off
+			LD	L,2
+			
+@off:			LD	A,(_Port123b)
+			OR 	L
+			LD	(_Port123b),A
+			LD	BC,$123B
+			OUT	(C),A     
+			RET                          
 
-@Layer2Off:		ld  a,(_Port123b)
-			or  l
-			ld  (_Port123b),a
-			ld  bc, $123b
-			out (c),a     
-			ret                          
-
-
-; ******************************************************************************
-; Function: DMACopy
-; extern void DMACopy(uint16 src, uint16 dst, uint16 len) __z88dk_callee __preserves_regs(a,d,e,iyl,iyh);
+; ******************************************************************************************************************************
+;   Function: void DMACopy(uint16 src, uint16 dst, uint16 len)
+;   Do a DMA copy
 ;
-; In:       hl = src
-;           de = dst
-;           bc = len
-; ******************************************************************************
+;   In:       hl = src
+;             de = dst
+;             bc = len
+; ******************************************************************************************************************************
 
-_DMACopy:		POP IY 
-			POP HL	; Get src
-			POP DE	; Get dst
-			POP BC	; Get len 
-			PUSH IY
+_DMACopy:		POP	IY 
+			POP	HL	; Get src
+			POP	DE	; Get dst
+			POP	BC	; Get len 
+			PUSH	IY
 
-DMACopy:		LD (DMACopySrc),HL
-    			LD (DMACopyDst),DE
-    			LD (DMACopyLen),BC
+DMACopy:		LD	(DMACopySrc),HL
+    			LD	(DMACopyDst),DE
+    			LD	(DMACopyLen),BC
 
-DoDMACopyInternal:	LD  HL,DMACopyProg                  
-    			LD  BC,DMACopyProgL * 256 + Z80DMAPORT 
+DMACopyInternal:	LD	HL,DMACopyProg                  
+    			LD	BC,DMACopyProgL * 256 + Z80DMAPORT 
     			OTIR
 			RET
 
-; ******************************************************************************
-; Function: DMAFill
-; extern void DMAFill(uint16 dest, uint16 len, uint8 value) __z88dk_callee __preserves_regs(a,d,e,iyl,iyh);
+; ******************************************************************************************************************************
+;   Function: void DMAFill(uint16 dst, uint16 len, uint8 val)
+;   Do a DMA fill
 ;
-; In:        a = val
-;	    hl = dst
-;           bc = len
-; ******************************************************************************
+;   In:        a = val
+;	      hl = dst
+;             bc = len
+; ******************************************************************************************************************************
 
-_DMAFill:		POP IY 
-			POP HL	; Get dst
-			POP BC	; Get len 
-			POP DE
-			LD A,E  ; Get val
-			PUSH IY
+_DMAFill:		POP	IY 
+			POP	HL	; Get dst
+			POP	BC	; Get len 
+			POP	DE
+			LD	A,E	; Get val
+			PUSH	IY
 
-DMAFill:		LD (DMAFillDst),HL
-    			LD (DMAFillLen),BC
-			LD (DMAFillVal),A
+DMAFill:		LD	(DMAFillDst),HL
+    			LD	(DMAFillLen),BC
+			LD	(DMAFillVal),A
 
-DMAFillInternal:	LD  HL,DMAFillProg                  
-    			LD  BC,DMAFillProgL * 256 + Z80DMAPORT 
+DMAFillInternal:	LD	HL,DMAFillProg                  
+    			LD	BC,DMAFillProgL * 256 + Z80DMAPORT 
     			OTIR
 			RET
 
+; ******************************************************************************************************************************
+;   Function: void readKeyboard(void)
+;   Scan the whole keyboard
+; ******************************************************************************************************************************
 
-; ******************************************************************************
-; Function: Scan the whole keyboard
-; ******************************************************************************
+_readKeyboard:		LD	B,39
+		        LD	HL,_Keys
+		        XOR	A
+@lp1:   		LD 	(HL),A
+		        INC	HL
+		        DJNZ    @lp1
 
-_ReadKeyboard:
-		        ld  b,39
-		        ld  hl,_Keys
-		        xor a
-@lp1:   		ld  (hl),a
-		        inc hl
-		        djnz    @lp1
+		        LD 	IY,_Keys
+		        LD 	BC,$FEFE	; Caps,Z,X,C,V
+		        LD	HL,_RawKeys
 
-		        ld  iy,_Keys
-		        ld  bc,$fefe            ; Caps,Z,X,C,V
-		        ld  hl,_RawKeys
-@ReadAllKeys:   
-		        in  a,(c)
-		        ld  (hl),a
-		        inc hl      
+@readAllKeys:   	IN	A,(C)
+		        LD	(HL),A
+		        INC	HL      
+		        LD	DE,$05FF
 
-		        ld  d,5
-		        ld  e,$ff
-@DoAll: 
-		        srl a
-		        jr  c,@notset
-		        ld  (iy+0),e
-@notset:
-		       	inc iy
-		       	dec d
-		       	jr  nz,@DoAll
+@doAll: 		SRL	A
+		        JR 	C,@notset
+		        LD	(IY+0),E
+			
+@notset:		INC	IY
+		       	DEC	D
+		       	JR	NZ,@doAll
 
-		        ld  a,b
-		        sla a
-		        ret nc
-		        or  1
-		        ld  b,a
-		        jp  @ReadAllKeys
-        		ret
+		        LD	A,B
+		        SLA	A
+		        RET	NC
+		        OR 	1
+		        LD 	B,A
+		        JP  	@readAllKeys
+        		RET
 
+; ******************************************************************************************************************************
+;   Function: uint16 readNextReg(uint16 reg)
+;   Read a next register
+; ******************************************************************************************************************************
 
-; ******************************************************************************
-; Function: Read a next register
-;           uint16 v = ReadNextReg(uint16 reg)
-; ******************************************************************************
-_ReadNextReg:
-		        pop     de          ; get return address
-		        pop     hl
-; read MSB of raster first
-		        ld      bc,$243b    ; select NEXT register
-		        out     (c),l
-		        inc     b           ; $253b to access (read or write) value
-		        in      l,(c)
-		        ld      h,0
-		        push    de          ; push return address back
-		        ret                 ; return in HL
+_readNextReg:		POP	DE		; DE: return address
+		        POP	HL		; HL: reg
+		        LD      BC,$243B	; Select NEXT register
+		        OUT     (C),L
+		        INC     B		; $253B to access (read or write) value
+		        IN      L,(C)
+		        LD      H,0		; HL: return value
+		        PUSH    DE		; Push return address back
+		        RET
 
 
-; extern void setCPU(uint8 speed) __z88dk_fastcall
-; Sets the Next CPU to maximum speed, 28MHz
-; ===========================================================================================
-PUBLIC _setCPU
+; ******************************************************************************************************************************
+;   Function: void setCPU(uint8 speed)
+;   Sets the Next CPU
+;   speed: 0 -  3.5Mhz
+;          1 -  7.0Mhz
+;          2 - 14.0Mhz
+;          3 - 28.0Mhz
+; ******************************************************************************************************************************
 
-_setCPU:		LD	A,L
+_setCPU:		LD	A,L		; A: speed
 			NEXTREG 07h,A           ; Set CPU speed
     			RET
 
+; ******************************************************************************************************************************
+;   Function: void stop(void)
+;   A debugging tool. Jump here (jp _stop) from your code so you can stop and inspect registers etc.
+; ******************************************************************************************************************************
 
-; extern void stop(void)
-; A debugging tool. Jump here (jp _stop) from your code so you can stop and inspect registers etc.
-; ============================================================================================
-PUBLIC _stop
 _stop:			JP _stop
 
-
 ; ******************************************************************************************************************************
-; ******************************************************************************************************************************
-; ******************************************************************************************************************************
-;       Kernel Data
-; ******************************************************************************************************************************
-; ******************************************************************************************************************************
+;   Kernel Data
 ; ******************************************************************************************************************************
 
 _Keys:      		DS  40
 _RawKeys:   		DS  8
 
-; ******************************************************************************
-; Writable DMA Programs
-; ******************************************************************************
+; ******************************************************************************************************************************
+;   Writable DMA Programs
+; ******************************************************************************************************************************
 
 DMAFillVal:		DB 0		; Storage for the DMA value to fill with
 
@@ -226,5 +218,3 @@ DMACopyDst:   	  	DW  $4000	; R4-Dest address               (destination address
 			DC DMACopyProgL = ASMPC - DMACopyProg
 
 _EndKernel:
-
-
