@@ -48,52 +48,6 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 	return n;
 }
 
-void lineT_8(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
-	Point8 p1 = { x1, y1 };
-	Point8 p2 = { x2, y2 };
-	lineT(p1,p2,0);
-}
-
-uint8_t clipLineT(Point16 p1, Point16 p2) {
-	Point16 c1 = p1;
-	Point16 c2 = p2;
-	uint8_t a = clipLine(&c1,&c2);
-	if(a != 0) {
-		lineT_8(c1.x, c1.y, c2.x, c2.y);
-	}
-	if(a > 1) {
-		// TODO: Need to think about this
-	}
-	return a;
-}
-
-/*
-	The vertical line gap fill can work out which table it is drawn in the same way that the normal line routine does,
-	depending upon whether the line is drawn up or down. It can fill in either a full line or just the gap. Clip line now 
-	returns > 1 if the line has been clipped. Then the X value is just whether either of the points are off to the 
-	left or right of the screen
-*/
-void testTClipped(Point16 p1, Point16 p2, Point16 p3, int16_t colour) {
-	uint8_t a1 = clipLineT(p1,p2);
-	uint8_t a2 = clipLineT(p2,p3);
-	uint8_t a3 = clipLineT(p3,p1);
-
-	if(a1 | a2 | a3) {
-		int min = p1.y;
-		int max = p1.y;
-
-		if(p2.y < min) min = p2.y;
-		if(p3.y < min) min = p3.y;
-		if(p2.y > max) max = p2.y;
-		if(p3.y > max) max = p3.y;
-
-		if(min < 0) min = 0;
-		if(max > 191) max = 191;
-
-		drawShapeTable(min,max-min+1,colour);
-	}
-}
-
 void drawObjectC(Object_3D * o) {
 
 	// Rotate the universe around the camera
