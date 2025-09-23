@@ -50,7 +50,7 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 
 void drawObjectC(Object_3D * o) {
 
-	// Rotate the universe around the camera
+	// Rotate the world around the camera
 	//
 	Point16_3D u_pos = {
 		o->pos.x - cam_pos.x,

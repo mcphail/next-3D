@@ -22,7 +22,7 @@ typedef struct SPoint16_3D {
 	int16_t z;
 } Point16_3D;
 ```
-Describes a point in 3D space - 16 bit so used to describe model coordinates in universe space
+Describes a point in 3D space - 16 bit so used to describe model coordinates in world space
 
 ### SAngle_3D
 ```
@@ -70,7 +70,7 @@ Rotate point p around the Y axis by angle a
 
 Rotate point p around the Z axis by angle a
 
-### Rotate (16-bit universe space)
+### Rotate (16-bit world space)
 
 `Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta);`
 
@@ -106,7 +106,7 @@ Returns a * b / c, with the internal calculation done in 32-bits
 
 `Point16 project3D(Point16_3D pos, Point8_3D r);`
 
-Projects a point from model space (r) into universe space (pos) with perspective
+Projects a point from model space (r) into world space (pos) with perspective
 
 Optimised version of this C routine:
 ```

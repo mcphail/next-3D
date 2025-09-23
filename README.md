@@ -58,11 +58,11 @@ This contains routines to initialise the Next kernel along with low-level routin
 
 ### [maths.h/asm](documentation/maths.md)
 
-This contains fast routines for rotating and projecting vertices in 8-bit (model) and 16-bit (universe) space.
+This contains fast routines for rotating and projecting vertices in 8-bit (model) and 16-bit (world) space.
 
 ### [render_3D.h/asm](documentation/render_3D.md)
 
-This contains high level routines for rendering and moving models in 16-bit (universe) space
+This contains high level routines for rendering and moving models in 16-bit (world) space
 
 ### [render.h/asm](documentation/render.md)
 

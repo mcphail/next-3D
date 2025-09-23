@@ -28,13 +28,13 @@ typedef struct SObject_3D {
 	Angle_3D	theta;
 } Object_3D;
 ```
-Describes an object in universe space
+Describes an object in world space
 
 - flags: Various flags
 - move: Pointer to a function that contains the logic to move the object
 - model: Pointer to a model
-- pos: Position of the object in universe space
-- angle: Rotation of the object in universe space
+- pos: Position of the object in world space
+- angle: Rotation of the object in world space
 
 ## Functions
 
@@ -42,8 +42,8 @@ Describes an object in universe space
 
 Rotate and project a model
 
-- buffer: A buffer to store the vertices in, projected into universe space
-- p: The position of the object in universe space
+- buffer: A buffer to store the vertices in, projected into world space
+- p: The position of the object in world space
 - a: The rotation of the object
 - m: Pointer to the model data
 

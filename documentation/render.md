@@ -20,7 +20,7 @@ typedef struct SPoint16 {
     int16_t y;
 } Point16;
 ```
-Used in all the 16-bit (universe-level) routines to store a single vertex (point)
+Used in all the 16-bit (world-level) routines to store a single vertex (point)
 
 ### SLine8
 ```
