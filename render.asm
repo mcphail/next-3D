@@ -663,8 +663,8 @@ drawShapeTable_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C)
 			POP BC 				; Pop loop counter (B) and Y coordinate (C) off the stack
 			INC C				; Increase the row number
 			INC A 				; Increment the screen address
-			BIT 5,A				; Check if we've gone onto the next bank
-			CALL NZ,drawShapeTable_A	; If so, do the banking and update H
+	 		CP %00100000			; Check if we've gone onto the next bank
+			CALL Z,drawShapeTable_A		; If so, do the banking and update H
 			DJNZ drawShapeTable_L
 			RET
 ;
