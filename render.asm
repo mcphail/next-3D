@@ -735,7 +735,7 @@ draw_horz_line_dma:	DB	$83			; R6-Disable DMA
 			DB	%01111101		; R0-Transfer mode, A -> B, write address
 			DW	draw_horz_line_colour	; Address of the fill byte
 draw_horz_line_len:	DW	0			; Number of bytes to fill
-;			DB	%00100100		; R0-Block length, A->B
+			DB	%00100100		; R0-Block length, A->B
 			DB	%00010000		; R1-Port A address incrementing
 			DB	%10101101		; R4-Continuous mode
 draw_horz_line_dst:	DW	0			; Destination address
