@@ -120,59 +120,56 @@ triangleL2CF:		PUSH	IX
 			LD	(drawTriangle_C+1),A	; Self-mod the colour for later
 ;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
-			LD	A,1
 			LD	DE,(R0)			; Add the first coordinate
 			LD	HL,(R1)
-			LD	(triangleIn+$0),A
-			LD	(triangleIn+$1),DE	; DE: The X coordinate
-			LD	(triangleIn+$3),HL	; HL: The Y coordinate
+			LD	(triangleIn+$0),DE	; DE: The X coordinate
+			LD	(triangleIn+$2),HL	; HL: The Y coordinate
 			CALL	clipRegion
 			LD	C,A 			; The first clipping region
-			LD	A,1
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
-			LD	(triangleIn+$5),A
-			LD	(triangleIn+$6),DE
-			LD	(triangleIn+$8),HL
+			LD	(triangleIn+$4),DE
+			LD	(triangleIn+$6),HL
 			CALL	clipRegion		; The second clipping region
 			OR	C 			; OR it with the first
 			LD	C,A
-			LD	A,1
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
-			LD	(triangleIn+$A),A
-			LD	(triangleIn+$B),DE
-			LD	(triangleIn+$D),HL
+			LD	(triangleIn+$8),DE
+			LD	(triangleIn+$A),HL
 			LD	(p1_x),DE		; The previous points for the clipping
 			LD	(p1_y),HL
 			CALL	clipRegion		; The third clipping region
 			OR	C			; OR it with the first two
-			LD	HL,triangleIn+$F	; End of table
-			LD	(HL),0			; Mark end of list
+			LD	HL,triangleIn+$C	; End of table
 			JR	NZ,triangleL2CF_M	; Some clipping regions are off screen, so clip
 			LD	A,L			; End position of the list
 			CALL	drawTriangle		; Just draw the triangle, no clipping
 			POP	IX
 			RET
 ;
-triangleL2CF_M:		LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
+triangleL2CF_M:		LD	A,L			;  A: The end of the input list
+			LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
-			CALL	clipTriangleInit	; Initialise the clipping for the next pass
+			CALL	clipTriangleInit	; Initialise the clipping for the next pass		
 ;
+			LD	A,IYL			; The end of the output list
 			LD	HL,clipTriangleTop	; The callback routine to clip the top edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
+			LD	A,IXL			; The end of the output list
 			LD	HL,clipTriangleRight	; The callback routine to clip the right edge
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
 			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
+			LD	A,IYL			; The end of the output list
 			LD	HL,clipTriangleBottom	; The callback routine to clip the bottom edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
 			LD	IY,triangleIn		; The output list (the previous input list)
@@ -189,14 +186,12 @@ triangleL2CF_M:		LD	HL,clipTriangleLeft	; The callback routine to clip the left 
 drawTriangle:		LD	(drawTriangle_M+1),A	;   A: Low byte of end of list in page
 			LD	HL,triangleIn		;  HL: The output (clipped) vertice list
 			LD	IX,$FF00		;  IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
-drawTriangle_L:		INC	L			; Skip the attribute marker
-			LD	C,(HL): INC L: INC L	; The first coordinate
+drawTriangle_L:		LD	C,(HL): INC L: INC L	; The first coordinate
 			LD	B,(HL): INC L: INC L
 			LD	A,L
 drawTriangle_M:		CP	0			; Check for end of table (self-modded)
 			JR	Z,drawTriangle_R
 			PUSH	HL			; Stack the table position for later
-			INC	L			; Skip the attribute marker
 			LD	E,(HL): INC L: INC L	; The second coordinate
 			LD	D,(HL)
 			CALL	drawTriangleSide	; Get the side
@@ -204,9 +199,9 @@ drawTriangle_M:		CP	0			; Check for end of table (self-modded)
 			POP	HL			; Restore the table position and
 			JR	drawTriangle_L		; loop
 ;
-drawTriangle_R:		LD	A,(triangleIn+1)
+drawTriangle_R:		LD	A,(triangleIn+0)
 			LD	E,A
-			LD	A,(triangleIn+3)
+			LD	A,(triangleIn+2)
 			LD	D,A
 			CALL	drawTriangleSide	; Get the side
 			CALL	lineT			; Draw the final connecting line
@@ -266,26 +261,26 @@ drawTriangleSideUp:	LD	A,E			; EX DE,BC
 ;     outputList.add(intersectingPoint);
 ; }
 ;
-clipTriangle:		LD	(clipTriangleCall+1),HL	; The clipping operation self-modded code
+clipTriangle:		LD	(clipTriangle_L+1),A	; The end of the list self-modded cpde
+			LD	(clipTriangleCall+1),HL	; The clipping operation self-modded code
 ;
 ; Loop through and clip top, bottom, left, then right
 ; Checks the current point (IX+5) with the previous (IX+0)
 ;
-clipTriangle_L:		LD	A,(IX+0)		; Check for the end of list marker
-			OR	A
-			LD	(IY+0),A
+clipTriangle_L:		LD	A,0			; Check for end of list marker
+			CP	IXL
 			RET	Z			; Yes, so finish
 ;
-			LD	L,(IX+1)		; Fetch the current X coordinate
-			LD	H,(IX+2)
+			LD	L,(IX+0)		; Fetch the current X coordinate
+			LD	H,(IX+1)
 			LD	(p2_x),HL
 			LD	DE,(p1_x)		; Calculate dx (p2_x - p1_x)
 ;			OR	A			; We don't need to do this, C is clear at this point
 			SBC	HL,DE
 			LD	(dx),HL 
 ;
-			LD	L,(IX+3)		; Fetch the current X coordinate
-			LD	H,(IX+4)
+			LD	L,(IX+2)		; Fetch the current X coordinate
+			LD	H,(IX+3)
 			LD	(p2_y),HL
 			LD	DE,(p1_y)		; Calculate dy (p2_y - p1_y)
 			OR	A
@@ -299,7 +294,7 @@ clipTriangleCall:	CALL	0			; Call the relevant clip routine, self-modded
 			LD	(p1_x),DE		; Store the new previous coordinates
 			LD	(p1_y),HL
 			LD	A,IXL
-			ADD	A,5
+			ADD	A,4
 			LD	IXL,A
 			JR	clipTriangle_L
 
@@ -412,13 +407,12 @@ clipTriangleOutCurrent:	LD	DE,(p2_x)		; Add the current point in
 ; DE: X coordinate
 ; HL: Y coordinate
 ;
-clipTriangleOutVertex:	LD	(IY+0),1		; Mark as being a valid vertex		
-			LD	(IY+1),E		; Store a point in the output table
-			LD	(IY+2),D
-			LD	(IY+3),L
-			LD	(IY+4),H
+clipTriangleOutVertex:	LD	(IY+0),E		; Store a point in the output table
+			LD	(IY+1),D
+			LD	(IY+2),L
+			LD	(IY+3),H
 			LD	A,IYL
-			ADD	A,5
+			ADD	A,4
 			LD	IYL,A
 			RET
 
