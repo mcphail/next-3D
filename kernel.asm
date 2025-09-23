@@ -193,7 +193,6 @@ DMAFillLen:		DW 0		; Number of bytes to fill
 			DB %10101101	; R4-Continuous mode
 DMAFillDst:		DW 0		; Destination address
 			DB $CF		; R6-Load	
-			DB $B3		; R6-Force Ready
 			DB $87		; R6-Enable DMA
 
 			DC DMAFillProgL = ASMPC - DMAFillProg
@@ -212,7 +211,6 @@ DMACopyLen:    		DW  6912 	; R0-Block length               (length in bytes)
 DMACopyDst:   	  	DW  $4000	; R4-Dest address               (destination address)
             		DB  $82  	; R5-Restart on end of block, RDY active LOW
             		DB  $CF  	; R6-Load
-            		DB  $B3  	; R6-Force Ready
             		DB  $87  	; R6-Enable DMA
 
 			DC DMACopyProgL = ASMPC - DMACopyProg
