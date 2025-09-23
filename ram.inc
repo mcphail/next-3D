@@ -4,13 +4,14 @@
 ;
 ; ******************************************************************************************************************************
 
-		PUBLIC	Scratchpad
+		PUBLIC	scratchpad
 		PUBLIC	sin_table
 		PUBLIC	R0,R1,R2,R3,R4,R5,R6,R7
 
-Scratchpad:	DS 512		; Used by the fast filled shape routines
+scratchpad:	DS 512		; Used by the fast filled shape routines
 
 ; 128 byte SIN table
+; This must be on the start of a page boundary
 ;
 sin_table:	DB 0x00, 0x06, 0x0C, 0x12, 0x18, 0x1F, 0x25, 0x2B
 		DB 0x31, 0x37, 0x3D, 0x44, 0x4A, 0x4F, 0x55, 0x5B
@@ -30,6 +31,7 @@ sin_table:	DB 0x00, 0x06, 0x0C, 0x12, 0x18, 0x1F, 0x25, 0x2B
 		DB 0x31, 0x2B, 0x25, 0x1F, 0x18, 0x12, 0x0C, 0x06
 
 ; Pseudo registers
+; These must be within a page boundary
 ;
 R0:		DW	0
 R1:		DW	0

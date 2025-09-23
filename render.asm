@@ -1,14 +1,14 @@
     			SECTION KERNEL_CODE
 
-    			EXTERN DMAFill, Scratchpad
+    			EXTERN DMAFill, scratchpad
 
     			INCLUDE "globals.inc"
 
 screen_banks:		DB 0				; LSB: The visible screen
 			DB 0				; MSB: The offscreen buffer
 
-shapeT_X1:		EQU	Scratchpad 
-shapeT_X2:		EQU	Scratchpad + $100
+shapeT_X1:		EQU	scratchpad 
+shapeT_X2:		EQU	scratchpad + $100
 
 MIN			MACRO	P1			; Get min of P1 and A in A
 			LOCAL 	S1

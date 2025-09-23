@@ -13,7 +13,7 @@ p2_y:			DS	2
 dx:			DS	2
 dy:			DS 	2
 
-			EXTERN	Scratchpad		; From ram.inc
+			EXTERN	scratchpad		; From ram.inc
 			EXTERN	fastMulDiv		; From maths.asm
 			EXTERN	negDE 			; From maths.asm
 			EXTERN	plotL2asm_colour	; From render.asm
@@ -102,8 +102,8 @@ triangleL2C_L:		LD	A,(p1_x): LD L,A
 ;
 PUBLIC _triangleL2CF, triangleL2CF
 
-triangleIn:		EQU	Scratchpad + $0C0
-triangleOut:		EQU	Scratchpad + $1C0
+triangleIn:		EQU	scratchpad + $0C0
+triangleOut:		EQU	scratchpad + $1C0
 
 _triangleL2CF:		POP	BC			; The return address
 			POP	HL: LD (R0),HL		; R0: p1.x

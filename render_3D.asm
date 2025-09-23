@@ -5,7 +5,7 @@
 			EXTERN	rotate8_3D	; In maths.asm
 			EXTERN	project3D	; In maths.asm
 			EXTERN	windingOrder	; In maths.asm
-			EXTERN	Scratchpad	; In ram.inc
+			EXTERN	scratchpad	; In ram.inc
 			EXTERN	shape_buffer	; In render.asm
 			EXTERN	triangleL2C	; In clipping.asm
 			EXTERN	triangleL2CF	; In clipping.asm
@@ -45,7 +45,7 @@ _rotateModel:		POP	BC		; The return address
 			LD	L,(IY+2)	; Fetch pointer to the vertices
 			LD	H,(IY+3)
 ;
-			LD	IY,Scratchpad	; Used to store results of calculations
+			LD	IY,scratchpad	; Used to store results of calculations
 
 ;
 ; First get the number of vertices to plot
@@ -56,13 +56,13 @@ _rotateModel:		POP	BC		; The return address
 ; Read a vertice in from the model
 ;
 			LD	A,(HL)		; v.x
-			LD	(Scratchpad+0),A
+			LD	(scratchpad+0),A
 			INC	HL 
 			LD	A,(HL)		; v.y
-			LD	(Scratchpad+1),A
+			LD	(scratchpad+1),A
 			INC	HL
 			LD	A,(HL)		; v.z
-			LD	(Scratchpad+2),A
+			LD	(scratchpad+2),A
 			INC	HL			
 ;
 ; Apply rotation
@@ -75,15 +75,15 @@ _rotateModel:		POP	BC		; The return address
 			LD	E,(IY+0)	; r.x
 			LD	D,(IY+1)	; r.y
 			LD	A,(IY+2)	; r.z
-			LD	HL,(R1): LD (Scratchpad+0),HL
-			LD	HL,(R2): LD (Scratchpad+2),HL
+			LD	HL,(R1): LD (scratchpad+0),HL
+			LD	HL,(R2): LD (scratchpad+2),HL
 			LD	HL,(R3)		; p.z
 			CALL	project3D	; Do the projection, Point16 result in (IY)
 ;
 ; Store the transformed point in the buffer
 ;
-			LD	HL,(Scratchpad+0)
-			LD	DE,(Scratchpad+2)
+			LD	HL,(scratchpad+0)
+			LD	DE,(scratchpad+2)
 			LD	(IX+0),L	; Store the rotated point
 			LD	(IX+1),H
 			LD	(IX+2),E
