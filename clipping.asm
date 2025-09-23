@@ -117,7 +117,7 @@ _triangleL2CF:		POP	BC			; The return address
 			PUSH	BC			; Restore the return address
 ;
 triangleL2CF:		PUSH	IX
-			LD	(@M2+1),A		; Store the colour for later
+			LD	(drawTriangle_C+1),A	; Self-mod the colour for later
 ;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
 
 			LD	A,1
@@ -147,11 +147,15 @@ triangleL2CF:		PUSH	IX
 			LD	(p1_y),HL
 			CALL	clipRegion		; The third clipping region
 			OR	C			; OR it with the first two
-			LD	A,0
-			LD	(triangleIn+$F),A	; End of table marker
-			JR	Z,@M1			; All clipping regions are on screen, so just draw
+			LD	HL,triangleIn+$F	; End of table
+			LD	(HL),0			; Mark end of list
+			JR	NZ,triangleL2CF_M	; Some clipping regions are off screen, so clip
+			LD	A,L			; End position of the list
+			CALL	drawTriangle		; Just draw the triangle, no clipping
+			POP	IX
+			RET
 ;
-			LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
+triangleL2CF_M:		LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
@@ -174,35 +178,36 @@ triangleL2CF:		PUSH	IX
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 ;
-@M1:			LD	A,(triangleIn)		; Check if the first entry in the list is $00
-			OR	A			; indicating nothing to draw
-@M2:			LD	A,0			; The colour
+			LD	A,IYL			; Check if the table is empty
+			CP	triangleIn & $FF
 			CALL	NZ,drawTriangle		; No, so draw the triangle
 			POP	IX
 			RET
-
+			
 ; Draw the triangle
 ;
-drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
-			LD	IX,$FF00		; IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
-			LD	(@M2+1),A		; Self-mod the colour for later
-@L1:			LD	A,(IY+5)	
-			OR	A
-			LD	C,(IY+1)		; The first coordinate
-			LD	B,(IY+3)
-			JR	Z,@M1			; If there is no second point, then skip to the end
-			LD	E,(IY+6)		; The second coordinate
-			LD	D,(IY+8)	
+drawTriangle:		LD	(drawTriangle_M+1),A	;   A: Low byte of end of list in page
+			LD	HL,triangleIn		;  HL: The output (clipped) vertice list
+			LD	IX,$FF00		;  IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
+drawTriangle_L:		INC	L			; Skip the attribute marker
+			LD	C,(HL): INC L: INC L	; The first coordinate
+			LD	B,(HL): INC L: INC L
+			LD	A,L
+drawTriangle_M:		CP	0			; Check for end of table (self-modded)
+			JR	Z,drawTriangle_R
+			PUSH	HL			; Stack the table position for later
+			INC	L			; Skip the attribute marker
+			LD	E,(HL): INC L: INC L	; The second coordinate
+			LD	D,(HL)
 			CALL	drawTriangleSide	; Get the side
 			CALL	lineT			; Draw the line
-			LD	A,IYL
-			ADD	A,5
-			LD	IYL,A
-			JR	@L1
+			POP	HL			; Restore the table position and
+			JR	drawTriangle_L		; loop
 ;
-@M1:			LD	IY,triangleIn		; Reset the list
-			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
-			LD	D,(IY+3)
+drawTriangle_R:		LD	A,(triangleIn+1)
+			LD	E,A
+			LD	A,(triangleIn+3)
+			LD	D,A
 			CALL	drawTriangleSide	; Get the side
 			CALL	lineT			; Draw the final connecting line
 ;
@@ -215,7 +220,7 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			RET	Z			; Don't do anything here
 			RET	C			; Bit of a bodge to fix bug where bottom is above the top
 			LD	B,A			; B: The height
-@M2:			LD	A,0 			; A: The colour (self-modded)
+drawTriangle_C:		LD	A,0 			; A: The colour (self-modded)
 			JP 	drawShapeTable		; Draw the shape
 
 ;
