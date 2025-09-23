@@ -118,65 +118,56 @@ _triangleL2CF:		POP	BC			; The return address
 ;
 triangleL2CF:		PUSH	IX
 			LD	(drawTriangle_C+1),A	; Self-mod the colour for later
-;			CALL	sortTriangle16		; Sort the triangle points from top to bottom
-
+;
 			LD	DE,(R0)			; Add the first coordinate
 			LD	HL,(R1)
-			LD	(triangleIn+$0),DE	; DE: The X coordinate
-			LD	(triangleIn+$2),HL	; HL: The Y coordinate
 			CALL	clipRegion
 			LD	C,A 			; The first clipping region
 			LD	DE,(R2)			; Add the second coordinate
 			LD	HL,(R3)
-			LD	(triangleIn+$4),DE
-			LD	(triangleIn+$6),HL
 			CALL	clipRegion		; The second clipping region
 			OR	C 			; OR it with the first
 			LD	C,A
 			LD	DE,(R4)			; Add the third coordinate
 			LD	HL,(R5)
-			LD	(triangleIn+$8),DE
-			LD	(triangleIn+$A),HL
 			LD	(p1_x),DE		; The previous points for the clipping
 			LD	(p1_y),HL
 			CALL	clipRegion		; The third clipping region
 			OR	C			; OR it with the first two
-			LD	HL,triangleIn+$C	; End of table
+;
+			LD	A,R6 & $FF		; End of the input table
 			JR	NZ,triangleL2CF_M	; Some clipping regions are off screen, so clip
-			LD	A,L			; End position of the list
+			LD	HL,R0			; The input table
 			CALL	drawTriangle		; Just draw the triangle, no clipping
 			POP	IX
 			RET
 ;
-triangleL2CF_M:		LD	A,L			;  A: The end of the input list
-			LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
-			LD	IX,triangleIn 		; The input list
+triangleL2CF_M:		LD	HL,clipTriangleLeft	; The callback routine to clip the left edge
+			LD	IX,R0	 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
 			CALL	clipTriangleInit	; Initialise the clipping for the next pass		
 ;
-			LD	A,IYL			; The end of the output list
 			LD	HL,clipTriangleTop	; The callback routine to clip the top edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
-			LD	A,IXL			; The end of the output list
 			LD	HL,clipTriangleRight	; The callback routine to clip the right edge
 			LD	IX,triangleIn 		; The input list
 			LD	IY,triangleOut		; The output list
 			CALL	clipTriangle		; Clip the triangle
 			CALL	clipTriangleInit	; Initialise the clipping for the next pass
 ;
-			LD	A,IYL			; The end of the output list
 			LD	HL,clipTriangleBottom	; The callback routine to clip the bottom edge
 			LD	IX,triangleOut 		; The input list (the previous output list)
 			LD	IY,triangleIn		; The output list (the previous input list)
 			CALL	clipTriangle		; Clip the triangle
 ;
-			LD	A,IYL			; Check if the table is empty
-			CP	triangleIn & $FF
+			LD	A,IYL			; A: LSB of the end of the output list
+			LD	HL,triangleIn		; Pointer to the list of vertices to draw
+			CP	L			; Check if the list is empty
 			CALL	NZ,drawTriangle		; No, so draw the triangle
 			POP	IX
 			RET
@@ -184,8 +175,8 @@ triangleL2CF_M:		LD	A,L			;  A: The end of the input list
 ; Draw the triangle
 ;
 drawTriangle:		LD	(drawTriangle_M+1),A	;   A: Low byte of end of list in page
-			LD	HL,triangleIn		;  HL: The output (clipped) vertice list
 			LD	IX,$FF00		;  IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
+			PUSH	HL			; Stack the start of the list
 drawTriangle_L:		LD	C,(HL): INC L: INC L	; The first coordinate
 			LD	B,(HL): INC L: INC L
 			LD	A,L
@@ -199,10 +190,9 @@ drawTriangle_M:		CP	0			; Check for end of table (self-modded)
 			POP	HL			; Restore the table position and
 			JR	drawTriangle_L		; loop
 ;
-drawTriangle_R:		LD	A,(triangleIn+0)
-			LD	E,A
-			LD	A,(triangleIn+2)
-			LD	D,A
+drawTriangle_R:		POP	HL 			; Restore the start of the list
+			LD	E,(HL): INC L: INC L	; The second coordinate
+			LD	D,(HL)
 			CALL	drawTriangleSide	; Get the side
 			CALL	lineT			; Draw the final connecting line
 ;
@@ -424,49 +414,8 @@ clipTriangleInit:	LD	E,(IY-4)		; Fetch the last points entered in the output lis
 			LD	H,(IY-1)
 			LD	(p1_x),DE		; Store in p1_x and p1_y
 			LD	(p1_y),HL		; ready for clipping against the next screen edge
+			LD	A,IYL			; A: LSB of the end of the output list
 			RET
-
-
-; For the filled triangle
-; Need to sort the points from top to bottom
-;
-; if R1 > R3 swap({R2,R3},{R0,R1}); // if (p1.y > p2.y) swap(p2, p1)
-; if R1 > R5 swap({R4,R5},{R0,R1}); // if (p1.y > p3.y) swap(p3, p1)
-; if R3 > R5 swap({R4,R5},{R2,R3}); // if (p2.y > p3.y) swap(p3, p2)
-;
-;sortTriangle16:	LD	HL,(R3)
-;			LD	DE,(R1)
-;			CMP_HL	DE	; C if R1 > R3, otherwise NC
-;			JR	NC,@M1	
-;			LD	(R3),DE
-;			LD	(R1),HL
-;			LD	HL,(R2)
-;			LD	DE,(R0)
-;			LD	(R2),DE
-;			LD	(R0),HL
-;
-;@M1:			LD	HL,(R5)
-;			LD	DE,(R1)
-;			CMP_HL	DE	; C if R1 > R5, otherwise NC
-;			JR	NC,@M2
-;			LD	(R5),DE
-;			LD	(R1),HL
-;			LD	HL,(R4)
-;			LD	DE,(R0)
-;			LD	(R4),DE
-;			LD	(R0),HL
-;
-;@M2:			LD	HL,(R5)
-;			LD	DE,(R3)
-;			CMP_HL	DE	; C if R3 > R5, otherwise NC
-;			RET	NC
-;			LD	(R5),DE
-;			LD	(R3),HL
-;			LD	HL,(R4)
-;			LD	DE,(R2)
-;			LD	(R4),DE
-;			LD	(R2),HL
-;			RET
 
 
 ; extern uint8_t clipRegion(Point16 * p) __z88dk_callee
