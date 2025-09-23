@@ -188,15 +188,12 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	(@M2+1),A		; Self-mod the colour for later
 @L1:			LD	A,(IY+5)	
 			OR	A
-			LD	L,(IY+1)		; The first coordinate
-			LD	H,(IY+3)
+			LD	C,(IY+1)		; The first coordinate
+			LD	B,(IY+3)
 			JR	Z,@M1			; If there is no second point, then skip to the end
 			LD	E,(IY+6)		; The second coordinate
 			LD	D,(IY+8)	
 			CALL	drawTriangleSide	; Get the side
-			LD	A,C
-			LD	B,H
-			LD	C,L
 			CALL	lineT			; Draw the line
 			LD	A,IYL
 			ADD	A,5
@@ -207,9 +204,6 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			LD	E,(IY+1)		; The second coordinate (the first point of the shape)
 			LD	D,(IY+3)
 			CALL	drawTriangleSide	; Get the side
-			LD	A,C
-			LD	B,H
-			LD	C,L
 			CALL	lineT			; Draw the final connecting line
 ;
 ; Finally, draw the triangle
@@ -225,27 +219,31 @@ drawTriangle:		LD	IY,triangleIn		; IY: The output (clipped) vertice list
 			JP 	drawShapeTable		; Draw the shape
 
 ;
-drawTriangleSide:	LD	A,H			; Calculate the colour depending upon
+drawTriangleSide:	LD	A,B			; Calculate the colour depending upon
 			CP	D			; which way the line is being drawn up or down
 			JR	NC,drawTriangleSideUp	;  F: NC set if we are drawing up
 ;
 ; Drawing down at this point
 ;
-			LD	C,0			;   C: The side 
 			LD	A,D			;   A: The vertice to check against
 			CP	IXL			; IXL: The current lowest point
+			LD	A,0			;   A: The side
 			RET	C 			; Return if D < current lowest point
-			LD	IXL,A			; IXL: Now the lowest point
+			LD	IXL,d			; IXL: Now the lowest point
 			RET
 ;
 ; Drawing up at this point
 ;
-drawTriangleSideUp:	LD	C,1			;  C: The side 
-			EX	DE,HL
-			LD	A,H			;  A: The vertice to check against
-			CP	IXH			;  D: The vertice to check against
-			RET	NC
-			LD	IXH,A
+drawTriangleSideUp:	LD	A,E			; EX DE,BC
+			LD	E,C			; This swaps the line direction so
+			LD	C,A			; that it is drawing down, a requirement
+			LD	A,D			; for the subroutine lineT
+			LD	D,B
+			LD	B,A			;   A: The vertice to check against
+			CP	IXH			; IXH: The current highest point
+			LD	A,1			;   A: The side
+			RET	NC			; Return if B > current highest point
+			LD	IXH,B			; IXH: Now the highest point
 			RET
 
 ; Clip a triangle using the Sutherland-Hodgman algorithm
