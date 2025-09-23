@@ -698,16 +698,16 @@ draw_horz_line:		LD A,E				; Check if E > D
 			LD (draw_horz_line_dst),HL	; HL: The destination address
 			LD B,0				
 			LD C,A 				; BC: The line length in pixels - 1
-			CP 16				; Check if less than 16
+			CP 14				; Check if less than 14
 			JR C,@M2			; It's quicker to LDIR fill short lines
 ;
-; Now just DMA it (377 T-states)
+; Now just DMA it (314 T-states)
 ;
 			INC BC				; T:   6
 			LD (draw_horz_line_len),BC 	; T:  20 - Now just DMA it
 			LD HL,draw_horz_line_dma	; T:  10
 			LD BC,draw_horz_line_dma_len	; T:  10
-			OTIR 				; T: 331 (21 x 15 + 16)
+			OTIR 				; T: 268 (21 x 12 + 16)
 			RET 
 ;
 ; Plot a single point
@@ -717,16 +717,16 @@ draw_horz_line:		LD A,E				; Check if E > D
 			RET
 ;
 ; LDIR fill short lines (34 T-states to set up, plus the LDIR)
-; Only worth doing if less than 377 T states (15 pixels long), otherwise do DMA
-; - 15 pixels = 365
-; - 16 pixels = 386
+; Only worth doing if less than 314 T states (13 pixels long), otherwise do DMA
+; - 13 pixels = 302
+; - 14 pixels = 323
 ;
 @M2:			LD A,(draw_horz_line_colour)	; T:  13
 			LD D,H				; T:   4
 			LD E,L				; T:   4
 			INC DE 				; T:   6
 			LD (HL),A			; T:   7
-			LDIR				; T: 331 (21 x 15 + 16)
+			LDIR				; T: 331 (21 x 13 + 16)
 			RET
 
 
