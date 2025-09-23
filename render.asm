@@ -649,25 +649,37 @@ drawShapeTable:		LD (draw_horz_line_colour),A	; Store the colour
 			LD A,(screen_banks+1)		; Self-mod the screen bank in for performance
 			LD (drawShapeTable_B+1),A
 			LD C,L 				; Store the Y position in C
+			CALL drawShapeTable_A		; Do the initial banking
 drawShapeTable_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C)
 			LD H, shapeT_X1 >> 8		; Get the MSB table in H - HL is now a pointer in that table
 			LD L,C  			; The Y coordinate
 			LD D,(HL)			; Get X1 from the first table
 			INC H				; Increment H to the second table (they're a page apart)
 			LD E,(HL) 			; Get X2 from the second table
-			LD A,L				; A: Y coordinate
+			LD H,A				; H: Screen addreess MSB
+			EX AF,AF'			; Preserve screen address
+			CALL draw_horz_line		; Draw the line
+			EX AF,AF'			; Restore screen address
+			POP BC 				; Pop loop counter (B) and Y coordinate (C) off the stack
+			INC C				; Increase the row number
+			INC A 				; Increment the screen address
+			BIT 5,A				; Check if we've gone onto the next bank
+			CALL NZ,drawShapeTable_A	; If so, do the banking and update H
+			DJNZ drawShapeTable_L
+			RET
+;
+; This routine pages in the correct bank at address $0000 (over the ROM, but for write only)
+; Returns:
+; A: MSB of screen address
+;
+drawShapeTable_A:	LD A,C				; A: Y coordinate
 			AND %11100000			; 3 bits for the 8 banks we can use
 			SWAPNIB
 			RRCA
-drawShapeTable_B:	ADD A, 0			; Add the bank in (self-modded at top of routine)
-			NEXTREG MMU_REGISTER_0, A	; And set it
-			LD A,L
+drawShapeTable_B:	ADD A,0				; Add the bank in (self-modded at top of routine)
+			NEXTREG MMU_REGISTER_0,A	; And set it
+			LD A,C				; A: Y coordinate
 			AND %00011111
-			LD H,A 				; H: The MSB of the screen address
-			CALL draw_horz_line		; Draw the line
-			POP BC 				; Pop loop counter (B) and Y coordinate (C) off the stack
-			INC C 				; Go to the next line
-			DJNZ drawShapeTable_L
 			RET
 
 ; Draw Horizontal Line routine
