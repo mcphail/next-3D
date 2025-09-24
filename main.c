@@ -53,13 +53,14 @@
 // Global data
 // ***************************************************************************************************************************************
 
-const int pd = 256;					// The perspective distance
+const int pd = 256;						// The perspective distance
 
-uint8_t	renderMode = 1;				// 0: Wireframe, 1: Filled
-Point16 point_t[MAX_POINTS];		// Buffer for the translated points 
-Angle_3D cam_theta = { 0, 0, 0 };	// The global camera view
-Point16_3D cam_pos = { 0, 0, 0 };	// The global camera position
-Object_3D object[MAX_OBJECTS];		// List of objects to display
+uint8_t	renderMode = 1;					// 0: Wireframe, 1: Filled
+Point16 point_t[MAX_POINTS];			// Buffer for the translated points 
+Angle_3D cam_theta = { 0, 0, 0 };		// The global camera view
+Point16_3D cam_pos = { 0, 0, 0 };		// The global camera position
+Point16_3D sun_pos = { 0, 0, 20000 };	// The sun position
+Object_3D object[MAX_OBJECTS];			// List of objects to display
 
 // ***************************************************************************************************************************************
 //  Main startup and loop
@@ -70,6 +71,29 @@ void rotate(int i) {
 	self->theta.x+=1;
 	self->theta.y+=2;
 	self->theta.z-=1;
+}
+
+void drawSun() {
+	Point16_3D p = {
+		sun_pos.x - cam_pos.x,
+		sun_pos.y - cam_pos.y,
+		sun_pos.z - cam_pos.z,
+	};
+	p = rotate16_3D(p, cam_theta);
+	if(p.z >= 200 && abs(p.x) < p.z && abs(p.y) < p.z ) {
+		Point16 t = {
+		    fastMulDiv(p.x, pd, p.z) + 128,
+		    fastMulDiv(p.y, pd, p.z) + 96,
+		};
+		Point8 c = {
+			t.x,
+			t.y
+		};
+		int16_t r = (32768-p.z)/256;
+		if(r > 0) {
+			circleL2F(c,r,0xFC);
+		}
+	}
 }
 
 void main(void)
@@ -188,9 +212,8 @@ void main(void)
 				readKeyboard();
 			}
 		}
-
-		Point8 c = {56,56};		// Draw a filled circle
-		circleL2F(c,35,0xFC);
+		
+		drawSun();
 
 		for(int i=0; i<MAX_OBJECTS; i++) {
 			if(object[i].flags) {
