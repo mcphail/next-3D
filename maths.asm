@@ -326,87 +326,92 @@ sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
 ; Point16_3D r3 = rotate16_Z(r2, theta.z);
 ; return r3;
 ;
-PUBLIC _rotate16_3D
+PUBLIC _rotate16_3D, rotate16_3D
 
 _rotate16_3D:		POP	HL		; Pop the return address
 			POP	IY		; Return data address
 			POP	BC		; BC: p.x
-			LD	(IY+0),C
-			LD	(IY+1),B
+			LD	(R1),BC		
 			POP	BC		; BC: p.y
-			LD	(IY+2),C
-			LD	(IY+3),B
+			LD	(R2),BC
 			POP	BC		; BC: p.z
-			LD	(IY+4),C
-			LD	(IY+5),B
-			POP	DE		; E: theta.x, D: theta.y
+			LD	(R3),BC
+			POP	BC		; C: theta.x, B: theta.y
 			DEC	SP
 			POP	AF		; A: theta.z
 			PUSH	HL		; Stack the return address
 ;
-			PUSH	AF		; Stack theta.z
+			CALL	rotate16_3D	; Do the rotation
+;
+; Set the return data; note HL already contains R2
+;
+			LD	BC,(R1)
+			LD	DE,(R3)	
+			LD	(IY+0),C
+			LD	(IY+1),B
+			LD	(IY+2),L
+			LD	(IY+3),H
+			LD	(IY+4),E
+			LD	(IY+5),D
+			RET
+
 ;
 ; Do rotate16_X
+; R1: p.x
+; R2: p.y
+; R3: p.z
+;  C: theta.x
+;  B: theta.y
+;  A: theta.z
 ;	
-			PUSH	DE		; Stack theta.x, theta.y		
-			LD	A,E		;  A: theta.x
-			LD	C,(IY+2)	; BC: p.y
-			LD	B,(IY+3)
-			LD	E,(IY+4)
-			LD	D,(IY+5)	; DE: p.z
+rotate16_3D:		PUSH	AF		; Stack theta.z
+			PUSH	BC		; Stack theta.x, theta.y		
+			LD	A,C		;  A: theta.x
+			LD	BC,(R2)		; BC: p.y
+			LD	DE,(R3)		; DE: p.z
 			PUSH	AF
 			PUSH	BC
 			PUSH	DE
 			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
-			LD	(IY+2),L
-			LD	(IY+3),H 
+			LD	(R2),HL
 			POP	DE
 			POP	BC
 			POP	AF
 			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
-			LD	(IY+4),L
-			LD	(IY+5),H
-			POP	DE		; Restore theta.x, theta.y
+			LD	(R3),HL
 ;
 ; Do rotate16_Y
 ;
-			LD	A,D		;  A: theta.x
-			LD	C,(IY+0)	; BC: p.x
-			LD	B,(IY+1)
-			LD	E,(IY+4)
-			LD	D,(IY+5)	; DE: p.z
+			POP	BC		; Restore theta.y
+			LD	A,B		;  A: theta.y
+			LD	BC,(R1)		; BC: p.x
+			LD	DE,(R3)		; DE: P.Z
 			PUSH	AF
 			PUSH	BC
 			PUSH	DE
 			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
-			LD	(IY+0),L
-			LD	(IY+1),H 
+			LD	(R1),HL
 			POP	DE
 			POP	BC
 			POP	AF
 			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
-			LD	(IY+4),L
-			LD	(IY+5),H
+			LD	(R3),HL
 ;
 ; Do rotate16_Z
 ;
 			POP	AF		;  A: theta.z
-			LD	C,(IY+0)	; BC: p.x
-			LD	B,(IY+1)
-			LD	E,(IY+2)
-			LD	D,(IY+3)	; DE: p.y
+			LD	BC,(R1)		; BC: p.x
+			LD	DE,(R2)		; DE: p.y
 			PUSH	AF
 			PUSH	BC
 			PUSH	DE
 			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
-			LD	(IY+0),L
-			LD	(IY+1),H 
+			LD	(R1),HL
 			POP	DE
 			POP	BC
 			POP	AF
 			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
-			LD	(IY+2),L
-			LD	(IY+3),H
+			LD	(R2),HL
 			RET
 
 ; extern Point16_3D rotate16_X(Point16_3D p, uint8_t a);

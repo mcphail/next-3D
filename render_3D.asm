@@ -3,12 +3,18 @@
     			INCLUDE "globals.inc"
 
 			EXTERN	rotate8_3D	; In maths.asm
+			EXTERN	rotate16_3D	; In maths.asm
 			EXTERN	project3D	; In maths.asm
 			EXTERN	windingOrder	; In maths.asm
+			EXTERN	negHL		; In maths.asm
 			EXTERN	scratchpad	; In ram.inc
 			EXTERN	shape_buffer	; In render.asm
 			EXTERN	triangleL2C	; In clipping.asm
 			EXTERN	triangleL2CF	; In clipping.asm
+
+			EXTERN	_cam_pos	; In main.c
+			EXTERN	_cam_theta	; In main.c
+			EXTERN	_renderMode	; In main.c
 
 
 ; extern void rotateModel(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) __z88dk_callee;
@@ -20,7 +26,7 @@
 ;     *buffer++ = project3D(&p, &r);
 ; }
 ;
-PUBLIC _rotateModel
+PUBLIC _rotateModel, rotateModel
 
 _rotateModel:		POP	BC		; The return address
 			POP	HL: LD (R0),HL	; R0: Pointer to Point16 buffer
@@ -34,14 +40,25 @@ _rotateModel:		POP	BC		; The return address
 			PUSH	BC		; Restore the return address
 ;
 			PUSH	IX
-			LD	IX,(R0)		; Pointer to the Point16 buffer
-;
-; Sort out the angles for rotate
-;
+			LD	IX,(R0)		; Pointer to the Point16 buffer	
 			LD	B,A		; B: theta.z
 			LD	C,D		; C: theta.y
 			LD	D,E		; D: theta.x
-			LD	E,(IY+0)	; Fetch number of vertices from the model
+			CALL	rotateModel
+			POP	IX
+			RET
+;
+; Sort out the angles for rotate
+; IX: Pointer to the Point16 buffer for the rotated points
+; IY: Pointer to the Model_3D structure
+; R1: p.x
+; R2: p.y
+; R3: p.z
+;  D: theta.x
+;  C: theta.y
+;  B: theta.z
+;
+rotateModel:		LD	E,(IY+0)	; Fetch number of vertices from the model
 			LD	L,(IY+2)	; Fetch pointer to the vertices
 			LD	H,(IY+3)
 ;
@@ -98,16 +115,128 @@ _rotateModel:		POP	BC		; The return address
 			POP	BC		; Pop theta.y, theta.z
 			DEC	E			
 			JR	NZ,@L1
-			POP	IX		; Restore IX
 			RET
 
+
 ; extern void drawObject(Object_3D * o) __z88dk_callee;
+; This is an optimised version of this C routine
 ;
-PUBLIC _drawObject
+; Point16_3D u_pos = {
+; 	o->pos.x - cam_pos.x,
+; 	o->pos.y - cam_pos.y,
+; 	o->pos.z - cam_pos.z,
+; };
+; u_pos = rotate16_3D(u_pos, cam_theta);
+; Angle_3D u_ang = {
+; 	cam_theta.x - o->theta.x,
+; 	cam_theta.y - o->theta.y,
+; 	cam_theta.z - o->theta.z,
+; };
+; if(u_pos.z >= 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
+; 	rotateModel(&point_t[0], u_pos, u_ang, o->model);
+; 	renderModel(&point_t[0], o->model, renderMode);
+; }
+;
+PUBLIC _drawObject, drawObject
+
+pointBuffer:		DS	256		; TODO: Move this somewhere else when finished
 
 _drawObject:		POP	HL		; The return address	
 			POP	IY		; Pointer to the model data
 			PUSH	HL		; Restore the return address
+			PUSH	IX
+			CALL	drawObject
+			POP	IX
+			RET
+
+; Draw an object in world space
+; IY: Pointer to an Object_3D structure
+;
+;  +  0: Flags
+;  +  1: Pointer to the objects movement routine
+;  +  3: Pointer to the objects Model_3D data
+;  +  5: Point16_3D world position of object (6 bytes)
+;  + 11: Angle3D object rotation (3 bytes)
+;
+drawObject:		LD	IX,pointBuffer	; Buffer for the translated points
+			LD	(R7),IX		; For renderModel
+
+			LD	L,(IY+5)	; p.x
+			LD	H,(IY+6)
+			LD	BC,(_cam_pos+0)
+			OR	A
+			SBC	HL,BC
+			LD	(R1),HL		; R1: p.x - cam_pos.x
+
+			LD	L,(IY+7)	; p.y
+			LD	H,(IY+8)
+			LD	BC,(_cam_pos+2)
+			OR	A
+			SBC	HL,BC
+			LD	(R2),HL		; R2: p.y - cam_pos.y
+;
+			LD	L,(IY+9)	; p.z
+			LD	H,(IY+10)
+			LD	BC,(_cam_pos+4)
+			OR	A
+			SBC	HL,BC 
+			LD	(R3),HL		; R3: p.z - cam_pos.z
+;
+; Rotate the model around the camera
+;
+			LD	BC,(_cam_theta)	;  C: cam_theta.x, B: cam_theta.y
+			LD	A,(_cam_theta+2);  A: cam_theta.z
+			CALL	rotate16_3D
+;
+; Only rotate and render if u_pos.z >= 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z 
+;
+			LD	HL,(R3)		; HL: p.z
+			BIT	7,H		; If negative
+			RET	NZ		; Then just do nothing
+			LD	BC,200		; If positive, and
+			CMP_HL	BC		; less than 200, then
+			RET	C		; do nothing
+;
+			LD	BC,(R3)		; BC: p.z
+			LD	HL,(R1)		; HL: p.x
+			BIT	7,H
+			CALL	NZ,negHL	; HL: ABS(HL)
+			CMP_HL	BC
+			RET	NC		; Return if ABS(p.x) < p.z
+;
+			LD	HL,(R2)		; HL: p.y
+			BIT	7,H	
+			CALL	NZ,negHL	; HL: ABS(HL)
+			CMP_HL	BC
+			RET	NC		; Return if ABS(p.y) < p.z
+;
+; Rotate the object respective to the camera
+;
+			LD	A,(_cam_theta+0)
+			SUB	(IY+11)
+			LD	D,A		;  D: cam_theta.x - theta.x
+;
+			LD	A,(_cam_theta+1)
+			SUB	(IY+12)
+			LD	C,A		;  C: cam_theta.y - theta.y
+;
+			LD	A,(_cam_theta+2)
+			SUB	(IY+13)
+			LD	B,A		;  B: cam_theta.z - theta.z
+;
+;
+; Rotate and project the object to screen space and render
+;
+			LD	E,(IY+3)
+			LD	A,(IY+4)
+			LD	IYL,E		; IY: Pointer to the Model_3D object
+			LD	IYH,A
+			PUSH	IY
+			CALL	rotateModel
+			POP	IY
+			LD	A,(_renderMode)	; Mode
+			LD	IX,(R7)
+			CALL	renderModel
 			RET
 
 
@@ -129,7 +258,7 @@ _drawObject:		POP	HL		; The return address
 ;     }
 ; }
 ;
-PUBLIC _renderModel
+PUBLIC _renderModel, renderModel
 
 _renderModel:		POP	BC		; The return address
 			POP	HL: LD (R7),HL	; Pointer to the vector buffer
@@ -137,8 +266,12 @@ _renderModel:		POP	BC		; The return address
 			DEC	SP		; Correct the stack address for single byte
 			POP	AF		;  A: mode
 			PUSH	BC		; Restore the return address
+
+; IY: Pointer to the Model_3D object
+; R7: Pointer to the translated points buffer
+;  A: Mode (0: wireframe, 1: filled)
 ;
-			LD	B,(IY+1)	;  B: Number of faces
+renderModel:		LD	B,(IY+1)	;  B: Number of faces
 			LD	L,(IY+4)	; HL: Pointer to the face data
 			LD	H,(IY+5)
 

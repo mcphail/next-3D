@@ -47,28 +47,3 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 	};
 	return n;
 }
-
-void drawObjectC(Object_3D * o) {
-
-	// Rotate the world around the camera
-	//
-	Point16_3D u_pos = {
-		o->pos.x - cam_pos.x,
-		o->pos.y - cam_pos.y,
-		o->pos.z - cam_pos.z,
-	};
-	u_pos = rotate16_3D(u_pos, cam_theta);
-	Angle_3D u_ang = {
-		cam_theta.x - o->theta.x,
-		cam_theta.y - o->theta.y,
-		cam_theta.z - o->theta.z,
-	};
-
-	// Check if the ship is in our field of view, if so then draw it
-	// This might need fine-tuning for objects close up
-	//
-	if(u_pos.z > 200 && abs(u_pos.x) < u_pos.z && abs(u_pos.y) < u_pos.z ) {
-		rotateModel(&point_t[0], u_pos, u_ang, o->model);
-		renderModel(&point_t[0], o->model, renderMode);
-	}
-}

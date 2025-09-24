@@ -55,7 +55,7 @@
 
 const int pd = 256;					// The perspective distance
 
-uint8_t	renderMode = 0;				// 0: Wireframe, 1: Filled
+uint8_t	renderMode = 1;				// 0: Wireframe, 1: Filled
 Point16 point_t[MAX_POINTS];		// Buffer for the translated points 
 Angle_3D cam_theta = { 0, 0, 0 };	// The global camera view
 Point16_3D cam_pos = { 0, 0, 0 };	// The global camera position
@@ -194,7 +194,7 @@ void main(void)
 
 		for(int i=0; i<MAX_OBJECTS; i++) {
 			if(object[i].flags) {
-				drawObjectC(&object[i]);
+				drawObject(&object[i]);
 				if(object[i].move) {
 					object[i].move(i);
 				}
