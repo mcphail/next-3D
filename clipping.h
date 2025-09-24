@@ -1,4 +1,12 @@
-// clipping.h
+/*
+ * Title:			Line and Triangle Clipping Routines
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	22/09/2025
+ *
+ * Modinfo:
+ */
+
 #ifndef __CLIPPING_H__
 #define __CLIPPING_H__
 

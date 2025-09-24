@@ -1,3 +1,12 @@
+/*
+ * Title:			Experimental Code
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	24/09/2025
+ *
+ * Modinfo:
+ */
+
 #include <arch/zxn.h>
 #include <stdint.h>             // standard names for ints with no ambiguity 
 #include <stdio.h>

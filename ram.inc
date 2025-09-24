@@ -1,8 +1,14 @@
-; ******************************************************************************************************************************
 ;
-;	Shared RAM stuff (needs to start on a page boundary)
+; Title:	Global RAM
+; Author:	Dean Belfield
+; Created:	20/08/2025
+; Last Updated:	23/09/2025
 ;
-; ******************************************************************************************************************************
+; NB:
+; Needs to start on a page boundary
+;
+; Modinfo:
+;
 
 		PUBLIC	scratchpad
 		PUBLIC	sin_table

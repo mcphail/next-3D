@@ -1,4 +1,12 @@
-// render.h
+/*
+ * Title:			2D Primitive Functions
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	22/09/2025
+ *
+ * Modinfo:
+ */
+
 #ifndef __RENDER_H__
 #define __RENDER_H__
 

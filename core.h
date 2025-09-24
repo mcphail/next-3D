@@ -1,4 +1,12 @@
-// main.h
+/*
+ * Title:			Core Definitions
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	20/08/2025
+ *
+ * Modinfo:
+ */
+
 #ifndef __CORE_H__
 #define __CORE_H__
 

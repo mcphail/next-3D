@@ -1,4 +1,12 @@
-// render_3D.h
+/*
+ * Title:			3D Modelling Functions
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	23/09/2025
+ *
+ * Modinfo:
+ */
+
 #ifndef __RENDER_3D_H__
 #define __RENDER_3D_H__
 

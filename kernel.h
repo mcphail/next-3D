@@ -1,6 +1,12 @@
-//
-// Kernel functions
-//
+/*
+ * Title:			Kernel Functions
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	22/09/2025
+ *
+ * Modinfo:
+ */
+
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 

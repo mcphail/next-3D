@@ -1,3 +1,12 @@
+;
+; Title:	3D Modelling Functions
+; Author:	Dean Belfield
+; Created:	20/08/2025
+; Last Updated:	23/09/2025
+;
+; Modinfo:
+;
+
     			SECTION KERNEL_CODE
 
     			INCLUDE "globals.inc"

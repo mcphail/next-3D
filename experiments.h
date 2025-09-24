@@ -1,4 +1,12 @@
-// experiments.h
+/*
+ * Title:			Experimental Code
+ * Author:			Dean Belfield
+ * Created:			20/08/2025
+ * Last Updated:	24/09/2025
+ *
+ * Modinfo:
+ */
+
 #ifndef __EXPERIMENTS_H__
 #define __EXPERIMENTS_H__
 

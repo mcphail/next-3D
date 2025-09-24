@@ -1,3 +1,12 @@
+;
+; Title:	Kernel Functions
+; Author:	Dean Belfield
+; Created:	20/08/2025
+; Last Updated:	22/09/2025
+;
+; Modinfo:
+;
+
 			SECTION KERNEL_CODE
 
     			PUBLIC  _waitVBlank, _enableL2, _DMACopy, DMACopy, _DMAFill, DMAFill, _readKeyboard, _initKernel
