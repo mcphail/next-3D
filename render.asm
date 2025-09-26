@@ -51,34 +51,6 @@ DRAW_LINE_TABLE		MACRO	FLAG,PX1,PY1,PX2,PY2,TABLE
 S1:
 			ENDM
 
-; Macro to plot a circle quadrant
-; TABLE: Address of the shape table (shapeT_X1 or shapeT_X2)
-;   OPX: The operation to perform to do the horizontal symmetry (ADD or SUB)
-;   OPY: The operation to perform to do the vertical symmetry ADD or SUB
-; Assumes:
-;  BC: X coordinate of the circle centre
-;  DE: Y coordiante of the circle centre
-; IXL: X coordinate to plot
-; IXH: Y coordinate to plot
-;
-PLOT_CIRCLE_TABLE:	MACRO	TABLE, OPX, OPY
-			LD	H,TABLE >> 8
-;
-			LD	A,E			; ADD/SUB the Y coordinate to the circle centre
-			OPY	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD/SUB the X coordinate to the circle centre
-			OPX	IXL
-			LD	(HL),A
-;
-			LD	A,E			; ADD/SUB the X coordinate to the circle centre
-			OPY	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD/SUB the Y coordinate to the circle centre
-			OPX	IXH
-			LD	(HL),A
-			ENDM
-
 
 ; void initL2(void)
 ; Initialises the Layer 2 Next screen mode into 256x192 256 colours in front of the ULA screen
@@ -630,10 +602,67 @@ circleT:		AND 	A			; Do nothing if R=0
 ; C' = X origin
 ;
 @L1:			EXX				; Plot the circle quadrants
-			PLOT_CIRCLE_TABLE shapeT_X1, ADD, ADD
-			PLOT_CIRCLE_TABLE shapeT_X2, SUB, ADD
-			PLOT_CIRCLE_TABLE shapeT_X1, ADD, SUB
-			PLOT_CIRCLE_TABLE shapeT_X2, SUB, SUB
+
+			LD	H,shapeT_X1 >> 8
+			LD	A,E			; ADD the Y coordinate to the circle centre Y
+			ADD	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the X coordinate to the circle centre X
+			ADD	IXL
+			LD	(HL),A
+;
+			LD	A,E			; ADD the X coordinate to the circle centre Y
+			ADD	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the Y coordinate to the circle centre X
+			ADD	IXH
+			LD	(HL),A
+;
+			LD	H,shapeT_X2 >> 8
+			LD	A,E			; ADD the Y coordinate to the circle centre X
+			ADD	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the X coordinate to the circle centre Y
+			SUB	IXL
+			LD	(HL),A
+;
+			LD	A,E			; ADD the X coordinate to the circle centre Y
+			ADD	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the Y coordinate to the circle centre X
+			SUB	IXH
+			LD	(HL),A
+;
+			LD	H,shapeT_X1 >> 8
+			LD	A,E			; SUB the Y coordinate to the circle centre X
+			SUB	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the X coordinate to the circle centre Y
+			ADD	IXL
+			LD	(HL),A
+;
+			LD	A,E			; SUB the X coordinate to the circle centre Y
+			SUB	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the Y coordinate to the circle centre X
+			ADD	IXH
+			LD	(HL),A
+;
+			LD	H,shapeT_X2 >> 8
+			LD	A,E			; SUB the Y coordinate to the circle centre
+			SUB	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the X coordinate to the circle centre
+			SUB	IXL
+			LD	(HL),A
+;
+			LD	A,E			; SUB the X coordinate to the circle centre
+			SUB	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the Y coordinate to the circle centre
+			SUB	IXH
+			LD	(HL),A
+;
 			EXX
 ;
 ; Now calculate the next point
