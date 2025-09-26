@@ -35,36 +35,48 @@ MAX			MACRO	P1			; Get max of P1 and A in A
 S1:			
 			ENDM
 
+; Macro to draw a line in the shape table
+;
 DRAW_LINE_TABLE		MACRO	FLAG,PX1,PY1,PX2,PY2,TABLE
 			LOCAL	S1
-			LD A,(IY+FLAG)
-			OR A
-			JR Z,S1
-			LD C,(IY+PX1)
-			LD B,(IY+PY1)
-			LD E,(IY+PX2)
-			LD D,(IY+PY2)
-			LD A,TABLE
-			CALL lineT
+			LD 	A,(IY+FLAG)
+			OR 	A
+			JR 	Z,S1
+			LD 	C,(IY+PX1)
+			LD 	B,(IY+PY1)
+			LD 	E,(IY+PX2)
+			LD 	D,(IY+PY2)
+			LD 	A,TABLE
+			CALL 	lineT
 S1:
 			ENDM
 
-; Shortcut to plot a circle quadrant
+; Macro to plot a circle quadrant
+; TABLE: Address of the shape table (shapeT_X1 or shapeT_X2)
+;   OPX: The operation to perform to do the horizontal symmetry (ADD or SUB)
+;   OPY: The operation to perform to do the vertical symmetry ADD or SUB
+; Assumes:
+;  BC: X coordinate of the circle centre
+;  DE: Y coordiante of the circle centre
+; IXL: X coordinate to plot
+; IXH: Y coordinate to plot
 ;
 PLOT_CIRCLE_TABLE:	MACRO	TABLE, OPX, OPY
-			LD H,TABLE >> 8
-			LD A,B 				; Get the Y origin
-			OPY IXH				; Add the Y coordinate
-			LD L,A				; Store in L
-			LD A,C 				; Get the X coordinate
-			OPX IXL				; Add the X origin
-			LD (HL), A			; Store in the table
-			LD A,B				; Repeat the second quadrant
-			OPY IXL
-			LD L,A 
-			LD A,C
-			OPX IXH
-			LD (HL),A
+			LD	H,TABLE >> 8
+;
+			LD	A,E			; ADD/SUB the Y coordinate to the circle centre
+			OPY	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD/SUB the X coordinate to the circle centre
+			OPX	IXL
+			LD	(HL),A
+;
+			LD	A,E			; ADD/SUB the X coordinate to the circle centre
+			OPY	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD/SUB the Y coordinate to the circle centre
+			OPX	IXH
+			LD	(HL),A
 			ENDM
 
 
@@ -419,17 +431,17 @@ triangleL2F:		EX	AF,AF'			; Store the colour in AF'
 			JP 	drawShapeTable		; Draw the shape
 
 
-; extern void circleL2F(Point8 pt0, uint16 radius, uint8 colour) __z88dk_callee;
+; extern void circleL2F(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
 ; A filled circle drawing routine
 ;=================================================================================================
 PUBLIC _circleL2F, circleL2F
 
 _circleL2F:		POP 	IY			; Pops SP into IY
-			POP 	BC			; The origin
-			POP 	HL 			; The radius
-			LD 	D,L 
+			POP 	BC			; BC: pt.x
+			POP	DE			; DE: pt.y
+			POP 	HL 			; HL: Radius
 			DEC	SP
-			POP	AF			; Pops colour value into A
+			POP	AF			;  A: Colour
 			PUSH 	IY			; Restore the stack
 			PUSH 	IX
 			CALL 	circleL2F
@@ -437,32 +449,33 @@ _circleL2F:		POP 	IY			; Pops SP into IY
 			RET
 
 ; Draw a filled circle
-; B = Y pixel position of circle centre
-; C = X pixel position of circle centre
-; D = Radius of circle
-; A = Colour
+; BC: X pixel position of circle centre
+; DE: Y pixel position of circle centre
+;  L: Radius
+;  A: Colour
 ;
-circleL2F:		PUSH AF				; Store the colour
-			LD A,D
-			PUSH AF
-			CALL circleT
-			POP AF				; A = radius
-			EXX				; BC' = YX origin
-			LD C,A				; C = radius
-			LD A, B				; Get the origin
-			SUB C				; Subtract the radius
-			JR NC, @M1			; Skip next bit if OK
-			XOR A				; Set to zero if off top of screen
-@M1:			LD L,A 				; Store in L
-			LD A,B				; Get the origin
-			ADD C				; Add the radius
-			CP 192 				; Check bottom screen boundary
-			JR C,@M2			; If off bottom then
-			LD A,191			; Crop to 191
-@M2:			SUB L 				; Subtract the top
-			INC A				; Because height = bottom - top + 1
-			LD B,A				; Store in B
-			POP AF
+circleL2F:		PUSH	AF			; Store the colour
+			LD	A,L			;  A: radius
+			PUSH 	AF			; Stack the radius
+			CALL 	circleT
+			POP	AF			; Pop the radius
+			EXX				; BC: X origin, DE: Y origin
+			LD	H,A			;  H: radius
+			LD 	A,E			; Get the Y origin
+			SUB	H			; Subtract the radius
+			JR	NC, @M1			; Skip next bit if OK
+			XOR	A			; Set to zero if off top of screen
+@M1:			LD	L,A 			;  L: Top pixel row value 
+
+			LD	A,E			; Get the Y origin
+			ADD	H			; Add the radius
+			CP	192 			; Check bottom screen boundary
+			JR	C,@M2			; If off bottom then
+			LD	A,191			; Crop to 191
+@M2:			SUB	L 			; Subtract the top
+			INC	A			; Because height = bottom - top + 1
+			LD	B,A			;  B: height of circle
+			POP	AF			;  A: colour
 			JP drawShapeTable		; Draw the table
 
 
@@ -570,16 +583,19 @@ lineT_Q2_L2:		LD E,A				; Store the error value back in
 			RET	
 
 ; Draw a circle in the shape table
-; B = Y pixel position of circle centre
-; C = X pixel position of circle centre
-; A = Radius of circle
+; BC = Y pixel position of circle centre
+; DE = X pixel position of circle centre
+;  A = Radius of circle
 ;
-circleT:		AND 	A				
+circleT:		AND 	A			; Do nothing if R=0			
 			RET 	Z 
 
-			PUSH 	BC 			; Get BC in BC'
+			PUSH 	BC 			; Put origin in alternate registers
+			PUSH	DE
 			EXX 
-			POP 	BC 
+			POP 	DE 
+			POP	BC
+			EXX
 
 			LD	D,0			; DE: R
 			LD	E,A		

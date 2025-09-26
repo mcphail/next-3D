@@ -85,13 +85,9 @@ void drawSun() {
 		    fastMulDiv(p.x, pd, p.z) + 128,
 		    fastMulDiv(p.y, pd, p.z) + 96,
 		};
-		Point8 c = {
-			t.x,
-			t.y
-		};
 		int16_t r = (32768-p.z)/256;
 		if(r > 0) {
-			circleL2F(c,r,0xFC);
+			circleL2F(t,r,0xFC);
 		}
 	}
 }
