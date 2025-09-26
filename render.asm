@@ -574,39 +574,39 @@ lineT_Q2_L2:		LD E,A				; Store the error value back in
 ; C = X pixel position of circle centre
 ; A = Radius of circle
 ;
-circleT:		AND A				
-			RET Z 
+circleT:		AND 	A				
+			RET 	Z 
 
-			PUSH BC 			; Get BC in BC'
+			PUSH 	BC 			; Get BC in BC'
 			EXX 
-			POP BC 
+			POP 	BC 
 
-			LD IXH,A			; IXH = Y
-			LD IXL,0			; IXL = X
+			LD	D,0			; DE: R
+			LD	E,A		
+			LD 	IXH,A			; IXH = Drawing Y position
+			LD 	IXL,D			; IXL = Drawing X position
 ;
 ; Calculate BC (D2) = 3-(R*2)
 ;
-			LD H,0				; HL = R
-			LD L,A
-			ADD HL,HL			; HL = R*2
-			EX DE,HL			; DE = R*2
-			LD HL,3
-			AND A
-			SBC HL,DE			; HL = 3-(R*2)
-			LD B,H
-			LD C,L
+			LD	B,D			; BC: A*2
+			RLA				; Can assume C is reset at this point
+			RL	B
+			NEG				; BC: 3-(R*2)
+			ADD	3			; Note that I'm actually doing BC: -(R*2)+3
+			LD	C,A			; as it is slightly quicker
+			LD	A,255			; It's 255 here not 0 to save doing a CCF
+			ADC	B
+			LD	B,A
 ;
 ; Calculate HL (Delta) = 1-R
 ;
-			LD HL,1
-			LD D,0
-			LD E,IXL
-			AND A
-			SBC HL,DE			; HL = 1 - CR
+			LD 	HL,1	
+			AND 	A
+			SBC 	HL,DE			; HL = 1 - CR
 ;
-; SET DE (D1) = 1
+; Set DE (D1) = 1
 ;
-			LD DE,1
+			LD	E,1			; Can assume D is 0 at this point
 ;
 ; The circle loop
 ; First plot all the octants
@@ -622,21 +622,21 @@ circleT:		AND A
 ;
 ; Now calculate the next point
 ;
-			LD A,IXH			; Get Y in A
-			CP IXL				; Compare with X
-			RET C				; Return if X>Y
-			LD A,2				; Used for additions later
-			BIT 7,H				; Check for Hl<=0
-			JR Z,@M1
-			ADD HL,DE			; Delta=Delta+D1
-			JR @M2 
-@M1:			ADD HL,BC			; Delta=Delta+D2
-			ADD BC,A 
-			DEC IXH				; Y=Y-1
-@M2:			ADD BC,A
-			ADD DE,A
-			INC IXL				; X=X+1
-			JR @L1
+			LD 	A,IXH			; Get Y in A
+			CP 	IXL			; Compare with X
+			RET 	C			; Return if X>Y
+			LD 	A,2			; Used for additions later
+			BIT 	7,H			; Check for Hl<=0
+			JR 	Z,@M1
+			ADD 	HL,DE			; Delta=Delta+D1
+			JR 	@M2 
+@M1:			ADD 	HL,BC			; Delta=Delta+D2
+			ADD 	BC,A 
+			DEC 	IXH			; Y=Y-1
+@M2:			ADD 	BC,A
+			ADD 	DE,A
+			INC 	IXL			; X=X+1
+			JR 	@L1
 
 ; extern void drawShapeTable(uint8_t y, uint8_t h, uint8 colour) __z88dk_callee
 ;
