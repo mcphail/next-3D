@@ -87,7 +87,7 @@ void drawSun() {
 		};
 		int16_t r = (32768-p.z)/256;
 		if(r > 0) {
-			circleL2F(t,r,0xFC);
+			circleL2(t,r,0xFC);
 		}
 	}
 }

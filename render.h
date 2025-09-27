@@ -41,6 +41,7 @@ extern void plotL2(uint8_t xcoord, uint8_t ycoord, uint8 colour) __z88dk_callee;
 extern void lineL2(Point8 pt0, Point8 pt1, uint8 colour) __z88dk_callee;
 extern void triangleL2(Point8 pt0, Point8 pt1, Point8 pt2, uint8 colour) __z88dk_callee;
 extern void triangleL2F(Point8 pt0, Point8 pt1, Point8 pt2, uint8 colour) __z88dk_callee;
+extern void circleL2(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
 extern void circleL2F(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
 
 extern void lineT(Point8 pt0, Point8 pt1, uint8_t table) __z88dk_callee;

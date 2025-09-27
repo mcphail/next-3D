@@ -404,6 +404,115 @@ triangleL2F:		EX	AF,AF'			; Store the colour in AF'
 
 
 ; extern void circleL2F(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
+; A wireframe circle drawing routine
+;=================================================================================================
+PUBLIC _circleL2, circleL2
+
+_circleL2:		POP 	IY			; Pops SP into IY
+			POP 	BC			; BC: pt.x
+			POP	DE			; DE: pt.y
+			POP 	HL 			; HL: Radius
+			DEC	SP
+			POP	AF			;  A: Colour
+			PUSH 	IY			; Restore the stack
+			PUSH 	IX
+			CALL 	circleL2
+			POP 	IX 
+			RET
+
+; Draw a wireframe circle
+; BC: X pixel position of circle centre
+; DE: Y pixel position of circle centre
+;  L: Radius
+;  A: Colour
+;
+circleL2:		LD	(plotL2asm_colour+1),A	; Store the colour
+			LD	A,(screen_banks+1)
+    			LD	(plotL2asm_bank+1),A
+			LD	A,L			;  A: radius
+			AND	A			; Check for zero sized circles
+			RET	Z
+			CALL	circleInit		; Initialise the circle parameters
+@L1:			EXX
+			CALL	circlePlot_Q3		; Call the plot routines
+			CALL	circlePlot_Q4
+			CALL	circlePlot_Q7
+			CALL	circlePlot_Q8
+			CALL	circlePlot_Q1
+			CALL	circlePlot_Q2
+			CALL	circlePlot_Q5
+			CALL	circlePlot_Q6
+			EXX
+			CALL	circleNext		; Calculate the next pixel position
+			JR	NC,@L1			; Loop until finished
+			RET
+;
+circlePlot_Q1:		LD	A,E			; ADD the Y coordinate to the circle centre Y
+			ADD	IXH
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; ADD the X coordinate to the circle centre X
+			ADD	IXL
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q2:		LD	A,E			; ADD the Y coordinate to the circle centre X
+			ADD	IXL
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; ADD the X coordinate to the circle centre Y
+			ADD	IXH
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q3:		LD	A,E			; ADD the Y coordinate to the circle centre Y
+			ADD	IXH
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; SUB the X coordinate to the circle centre X
+			SUB	IXL
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q4:		LD	A,E			; ADD the Y coordinate to the circle centre X
+			ADD	IXL
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; SUB the X coordinate to the circle centre Y
+			SUB	IXH
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q5:		LD	A,E			; SUB the Y coordinate to the circle centre Y
+			SUB	IXH
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; ADD the X coordinate to the circle centre X
+			ADD	IXL
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q6:		LD	A,E			; SUB the Y coordinate to the circle centre X
+			SUB	IXL
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; ADD the X coordinate to the circle centre Y
+			ADD	IXH
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q7:		LD	A,E			; SUB the Y coordinate to the circle centre Y
+			SUB	IXH
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; SUB the X coordinate to the circle centre X
+			SUB	IXL
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+;
+circlePlot_Q8:		LD	A,E			; SUB the Y coordinate to the circle centre X
+			SUB	IXL
+			LD	H,A			; H: Y coordinate
+			LD	A,C			; SUB the X coordinate to the circle centre Y
+			SUB	IXH
+			LD	L,A			; L: X coordinate
+			JP	plotL2asm
+
+
+; extern void circleL2F(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
 ; A filled circle drawing routine
 ;=================================================================================================
 PUBLIC _circleL2F, circleL2F
@@ -426,11 +535,29 @@ _circleL2F:		POP 	IY			; Pops SP into IY
 ;  L: Radius
 ;  A: Colour
 ;
-circleL2F:		PUSH	AF			; Store the colour
+circleL2F:		LD	(circleL2F_C+1),A	; Store the colour
 			LD	A,L			;  A: radius
+			AND	A			; Check for zero sized circles
+			RET	Z
+;
 			PUSH 	AF			; Stack the radius
-			CALL 	circleT
+			CALL	circleInit		; Initialise the circle parameters
+@L1:			EXX
+			LD	H,shapeT_X1 >> 8	; The left-hand half of the circle
+			CALL	circlePlotF_Q3		; Call the plot routines
+			CALL	circlePlotF_Q4
+			CALL	circlePlotF_Q7
+			CALL	circlePlotF_Q8
+			LD	H,shapeT_X2 >> 8	; The right-hand half of the circle
+			CALL	circlePlotF_Q1
+			CALL	circlePlotF_Q2
+			CALL	circlePlotF_Q5
+			CALL	circlePlotF_Q6
+			EXX
+			CALL	circleNext		; Calculate the next pixel position
+			JR	NC,@L1			; Loop until finished
 			POP	AF			; Pop the radius
+;
 			EXX				; BC: X origin, DE: Y origin
 			LD	H,A			;  H: radius
 			LD 	A,E			; Get the Y origin
@@ -447,8 +574,106 @@ circleL2F:		PUSH	AF			; Store the colour
 @M2:			SUB	L 			; Subtract the top
 			INC	A			; Because height = bottom - top + 1
 			LD	B,A			;  B: height of circle
-			POP	AF			;  A: colour
-			JP drawShapeTable		; Draw the table
+circleL2F_C:		LD	A,0			;  A: colour
+			JP 	drawShapeTable		; Draw the table
+
+
+; Plot the 8 quadrants of a filled circle
+; Right-Bottom #1
+;
+circlePlotF_Q1:		LD	A,E			; ADD the Y coordinate to the circle centre Y
+			ADD	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the X coordinate to the circle centre X
+			ADD	IXL
+			JR	NC,@M1
+			LD	A,255
+@M1:			LD	(HL),A
+			RET
+;
+; Right-Bottom #2
+;
+circlePlotF_Q2:		LD	A,E			; ADD the X coordinate to the circle centre Y
+			ADD	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the Y coordinate to the circle centre X
+			ADD	IXH
+			JR	NC,@M1
+			LD	A,255
+@M1:			LD	(HL),A
+			RET
+;
+; Left-Bottom #1
+;
+circlePlotF_Q3:		LD	A,E			; ADD the Y coordinate to the circle centre X
+			ADD	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the X coordinate to the circle centre Y
+			SUB	IXL
+			JR	NC,@M1
+			XOR	A
+@M1:			LD	(HL),A
+			RET
+;
+; Left-Bottom #2
+;
+circlePlotF_Q4:		LD	A,E			; ADD the X coordinate to the circle centre Y
+			ADD	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the Y coordinate to the circle centre X
+			SUB	IXH
+			JR	NC,@M1
+			XOR	A
+@M1:			LD	(HL),A
+			RET
+;
+; Right-Top #1
+;
+circlePlotF_Q5:		LD	A,E			; SUB the Y coordinate to the circle centre X
+			SUB	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the X coordinate to the circle centre Y
+			ADD	IXL
+			JR	NC,@M1
+			LD	A,255
+@M1:			LD	(HL),A
+			RET
+;
+; Right-Top #2
+;
+circlePlotF_Q6:		LD	A,E			; SUB the X coordinate to the circle centre Y
+			SUB	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; ADD the Y coordinate to the circle centre X
+			ADD	IXH
+			JR	NC,@M1
+			LD	A,255
+@M1:			LD	(HL),A
+			RET
+;
+; Left-Top #1
+;
+circlePlotF_Q7:		LD	A,E			; SUB the Y coordinate to the circle centre
+			SUB	IXH
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the X coordinate to the circle centre
+			SUB	IXL
+			JR	NC,@M1
+			XOR	A
+@M1:			LD	(HL),A
+			RET
+;
+; Left-Top #2
+;
+circlePlotF_Q8:		LD	A,E			; SUB the X coordinate to the circle centre
+			SUB	IXL
+			LD	L,A			; L: Offset into the table
+			LD	A,C			; SUB the Y coordinate to the circle centre
+			SUB	IXH
+			JR	NC,@M1
+			XOR	A
+@M1:			LD	(HL),A
+			RET
 
 
 ; extern void lineT(Point8 pt0, Point8 pt1, uint8_t table) __z88dk_callee
@@ -554,15 +779,13 @@ lineT_Q2_L2:		LD E,A				; Store the error value back in
 			LD (HL),D
 			RET	
 
-; Draw a circle in the shape table
+
+; Initialise the circle drawing routine variables
 ; BC = Y pixel position of circle centre
 ; DE = X pixel position of circle centre
 ;  A = Radius of circle
 ;
-circleT:		AND 	A			; Do nothing if R=0			
-			RET 	Z 
-
-			PUSH 	BC 			; Put origin in alternate registers
+circleInit:		PUSH 	BC 			; Put origin in alternate registers
 			PUSH	DE
 			EXX 
 			POP 	DE 
@@ -595,79 +818,15 @@ circleT:		AND 	A			; Do nothing if R=0
 ; Set DE (D1) = 1
 ;
 			LD	E,1			; Can assume D is 0 at this point
-;
-; The circle loop
-; First plot all the octants
-; B' = Y origin
-; C' = X origin
-;
-@L1:			EXX				; Plot the circle quadrants
+			RET
 
-			LD	H,shapeT_X1 >> 8
-			LD	A,E			; ADD the Y coordinate to the circle centre Y
-			ADD	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the X coordinate to the circle centre X
-			ADD	IXL
-			LD	(HL),A
+; Calculate the next point of the circle
+; IXH: Y position (zero-origin)
+; IXL: X position (zero-origin)
+; Returns:
+; F: Carry set when completed
 ;
-			LD	A,E			; ADD the X coordinate to the circle centre Y
-			ADD	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the Y coordinate to the circle centre X
-			ADD	IXH
-			LD	(HL),A
-;
-			LD	H,shapeT_X2 >> 8
-			LD	A,E			; ADD the Y coordinate to the circle centre X
-			ADD	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the X coordinate to the circle centre Y
-			SUB	IXL
-			LD	(HL),A
-;
-			LD	A,E			; ADD the X coordinate to the circle centre Y
-			ADD	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the Y coordinate to the circle centre X
-			SUB	IXH
-			LD	(HL),A
-;
-			LD	H,shapeT_X1 >> 8
-			LD	A,E			; SUB the Y coordinate to the circle centre X
-			SUB	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the X coordinate to the circle centre Y
-			ADD	IXL
-			LD	(HL),A
-;
-			LD	A,E			; SUB the X coordinate to the circle centre Y
-			SUB	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the Y coordinate to the circle centre X
-			ADD	IXH
-			LD	(HL),A
-;
-			LD	H,shapeT_X2 >> 8
-			LD	A,E			; SUB the Y coordinate to the circle centre
-			SUB	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the X coordinate to the circle centre
-			SUB	IXL
-			LD	(HL),A
-;
-			LD	A,E			; SUB the X coordinate to the circle centre
-			SUB	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the Y coordinate to the circle centre
-			SUB	IXH
-			LD	(HL),A
-;
-			EXX
-;
-; Now calculate the next point
-;
-			LD 	A,IXH			; Get Y in A
+circleNext:		LD 	A,IXH			; Get Y in A
 			CP 	IXL			; Compare with X
 			RET 	C			; Return if X>Y
 			LD 	A,2			; Used for additions later
@@ -681,7 +840,9 @@ circleT:		AND 	A			; Do nothing if R=0
 @M2:			ADD 	BC,A
 			ADD 	DE,A
 			INC 	IXL			; X=X+1
-			JR 	@L1
+			OR	A			; Reset carry
+			RET
+
 
 ; extern void drawShapeTable(uint8_t y, uint8_t h, uint8 colour) __z88dk_callee
 ;
