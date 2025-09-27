@@ -70,9 +70,13 @@ Draw a wireframe triangle between the points pt0, pt1 and pt2, in the specified 
 
 Draw a filled triangle between the points pt0, pt1 and pt2, in the specified colour
 
-`void circleL2F(Point8 pt0, uint16 radius, uint8 colour);`
+`void circleL2(Point16 pt, uint16 radius, uint8 colour);`
 
-Draw a filled circle with the centre pt0 with the specified radius and colour
+Draw a clipped circle with the centre pt with the specified radius and colour
+
+`void circleL2F(Point16 pt, uint16 radius, uint8 colour);`
+
+Draw a filled and clipped circle with the centre pt with the specified radius and colour
 
 `void lineT(Point8 pt0, Point8 pt1, uint8_t table);`
 

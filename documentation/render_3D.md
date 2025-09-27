@@ -55,6 +55,9 @@ Render a model
 - m: Pointer to the model
 - mode: 0 for wireframe, 1 for filled
 
-`void drawObject(Object_3D * o);`
+`void drawObject(Object_3D * o, uint8_t renderMode);`
 
-Currently stubbed in assembler, there is a C version called drawObjectC in experiments.h
+Rotate, project and draw an object in world space
+
+- o: Pointer to the object's data
+- renderMode: 0: wireframe, 1: filled

@@ -27,6 +27,32 @@ As ever, the code is designed for readability, with each block of the assembler 
 
 This software is a public BETA. Please do not submit any pull requests or issues at this point in time; they will be ignored.
 
+## Building
+
+Requires the latest version of z88dk. [Installation instructions can be found here](https://github.com/z88dk/z88dk/wiki/installation).
+
+There is a makefile:
+
+- `make` to make the .nex file
+- `make deploy` to make and deploy to the folder `Dev/next/dev` in your home folder
+- `make clean` to clean the build directory
+
+## Running in emulator
+
+This has been tested with CSpect and ZEsarUX. Please consult the documentation for the emulators on installation, configuration and usage.
+
+## Running on a Spectrum Next
+
+This code is compatible with all versions of the Spectrum Next running the latest firmware (24.11 or later).
+
+Copy the .nex file to a folder on the Spectrum Next and run from the browser.
+
+To save removing the SD card every time, use [NextSync](https://solhsa.com/specnext.html#NEXTSYNC) to synchronise the folder `/Dev/next/dev` in your home folder with the Next over WiFi.
+
+- Set up NextSync to synchronise the folder on your PC with the Spectrum Next
+- Use `make deploy` to make the .nex file and copy it to the folder
+- Use the dot command .sync on the Spectrum Next to synchronise the folder with the Next
+
 ## Creating Models
 
 Models can be imported from Blender via an intermediate step:
@@ -66,13 +92,12 @@ This contains high level routines for rendering and moving models in 16-bit (wor
 
 ### [render.h/asm](documentation/render.md)
 
-This contains low level routines for rendering unclipped 2D primitives on Layer 2 (256x192 resolution only), including:
+This contains low level routines for rendering 2D primitives on Layer 2 (256x192 resolution only), including:
 
 - plot
-- lines
-- wireframe triangles
-- filled triangles
-- filled circles
+- unclipped lines
+- unclipped wireframe and filled triangles
+- clipped wireframe and filled circles
 
 Primitives are drawn on an offscreen Layer 2 surface, and there are functions for clearing it and swapping it with the onscreen Layer 2 surface.
 
