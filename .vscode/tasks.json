@@ -12,6 +12,16 @@
       "problemMatcher": []
     },
     {
+      "label": "Deploy",
+      "type": "shell",
+      "command": "make install",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },	
+    {
       "label": "Clean",
       "type": "shell",
       "command": "make clean",

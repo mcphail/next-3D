@@ -5,6 +5,12 @@ ODIR=obj
 LDIR=../lib
 LIBS=-lm
 
+ifeq ($(OS),Windows_NT)
+    CP=copy /y
+else
+	CP=cp -f
+endif
+
 OBJS = \
 	obj/main.o \
 	obj/kernel.o \
@@ -53,6 +59,9 @@ obj/sprites.o: sprites.asm globals.inc
 
 obj/irq.o: irq.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_IRQ --constsegPAGE_02_KERNEL_IRQ -o obj/irq.o irq.asm
+
+install: next-3D.nex
+	$(CP) *.nex ~/Dev/next 
 
 clean:
 	$(RM) obj/*.*
