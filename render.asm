@@ -447,141 +447,99 @@ circleL2:		LD	(plotL2asm_colour+1),A	; Store the colour
 			JR	NC,@L1			; Loop until finished
 			RET
 ;
-circlePlot_Q1:		LD	A,E			; ADD the Y coordinate to the circle centre Y
-			ADD	IXH
-			LD	H,A			; H: Y coordinate
-			LD	A,D
-			ADC	0
-			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			LD	A,C			; ADD the X coordinate to the circle centre X
+circlePlot_Q1:		LD	A,C			; ADD the X coordinate to the circle centre X
 			ADD	IXL
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			ADC	0
 			RET	NZ
-			JP	plotL2asm
-;
-circlePlot_Q2:		LD	A,E			; ADD the Y coordinate to the circle centre X
-			ADD	IXL
-			LD	H,A			; H: Y coordinate
+			LD	A,E			; ADD the Y coordinate to the circle centre Y
+			ADD	IXH
+circlePlot_addY:	LD	H,A			; H: Y coordinate
 			LD	A,D
 			ADC	0
 			RET 	NZ
 			LD	A,H
 			CP	192
 			RET	NC
-			LD	A,C			; ADD the X coordinate to the circle centre Y
+			JP	plotL2asm
+;
+circlePlot_Q2:		LD	A,C			; ADD the X coordinate to the circle centre Y
 			ADD	IXH
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			ADC	0
 			RET	NZ
-			JP	plotL2asm
+			LD	A,E			; ADD the Y coordinate to the circle centre X
+			ADD	IXL
+			JR	circlePlot_addY
 ;
-circlePlot_Q3:		LD	A,E			; ADD the Y coordinate to the circle centre Y
-			ADD	IXH
-			LD	H,A			; H: Y coordinate
-			LD	A,D
-			ADC	0
-			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			LD	A,C			; SUB the X coordinate to the circle centre X
+circlePlot_Q3:		LD	A,C			; SUB the X coordinate to the circle centre X
 			SUB	IXL
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			SBC	0
 			RET	NZ
-			JP	plotL2asm
+			LD	A,E			; ADD the Y coordinate to the circle centre Y
+			ADD	IXH
+			JR	circlePlot_addY
 ;
-circlePlot_Q4:		LD	A,E			; ADD the Y coordinate to the circle centre X
-			ADD	IXL
-			LD	H,A			; H: Y coordinate
-			LD	A,D
-			ADC	0
-			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			LD	A,C			; SUB the X coordinate to the circle centre Y
+circlePlot_Q4:		LD	A,C			; SUB the X coordinate to the circle centre Y
 			SUB	IXH
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			SBC	0
 			RET	NZ
-			JP	plotL2asm
+			LD	A,E			; ADD the Y coordinate to the circle centre X
+			ADD	IXL
+			JR	circlePlot_addY
 ;
-circlePlot_Q5:		LD	A,E			; SUB the Y coordinate to the circle centre Y
-			SUB	IXH
-			LD	H,A			; H: Y coordinate
-			LD	A,D
-			SBC	0
-			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			LD	A,C			; ADD the X coordinate to the circle centre X
+circlePlot_Q5:		LD	A,C			; ADD the X coordinate to the circle centre X
 			ADD	IXL
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			ADC	0
 			RET	NZ
-			JP	plotL2asm
-;
-circlePlot_Q6:		LD	A,E			; SUB the Y coordinate to the circle centre X
-			SUB	IXL
-			LD	H,A			; H: Y coordinate
+			LD	A,E			; SUB the Y coordinate to the circle centre Y
+			SUB	IXH
+circlePlot_subY:	LD	H,A			; H: Y coordinate
 			LD	A,D
 			SBC	0
 			RET 	NZ
 			LD	A,H
 			CP	192
 			RET	NC
-			LD	A,C			; ADD the X coordinate to the circle centre Y
+			JP	plotL2asm
+;
+circlePlot_Q6:		LD	A,C			; ADD the X coordinate to the circle centre Y
 			ADD	IXH
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			ADC	0
 			RET	NZ
-			JP	plotL2asm
+			LD	A,E			; SUB the Y coordinate to the circle centre X
+			SUB	IXL
+			JR	circlePlot_subY
 ;
-circlePlot_Q7:		LD	A,E			; SUB the Y coordinate to the circle centre Y
-			SUB	IXH
-			LD	H,A			; H: Y coordinate
-			LD	A,D
-			SBC	0
-			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			LD	A,C			; SUB the X coordinate to the circle centre X
+circlePlot_Q7:		LD	A,C			; SUB the X coordinate to the circle centre X
 			SUB	IXL
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			SBC	0
 			RET	NZ
-			JP	plotL2asm
+			LD	A,E			; SUB the Y coordinate to the circle centre Y
+			SUB	IXH
+			JR	circlePlot_subY
 ;
-circlePlot_Q8:		LD	A,E			; SUB the Y coordinate to the circle centre X
-			SUB	IXL
-			LD	H,A			; H: Y coordinate
-			LD	A,D
-			SBC	0
-			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			LD	A,C			; SUB the X coordinate to the circle centre Y
+circlePlot_Q8:		LD	A,C			; SUB the X coordinate to the circle centre Y
 			SUB	IXH
 			LD	L,A			; L: X coordinate
 			LD	A,B
 			SBC	0
 			RET	NZ
-			JP	plotL2asm
+			LD	A,E			; SUB the Y coordinate to the circle centre X
+			SUB	IXL
+			JR	circlePlot_subY
 
 
 ; extern void circleL2F(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
