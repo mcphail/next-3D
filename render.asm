@@ -180,6 +180,10 @@ plotL2_B:		ADD 	A,0			; 8L bank for L2
 
 PUBLIC	plotL2asm, plotL2asm_colour
 
+plotL2asm_C:		LD	A,H			; Do a bounds check on Y
+			CP	192
+			RET	NC
+;
 plotL2asm:		LD	A,H 			; 0-31 per bank (8k)
 			AND	%11100000		; 3 bits for the 8 banks we can use
 			SWAPNIB
@@ -459,10 +463,7 @@ circlePlot_addY:	LD	H,A			; H: Y coordinate
 			LD	A,D
 			ADC	0
 			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			JP	plotL2asm
+			JP	plotL2asm_C
 ;
 circlePlot_Q2:		LD	A,C			; ADD the X coordinate to the circle centre Y
 			ADD	IXH
@@ -506,10 +507,7 @@ circlePlot_subY:	LD	H,A			; H: Y coordinate
 			LD	A,D
 			SBC	0
 			RET 	NZ
-			LD	A,H
-			CP	192
-			RET	NC
-			JP	plotL2asm
+			JP	plotL2asm_C
 ;
 circlePlot_Q6:		LD	A,C			; ADD the X coordinate to the circle centre Y
 			ADD	IXH
