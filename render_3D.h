@@ -34,6 +34,6 @@ typedef struct SObject_3D {
 
 extern void rotateModel(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) __z88dk_callee;
 extern void renderModel(Point16 * buffer, Model_3D * m, uint8_t mode) __z88dk_callee;
-extern void drawObject(Object_3D * o) __z88dk_callee;
+extern void drawObject(Object_3D * o, uint8_t renderMode) __z88dk_callee;
 
 #endif 	//__RENDER_3D_H__

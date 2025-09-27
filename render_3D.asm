@@ -23,7 +23,6 @@
 
 			EXTERN	_cam_pos	; In main.c
 			EXTERN	_cam_theta	; In main.c
-			EXTERN	_renderMode	; In main.c
 
 
 ; extern void rotateModel(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) __z88dk_callee;
@@ -127,7 +126,7 @@ rotateModel:		LD	E,(IY+0)	; Fetch number of vertices from the model
 			RET
 
 
-; extern void drawObject(Object_3D * o) __z88dk_callee;
+; extern void drawObject(Object_3D * o, uint8_t renderMode) __z88dk_callee;
 ; This is an optimised version of this C routine
 ;
 ; Point16_3D u_pos = {
@@ -152,6 +151,8 @@ pointBuffer:		DS	256		; TODO: Move this somewhere else when finished
 
 _drawObject:		POP	HL		; The return address	
 			POP	IY		; Pointer to the model data
+			DEC	SP
+			POP	AF		;  A: renderMode
 			PUSH	HL		; Restore the return address
 			PUSH	IX
 			CALL	drawObject
@@ -160,6 +161,7 @@ _drawObject:		POP	HL		; The return address
 
 ; Draw an object in world space
 ; IY: Pointer to an Object_3D structure
+;  A: Render mode (0: wireframe, 1: filled)
 ;
 ;  +  0: Flags
 ;  +  1: Pointer to the objects movement routine
@@ -169,6 +171,7 @@ _drawObject:		POP	HL		; The return address
 ;
 drawObject:		LD	IX,pointBuffer	; Buffer for the translated points
 			LD	(R7),IX		; For renderModel
+			LD	(@M1+1),A	; Store renderMode for later
 
 			LD	L,(IY+5)	; p.x
 			LD	H,(IY+6)
@@ -243,7 +246,7 @@ drawObject:		LD	IX,pointBuffer	; Buffer for the translated points
 			PUSH	IY
 			CALL	rotateModel
 			POP	IY
-			LD	A,(_renderMode)	; Mode
+@M1:			LD	A,0		; Render mode
 			LD	IX,(R7)
 			CALL	renderModel
 			RET

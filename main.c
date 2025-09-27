@@ -87,7 +87,12 @@ void drawSun() {
 		};
 		int16_t r = (32768-p.z)/256;
 		if(r > 0) {
-			circleL2(t,r,0xFC);
+			if(renderMode) {
+				circleL2F(t,r,0xFC);
+			}
+			else {
+				circleL2(t,r,0xFF);
+			}
 		}
 	}
 }
@@ -213,7 +218,7 @@ void main(void)
 
 		for(int i=0; i<MAX_OBJECTS; i++) {
 			if(object[i].flags) {
-				drawObject(&object[i]);
+				drawObject(&object[i], renderMode);
 				if(object[i].move) {
 					object[i].move(i);
 				}
