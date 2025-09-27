@@ -61,7 +61,7 @@ obj/irq.o: irq.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_IRQ --constsegPAGE_02_KERNEL_IRQ -o obj/irq.o irq.asm
 
 install: next-3D.nex
-	$(CP) *.nex ~/Dev/next 
+	$(CP) *.nex ~/Dev/next/dev
 
 clean:
 	$(RM) obj/*.*
