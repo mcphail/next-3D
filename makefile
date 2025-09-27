@@ -7,8 +7,10 @@ LIBS=-lm
 
 ifeq ($(OS),Windows_NT)
     CP=copy /y
+	DD=%userprofile%/Dev/next/dev
 else
 	CP=cp -f
+	DD=~/Dev/next/dev
 endif
 
 OBJS = \
@@ -61,7 +63,7 @@ obj/irq.o: irq.asm globals.inc
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_IRQ --constsegPAGE_02_KERNEL_IRQ -o obj/irq.o irq.asm
 
 install: next-3D.nex
-	$(CP) *.nex ~/Dev/next/dev
+	$(CP) *.nex $(DD)
 
 clean:
 	$(RM) obj/*.*
