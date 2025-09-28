@@ -26,6 +26,10 @@ extern Point16 point_t[64];
 extern Angle_3D cam_theta;
 extern Point16_3D cam_pos;
 
+#define starCount 32
+
+Point16_3D stars[starCount];
+
 // ***************************************************************************************************************************************
 //  Sample routines
 // ***************************************************************************************************************************************
@@ -55,4 +59,44 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 		(a.x * b.y) - (a.y * b.x),
 	};
 	return n;
+}
+
+void initStar(Point16_3D * star) {
+	star->x = 256 - rand()%512;
+	star->y = 256 - rand()%512;
+	star->z = 1024 + rand()%1024;
+}
+
+void initStars(void) {
+	int	i;
+	for(i=0; i<starCount; i++) {
+		initStar(&stars[i]);
+	}
+}
+
+void drawStars(int speed) {
+	int	i;
+	Point16_3D * star;
+
+	for(i=0; i<starCount; i++) {
+		star = &stars[i];
+		int x = fastMulDiv(star->x, 256, star->z) + 128;
+		int y = fastMulDiv(star->y, 256, star->z) + 96;
+		if(x >=0 && x <=255 && y >=0 && y <= 191) {
+			if(star->z > 512) {
+				plotL2(x,y,0xFF);
+			}
+			else {
+				plotL2(x,y,0xFF);
+				plotL2(x+1,y,0xFF);
+				plotL2(x,y+1,0xFF);
+				plotL2(x+1,y+1,0xFF);
+
+			}
+		}
+		star->z -= speed;
+		if(star->z  < 0) {
+			initStar(star);
+		}
+	}
 }

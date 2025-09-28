@@ -146,6 +146,8 @@ void main(void)
 	object[i].theta = theta;
 	object[i++].pos = pos;
 
+	initStars();
+
 	while(1) {
 		clearL2(0);
 		readKeyboard();
@@ -214,6 +216,7 @@ void main(void)
 			}
 		}
 		
+		drawStars(v/2);
 		drawSun();
 
 		for(int i=0; i<MAX_OBJECTS; i++) {

@@ -14,4 +14,7 @@ int16_t dotp(Point16_3D p1, Point16_3D p2);
 int16_t crossp(Point16_3D p1, Point16_3D p2);
 Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3);
 
+void initStars(void);
+void drawStars(int speed);
+
 #endif 	//__EXPERIMENTS_H__
