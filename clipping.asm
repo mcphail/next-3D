@@ -194,7 +194,6 @@ drawTriangle_M:		CP	0			; Check for end of table (self-modded)
 			LD	E,(HL): INC L: INC L	; The second coordinate
 			LD	D,(HL)
 			CALL	drawTriangleSide	; Get the side
-			CALL	lineT			; Draw the line
 			POP	HL			; Restore the table position and
 			JR	drawTriangle_L		; loop
 ;
@@ -202,16 +201,19 @@ drawTriangle_R:		POP	HL 			; Restore the start of the list
 			LD	E,(HL): INC L: INC L	; The second coordinate
 			LD	D,(HL)
 			CALL	drawTriangleSide	; Get the side
-			CALL	lineT			; Draw the final connecting line
 ;
 ; Finally, draw the triangle
 ;
-			LD	A,IXH			; Get the top Y point
+			LD	A,IXH			; Get the top Y point ($E901)
+			CP	$FF			; If it has not been updated
+			RET	Z			; then don't do anything
 			LD	L,A 
 			LD	A,IXL			; And the bottom Y point
+			OR	A			; If it has not been updated,
+			RET	Z			; then don't do anything
 			SUB	L 
+			INC	A
 			RET	Z			; Don't do anything here
-			RET	C			; Bit of a bodge to fix bug where bottom is above the top
 			LD	B,A			; B: The height
 drawTriangle_C:		LD	A,0 			; A: The colour (self-modded)
 			JP 	drawShapeTable		; Draw the shape
@@ -219,6 +221,7 @@ drawTriangle_C:		LD	A,0 			; A: The colour (self-modded)
 ;
 drawTriangleSide:	LD	A,B			; Calculate the colour depending upon
 			CP	D			; which way the line is being drawn up or down
+			RET	Z 
 			JR	NC,drawTriangleSideUp	;  F: NC set if we are drawing up
 ;
 ; Drawing down at this point
@@ -226,9 +229,9 @@ drawTriangleSide:	LD	A,B			; Calculate the colour depending upon
 			LD	A,D			;   A: The vertice to check against
 			CP	IXL			; IXL: The current lowest point
 			LD	A,0			;   A: The side
-			RET	C 			; Return if D < current lowest point
+			JR	C,@M1 			; Return if D < current lowest point
 			LD	IXL,d			; IXL: Now the lowest point
-			RET
+@M1:			JP	lineT			; Draw the line in the shape table
 ;
 ; Drawing up at this point
 ;
@@ -240,9 +243,9 @@ drawTriangleSideUp:	LD	A,E			; EX DE,BC
 			LD	B,A			;   A: The vertice to check against
 			CP	IXH			; IXH: The current highest point
 			LD	A,1			;   A: The side
-			RET	NC			; Return if B > current highest point
+			JR	NC,@M1			; Return if B > current highest point
 			LD	IXH,B			; IXH: Now the highest point
-			RET
+@M1:			JP	lineT
 
 ; Clip a triangle using the Sutherland-Hodgman algorithm
 ; https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
