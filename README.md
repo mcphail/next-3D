@@ -27,6 +27,10 @@ As ever, the code is designed for readability, with each block of the assembler 
 
 This software is a public BETA. Please do not submit any pull requests or issues at this point in time; they will be ignored.
 
+## Demos
+
+Distilled examples of using the 3D engine along with precompiled nex files can be found in the [demos subfolder](demos)
+
 ## Building
 
 Requires the latest version of z88dk. [Installation instructions can be found here](https://github.com/z88dk/z88dk/wiki/installation).
@@ -37,6 +41,12 @@ There is a makefile:
 - `make deploy` to make and deploy to the folder `Dev/next/dev` in your home folder
 - `make clean` to clean the build directory
 
+In addition, for Linux/Mac users, there is a bash script for building the 3D library code and all the demos
+
+- `sh make_all.sh` to make all object files in root and the sub-folders in the demo folder
+- `sh make_all.sh deploy` to make and deploy all nex files to the folder `Dev/next/dev` in your home folder
+- `sh make_all.sh clean` to clean all the object files
+
 ## Running in emulator
 
 This has been tested with CSpect and ZEsarUX. Please consult the documentation for the emulators on installation, configuration and usage.
@@ -45,13 +55,13 @@ This has been tested with CSpect and ZEsarUX. Please consult the documentation f
 
 This code is compatible with all versions of the Spectrum Next running the latest firmware (24.11 or later).
 
-Copy the .nex file to a folder on the Spectrum Next and run from the browser.
+Copy the .nex file(s) to a folder on the Spectrum Next and run from the browser.
 
 To save removing the SD card every time, use [NextSync](https://solhsa.com/specnext.html#NEXTSYNC) to synchronise the folder `/Dev/next/dev` in your home folder with the Next over WiFi.
 
 - Set up NextSync to synchronise the folder on your PC with the Spectrum Next
-- Use `make deploy` to make the .nex file and copy it to the folder
-- Use the dot command .sync on the Spectrum Next to synchronise the folder with the Next
+- Use `make deploy` or `sh make_all.sh deploy` to make the .nex file(s) and copy them to the sync folder `Dev/next/dev`
+- Use the dot command .sync on the Spectrum Next to synchronise that folder with the Next
 
 ## Creating Models
 
