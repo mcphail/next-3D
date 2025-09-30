@@ -23,6 +23,10 @@
 			EXTERN	l_z80n_mulu_24_16x8	;  AHL =    E x HL (unsigned)
 			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
 
+			PUBLIC	_pd			; int pd
+
+_pd:			DW	256			; Perspective distance
+
 ; Negates HL
 ;
 PUBLIC	negHL

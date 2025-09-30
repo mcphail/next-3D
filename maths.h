@@ -2,13 +2,15 @@
  * Title:			Fast 3D Maths Routines
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	09/09/2025
+ * Last Updated:	30/09/2025
  *
  * Modinfo:
  */
 
 #ifndef __MATHS_H__
 #define __MATHS_H__
+
+extern int pd;		// The perspective distance
 
 // Struct containing a 3D coordinate
 //

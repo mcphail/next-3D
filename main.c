@@ -53,8 +53,6 @@
 // Global data
 // ***************************************************************************************************************************************
 
-const int pd = 256;						// The perspective distance
-
 uint8_t	renderMode = 1;					// 0: Wireframe, 1: Filled
 Point16_3D sun_pos = { 0, 0, 20000 };	// The sun position
 Object_3D object[MAX_OBJECTS];			// List of objects to display
