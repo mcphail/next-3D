@@ -56,9 +56,6 @@
 const int pd = 256;						// The perspective distance
 
 uint8_t	renderMode = 1;					// 0: Wireframe, 1: Filled
-Point16 point_t[MAX_POINTS];			// Buffer for the translated points 
-Angle_3D cam_theta = { 0, 0, 0 };		// The global camera view
-Point16_3D cam_pos = { 0, 0, 0 };		// The global camera position
 Point16_3D sun_pos = { 0, 0, 20000 };	// The sun position
 Object_3D object[MAX_OBJECTS];			// List of objects to display
 

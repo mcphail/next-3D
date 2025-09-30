@@ -21,9 +21,11 @@
 			EXTERN	triangleL2C	; In clipping.asm
 			EXTERN	triangleL2CF	; In clipping.asm
 
-			EXTERN	_cam_pos	; In main.c
-			EXTERN	_cam_theta	; In main.c
+			PUBLIC 	_cam_pos
+			PUBLIC	_cam_theta
 
+_cam_pos:		DS	6,0		; Point16_3D cam_pos
+_cam_theta:		DS	3,0		; Angle_3D   cam_theta;
 
 ; extern void rotateModel(Point16 * buffer, Point16_3D p, Angle_3D a, Model_3D * m) __z88dk_callee;
 ; This is an optimised version of this C routine
