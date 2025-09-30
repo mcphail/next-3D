@@ -1,12 +1,12 @@
 # Exclude any build files
 #
-notes.txt
+/notes.txt
+/*.nex
 .DS_Store
 *.lis
 *.list
 *.o
 *.bin
-*.nex
 *.map
 *.idx
 *.blend1
