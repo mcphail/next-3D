@@ -73,7 +73,7 @@ while True:
 			if value < -128 or value > 127:
 				sys.exit("Coordinate data out of range")
 			output.append(str(value))
-		vertices.append(f"    {{ {', '.join(output)} }},")
+		vertices.append(f"    POINT8( {', '.join(output)} ),")
 	elif code == "vn:":							# Normal data
 		pass
 	elif code == "usemtl":						# Blender material name
