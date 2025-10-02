@@ -35,11 +35,15 @@ Distilled examples of using the 3D engine along with precompiled nex files can b
 
 Requires the latest version of z88dk. [Installation instructions can be found here](https://github.com/z88dk/z88dk/wiki/installation).
 
-There is a makefile:
+Alternatively there is a ready-built Docker container with a number of useful Sinclair development tools pre-built, including z88dk, that can be [found here](https://github.com/mcphail/speccydev). Thanks to Neil McPhail [@mcphail](https://bsky.app/profile/mcphail.uk) for maintaining that.
+
+There is a makefile in the root directory to build the Next3D object files, and a makefile for each demo folder.
 
 - `make` to make the .nex file
 - `make deploy` to make and deploy to the folder `Dev/next/dev` in your home folder
 - `make clean` to clean the build directory
+
+The Next3D object files must be built before the demos.
 
 In addition, for Linux/Mac users, there is a bash script for building the 3D library code and all the demos
 
@@ -50,6 +54,8 @@ In addition, for Linux/Mac users, there is a bash script for building the 3D lib
 ## Running in emulator
 
 This has been tested with CSpect and ZEsarUX. Please consult the documentation for the emulators on installation, configuration and usage.
+
+Note that it 
 
 ## Running on a Spectrum Next
 
