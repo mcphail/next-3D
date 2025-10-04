@@ -1,0 +1,25 @@
+{
+	"name": "ZX Spectrum dev tools",
+	//"build": { "dockerfile": "Dockerfile" },
+	// The Dockerfile takes an age to build due to z88dk, so pull from prebuilt:
+	"image": "boarstone.mcphail.uk/mcphail/speccydev:v3.0",
+	"remoteUser": "ubuntu",
+	"runArgs": [
+		"--network=host"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"maziac.dezog",
+				"maziac.asm-code-lens",
+				"maziac.z80-instruction-set",
+				"maziac.hex-hover-converter",
+				"maziac.sna-fileviewer",
+				"maziac.nex-fileviewer",
+				"ms-vscode.makefile-tools",
+				"jsjlogin.zxbasic",
+				"thenestruo.z80-asm-meter"
+			]
+		}
+	}
+}
