@@ -14,59 +14,64 @@ else
 endif
 
 OBJS = \
-	obj/main.o \
-	obj/kernel.o \
-	obj/irq.o \
-	obj/data.o \
-	obj/render.o \
-	obj/clipping.o \
-	obj/maths.o \
-	obj/experiments.o \
-	obj/render_3D.o \
-	obj/sprites.o
+	$(ODIR)/main.o \
+	$(ODIR)/kernel.o \
+	$(ODIR)/irq.o \
+	$(ODIR)/data.o \
+	$(ODIR)/render.o \
+	$(ODIR)/clipping.o \
+	$(ODIR)/maths.o \
+	$(ODIR)/experiments.o \
+	$(ODIR)/render_3D.o \
+	$(ODIR)/sprites.o
 
-next-3D.nex: $(OBJS) 
+next-3D.nex: $(OBJS)
 	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 --math32 $(OBJS) -o next-3D.nex -create-app -subtype=nex
+
+# Prerequisites
+#
+$(ODIR):
+	mkdir -p $@
 
 # Main program at $8000
 #
-obj/main.o: main.c main.h 
-	$(CC) $(CFLAGS) -o obj/main.o main.c
+$(ODIR)/main.o: main.c main.h | $(ODIR)
+	$(CC) $(CFLAGS) -o $(ODIR)/main.o main.c
 
-obj/experiments.o: experiments.c experiments.h 
-	$(CC) $(CFLAGS) -o obj/experiments.o experiments.c
+$(ODIR)/experiments.o: experiments.c experiments.h | $(ODIR)
+	$(CC) $(CFLAGS) -o $(ODIR)/experiments.o experiments.c
 
-obj/data.o: data.c kernel.h core.h render.h clipping.h experiments.h
-	$(CC) $(CFLAGS) -o obj/data.o data.c
+$(ODIR)/data.o: data.c kernel.h core.h render.h clipping.h experiments.h | $(ODIR)
+	$(CC) $(CFLAGS) -o $(ODIR)/data.o data.c
 
 # Kernel section
 #
-obj/kernel.o: kernel.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/kernel.o kernel.asm
+$(ODIR)/kernel.o: kernel.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/kernel.o kernel.asm
 
-obj/render.o: render.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/render.o render.asm
+$(ODIR)/render.o: render.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/render.o render.asm
 
-obj/clipping.o: clipping.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/clipping.o clipping.asm
+$(ODIR)/clipping.o: clipping.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/clipping.o clipping.asm
 
-obj/maths.o: maths.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/maths.o maths.asm
+$(ODIR)/maths.o: maths.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/maths.o maths.asm
 
-obj/render_3D.o: render_3D.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/render_3D.o render_3D.asm
+$(ODIR)/render_3D.o: render_3D.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/render_3D.o render_3D.asm
 
-obj/sprites.o: sprites.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o obj/sprites.o sprites.asm
+$(ODIR)/sprites.o: sprites.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/sprites.o sprites.asm
 
-obj/irq.o: irq.asm globals.inc
-	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_IRQ --constsegPAGE_02_KERNEL_IRQ -o obj/irq.o irq.asm
+$(ODIR)/irq.o: irq.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_IRQ --constsegPAGE_02_KERNEL_IRQ -o $(ODIR)/irq.o irq.asm
 
 install: next-3D.nex
 	$(CP) *.nex $(DD)
 
 clean:
-	$(RM) obj/*.*
+	$(RM) $(ODIR)/*.*
 	$(RM) *.o 
 	$(RM) *.lis
 	$(RM) *.bin
