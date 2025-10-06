@@ -31,7 +31,7 @@ next-3D.nex: $(OBJS)
 # Prerequisites
 #
 $(ODIR):
-	mkdir -p $@
+	mkdir $@
 
 # Main program at $8000
 #
