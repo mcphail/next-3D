@@ -2,10 +2,10 @@
 ; Title:	2D Primitive Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	22/09/2025
+; Last Updated:	07/10/2025
 ;
 ; Modinfo:
-;
+; 07/10/2025:	Fixed bug in circleInit where circles with radius > 127 would not render correctly
 
     			SECTION KERNEL_CODE
 
@@ -820,26 +820,25 @@ circleInit:		PUSH 	BC 			; Put origin in alternate registers
 			POP	BC
 			EXX
 
-			LD	D,0			; DE: R
-			LD	E,A		
+			LD	B,0
 			LD 	IXH,A			; IXH = Drawing Y position
-			LD 	IXL,D			; IXL = Drawing X position
+			LD 	IXL,B			; IXL = Drawing X position (0)
 ;
 ; Calculate BC (D2) = 3-(R*2)
 ;
-			LD	B,D			; BC: A*2
-			RLA				; Can assume C is reset at this point
+			SLA	A
 			RL	B
-			NEG				; BC: 3-(R*2)
-			ADD	3			; Note that I'm actually doing BC: -(R*2)+3
-			LD	C,A			; as it is slightly quicker
-			LD	A,255			; It's 255 here not 0 to save doing a CCF
-			ADC	B
-			LD	B,A
+			LD	C,A			; BC: R*2
+			LD	HL,3
+			SBC	HL,BC			; HL: 3-(R*2)
+			LD	B,H			; BC: 3-(R*2)
+			LD	C,L
 ;
 ; Calculate HL (Delta) = 1-R
 ;
 			LD 	HL,1	
+			LD	D,H
+			LD	E,IXH
 			AND 	A
 			SBC 	HL,DE			; HL = 1 - CR
 ;
