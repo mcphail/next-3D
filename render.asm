@@ -2,10 +2,11 @@
 ; Title:	2D Primitive Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	07/10/2025
+; Last Updated:	12/10/2025
 ;
 ; Modinfo:
 ; 07/10/2025:	Fixed bug in circleInit where circles with radius > 127 would not render correctly
+; 12/10/2025:	Added circle clipping
 
     			SECTION KERNEL_CODE
 
