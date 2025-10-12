@@ -117,26 +117,27 @@ clearL2:		LD      BC,$243B    		; Select NEXT register
 			NEXTREG	MMU_REGISTER_0,A	; Restore the original bank number
 			RET 
 
+
 ; Get pixel position
 ; Pages in the correct 16K Layer 2 screen bank into 0x0000
-;   B: Y coordinate
-;   C: X coordinate
+;   H: Y coordinate
+;   L: X coordinate
 ; Returns:
 ;  HL: Address in memory (between 0x0000 and 0x3FFF)
 ;
-get_pixel_address:	LD 	L,C 			; Set the X coordinate
-get_pixel_address_y:	LD 	A,(screen_banks+1)	
-			LD 	H,A			; H: Offscreen screen bank
-			LD	A,B			; 0-31 per bank (8k)
+get_pixel_address:	LD 	A,(screen_banks+1)	
+			LD	(@M1+1),A
+			LD	A,H			; 0-31 per bank (8k)
 			AND	%11100000		; 3 bits for the 8 banks we can use
 			SWAPNIB
 			RRCA
-			ADD A, H			; Add the bank in
+@M1:			ADD 	A,0			; Add the bank in
 			NEXTREG MMU_REGISTER_0, A	; And set it
-			LD	A,B
+			LD	A,H
 			AND	%00011111
 			LD	H,A 
 			RET 
+
 
 ; extern void plotL2(uint8_t xcoord, uint8_t ycoord, uint8_t colour) __z88dk_callee
 ; Generic plotting routine that can be called from C
@@ -148,26 +149,13 @@ _plotL2:		POP	HL			; Loads the stack value (sp) into hl for restoring later and 
    			DEC	SP			; Moves the stack up 1 byte, discarding a value and getting us to the third param, colour
    			EX	(SP), HL		; Restores the original value of the stack from hl, and puts the colour on h from the stack 
    			EX 	DE, HL      		; Put y and x into hl and the colour into d
-    			LD 	IYL, D       		; Puts colour into iyl in order to free d for the drawline
 
 ;===========================================================================
-;	HL = YX, IYL = colour -- IMPORTANT: DESTROYS H (and A)
+;	HL = YX, D = colour -- IMPORTANT: DESTROYS H (and A)
 ;===========================================================================
 
-plotL2:			LD	A,(screen_banks+1)	; Current offscreen bank
-			LD	(plotL2_B+1),A		; Self-mod the plot
-;
-			LD 	A,H 			; 0-31 per bank (8k)
-			AND 	%11100000		; 3 bits for the 8 banks we can use
-			SWAPNIB
-			RRCA
-plotL2_B:		ADD 	A,0			; 8L bank for L2
-			NEXTREG MMU_REGISTER_0,A  	; Set bank to write into
-			LD 	A,H
-			AND 	%00011111 	        ; This is our y (0-31)
-			LD 	H,A 			; Puts y it back in h
-    			LD 	A,IYL			; Loads colour from iyl into a
-			LD 	(HL),A			; Draw our pixel
+plotL2:			CALL	get_pixel_address	; Get the pixel address
+  			LD 	(HL),D			; Draw our pixel
 			RET
 
 ;===========================================================================
@@ -180,10 +168,6 @@ plotL2_B:		ADD 	A,0			; 8L bank for L2
 
 PUBLIC	plotL2asm, plotL2asm_colour
 
-plotL2asm_C:		LD	A,H			; Do a bounds check on Y
-			CP	192
-			RET	NC
-;
 plotL2asm:		LD	A,H 			; 0-31 per bank (8k)
 			AND	%11100000		; 3 bits for the 8 banks we can use
 			SWAPNIB
@@ -427,117 +411,76 @@ _circleL2:		POP 	IY			; Pops SP into IY
 ; Draw a wireframe circle
 ; BC: X pixel position of circle centre
 ; DE: Y pixel position of circle centre
-;  L: Radius
+; HL: Radius
 ;  A: Colour
 ;
-circleL2:		LD	(plotL2asm_colour+1),A	; Store the colour
+circleL2:		LD	(circlePlot+1),A	; Store the colour
 			LD	A,(screen_banks+1)
     			LD	(plotL2asm_bank+1),A
-			LD	A,L			;  A: radius
-			AND	A			; Check for zero sized circles
+			LD	A,H			; Check for zero-radius circles
+			OR	L			
 			RET	Z
+			BIT	7,H			; Check for circles with R>32767
+			RET	NZ
 			CALL	circleInit		; Initialise the circle parameters
-@L1:			EXX
-			CALL	circlePlot_Q1		; Call the plot routines
-			CALL	circlePlot_Q3
-			CALL	circlePlot_Q2
-			CALL	circlePlot_Q4
-			CALL	circlePlot_Q5
-			CALL	circlePlot_Q7
-			CALL	circlePlot_Q6
-			CALL	circlePlot_Q8
+@L1:			EXX				; Call the plot routines
+			CALL	circlePlot_1
+			CALL	circlePlot_2
+			CALL	circlePlot_3
+			CALL	circlePlot_4
 			EXX
 			CALL	circleNext		; Calculate the next pixel position
 			JR	NC,@L1			; Loop until finished
 			RET
 ;
-circlePlot_Q1:		LD	A,C			; ADD the X coordinate to the circle centre X
-			ADD	IXL
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			ADC	0
-			RET	NZ
-			LD	A,E			; ADD the Y coordinate to the circle centre Y
-			ADD	IXH
-circlePlot_addY:	LD	H,A			; H: Y coordinate
-			LD	A,D
-			ADC	0
+circlePlot_1:		CALL	circle_DEsubIY		; Calculate the Y
+			RET	NZ			; Return if off screen
+			LD	A,H
+			CP	192
+			RET	NC
+			CALL	get_pixel_address	; H: Calculated row address
+			CALL	circle_BCsubIX		; L: Calculated X (left)
+			CALL	Z,circlePlot		; Plot if on screen
+			CALL	circle_BCaddIX		; L: Calculated X (right)
+			RET	NZ			; Return if off screen
+circlePlot:		LD	(HL),0			; Plot the point (colour self-modded)
+			RET 
+;
+circlePlot_2:		CALL	circle_DEsubIX
 			RET 	NZ
-			JP	plotL2asm_C
+			LD	A,H
+			CP	192
+			RET	NC
+			CALL	get_pixel_address
+			CALL	circle_BCsubIY
+			CALL	Z,circlePlot
+			CALL	circle_BCaddIY
+			CALL	Z,circlePlot
+			RET
 ;
-circlePlot_Q2:		LD	A,C			; ADD the X coordinate to the circle centre Y
-			ADD	IXH
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			ADC	0
-			RET	NZ
-			LD	A,E			; ADD the Y coordinate to the circle centre X
-			ADD	IXL
-			JR	circlePlot_addY
-;
-circlePlot_Q3:		LD	A,C			; SUB the X coordinate to the circle centre X
-			SUB	IXL
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			SBC	0
-			RET	NZ
-			LD	A,E			; ADD the Y coordinate to the circle centre Y
-			ADD	IXH
-			JR	circlePlot_addY
-;
-circlePlot_Q4:		LD	A,C			; SUB the X coordinate to the circle centre Y
-			SUB	IXH
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			SBC	0
-			RET	NZ
-			LD	A,E			; ADD the Y coordinate to the circle centre X
-			ADD	IXL
-			JR	circlePlot_addY
-;
-circlePlot_Q5:		LD	A,C			; ADD the X coordinate to the circle centre X
-			ADD	IXL
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			ADC	0
-			RET	NZ
-			LD	A,E			; SUB the Y coordinate to the circle centre Y
-			SUB	IXH
-circlePlot_subY:	LD	H,A			; H: Y coordinate
-			LD	A,D
-			SBC	0
+circlePlot_3:		CALL	circle_DEaddIX
 			RET 	NZ
-			JP	plotL2asm_C
+			LD	A,H
+			CP	192
+			RET	NC
+			CALL	get_pixel_address
+			CALL	circle_BCsubIY
+			CALL	Z,circlePlot
+			CALL	circle_BCaddIY
+			CALL	Z,circlePlot
+			RET
 ;
-circlePlot_Q6:		LD	A,C			; ADD the X coordinate to the circle centre Y
-			ADD	IXH
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			ADC	0
-			RET	NZ
-			LD	A,E			; SUB the Y coordinate to the circle centre X
-			SUB	IXL
-			JR	circlePlot_subY
-;
-circlePlot_Q7:		LD	A,C			; SUB the X coordinate to the circle centre X
-			SUB	IXL
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			SBC	0
-			RET	NZ
-			LD	A,E			; SUB the Y coordinate to the circle centre Y
-			SUB	IXH
-			JR	circlePlot_subY
-;
-circlePlot_Q8:		LD	A,C			; SUB the X coordinate to the circle centre Y
-			SUB	IXH
-			LD	L,A			; L: X coordinate
-			LD	A,B
-			SBC	0
-			RET	NZ
-			LD	A,E			; SUB the Y coordinate to the circle centre X
-			SUB	IXL
-			JR	circlePlot_subY
+circlePlot_4:		CALL	circle_DEaddIY
+			RET 	NZ
+			LD	A,H
+			CP	192
+			RET	NC
+			CALL	get_pixel_address
+			CALL	circle_BCsubIX
+			CALL	Z,circlePlot
+			CALL	circle_BCaddIX
+			CALL	Z,circlePlot
+			RET
 
 
 ; extern void circleL2F(Point16 pt, uint16 radius, uint8 colour) __z88dk_callee;
@@ -560,147 +503,144 @@ _circleL2F:		POP 	IY			; Pops SP into IY
 ; Draw a filled circle
 ; BC: X pixel position of circle centre
 ; DE: Y pixel position of circle centre
-;  L: Radius
+; HL: Radius
 ;  A: Colour
 ;
 circleL2F:		LD	(circleL2F_C+1),A	; Store the colour
-			LD	A,L			;  A: radius
-			AND	A			; Check for zero sized circles
+			LD	A,H			; Check for zero-radius circles
+			OR	L			
 			RET	Z
+			BIT	7,H			; Check for circles with R>32767
+			RET	NZ
 ;
-			PUSH 	AF			; Stack the radius
+			LD	IX,$FF00		; IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
+			LD	(R0),IX
+			LD	(R1),BC			; R1: Temporary store for the X origin
+			LD	(R2),DE			; R2: Temporary store for the Y origin
+;
 			CALL	circleInit		; Initialise the circle parameters
 @L1:			EXX
-			LD	H,shapeT_X1 >> 8	; The left-hand half of the circle
-			CALL	circlePlotF_Q3		; Call the plot routines
-			CALL	circlePlotF_Q4
-			CALL	circlePlotF_Q7
-			CALL	circlePlotF_Q8
-			LD	H,shapeT_X2 >> 8	; The right-hand half of the circle
-			CALL	circlePlotF_Q1
-			CALL	circlePlotF_Q2
-			CALL	circlePlotF_Q5
-			CALL	circlePlotF_Q6
+			CALL	circlePlotF_1		; Call the plot routines
+			CALL	circlePlotF_2
+			CALL	circlePlotF_3
+			CALL	circlePlotF_4
 			EXX
 			CALL	circleNext		; Calculate the next pixel position
 			JR	NC,@L1			; Loop until finished
-			POP	AF			; Pop the radius
 ;
-			EXX				; BC: X origin, DE: Y origin
-			LD	H,A			;  H: radius
-			LD 	A,E			; Get the Y origin
-			SUB	H			; Subtract the radius
-			JR	NC, @M1			; Skip next bit if OK
-			XOR	A			; Set to zero if off top of screen
-@M1:			LD	L,A 			;  L: Top pixel row value 
-
-			LD	A,E			; Get the Y origin
-			ADD	H			; Add the radius
-			CP	192 			; Check bottom screen boundary
-			JR	C,@M2			; If off bottom then
-			LD	A,191			; Crop to 191
-@M2:			SUB	L 			; Subtract the top
+			LD	HL,(R0)			; Get the top and bottom circle extent
+			LD	A,H			; Check for H=$FF (circle not plotted)
+			INC	A
+			RET	Z
+			LD	A,L			; Get the bottom
+			SUB	H			; Subtract the top
 			INC	A			; Because height = bottom - top + 1
-			LD	B,A			;  B: height of circle
+			RET	Z			; Do nothing if table is zero height
+			LD	B,A			;  B: height of shape
+			LD	L,H			;  H: top of shape
 circleL2F_C:		LD	A,0			;  A: colour
 			JP 	drawShapeTable		; Draw the table
-
-
-; Plot the 8 quadrants of a filled circle
-; Right-Bottom #1
 ;
-circlePlotF_Q1:		LD	A,E			; ADD the Y coordinate to the circle centre Y
-			ADD	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the X coordinate to the circle centre X
-			ADD	IXL
-			JR	NC,@M1
-			LD	A,255
-@M1:			LD	(HL),A
+circlePlotF_1:		CALL	circlePlotF_X_IX	; Get the X coordinates
+			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
+			RET	NZ			; Return if the line is not to be drawn
+			LD	B,E			;  B: X coordinate (right)
+			LD	DE,(R2)			; Restore the Y origin
+			CALL	circle_DEsubIY		; AL: Y coordinate
+			JR	circlePlotF_PL		; Plot the points into the table
+;
+circlePlotF_2:		CALL 	circlePlotF_X_IY	; Get the X coordinates
+			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
+			RET	NZ			; Return if the line is not to be drawn
+			LD	B,E			;  B: X coordinate (right)
+			LD	DE,(R2)			; Restore the Y origin
+			CALL	circle_DEsubIX		; AL: Y coordinate
+			JR	circlePlotF_PL		; Plot the points into the table
+;
+circlePlotF_3:		CALL 	circlePlotF_X_IY	; Get the X coordinates
+			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
+			RET	NZ			; Return if the line is not to be drawn
+			LD	B,E			;  B: X coordinate (right)
+			LD	DE,(R2)			; Restore the Y origin
+			CALL	circle_DEaddIX		; AL: Y coordinate
+			JR	circlePlotF_PL		; Plot the points into the table
+;
+circlePlotF_4:		CALL	circlePlotF_X_IX	; Get the X coordinates
+			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
+			RET	NZ			; Return if the line is not to be drawn
+			LD	B,E			;  B: X coordinate (right)
+			LD	DE,(R2)			; Restore the Y origin
+			CALL	circle_DEaddIY		; AL: Y coordinate
+			JR	circlePlotF_PL		; Plot the points into the table
+;
+circlePlotF_X_IX:	LD	BC,(R1)			; BC: X origin
+			CALL	circle_BCaddIX	
+			LD	E,L			
+			LD	D,A			; DE: X coordinate (right)
+			CALL	circle_BCsubIX
+			LD	C,L
+			LD	B,A			; BC: X coordinates (left)
+			OR	D			; Check if on screen (both MSBs are 0)
 			RET
 ;
-; Right-Bottom #2
-;
-circlePlotF_Q2:		LD	A,E			; ADD the X coordinate to the circle centre Y
-			ADD	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the Y coordinate to the circle centre X
-			ADD	IXH
-			JR	NC,@M1
-			LD	A,255
-@M1:			LD	(HL),A
+circlePlotF_X_IY:	LD	BC,(R1)			; BC: X origin
+			CALL	circle_BCaddIY	
+			LD	E,L			
+			LD	D,A			; DE: X coordinate (right)
+			CALL	circle_BCsubIY
+			LD	C,L
+			LD	B,A			; BC: X coordinates (left)
+			OR	D			; Check if on screen (both MSBs are 0)
 			RET
 ;
-; Left-Bottom #1
+; Plot the point into the table
+;   C: X coordiante (left)
+;   B: X coordinate (right)
+;  AH: Y coordinate
 ;
-circlePlotF_Q3:		LD	A,E			; ADD the Y coordinate to the circle centre X
-			ADD	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the X coordinate to the circle centre Y
-			SUB	IXL
-			JR	NC,@M1
-			XOR	A
-@M1:			LD	(HL),A
+circlePlotF_PL:		RET	NZ			; Check if off screen (MSB is not zero)
+			LD	A,H			; Fine tune the check (LSB < 192)
+			CP	192
+			RET	NC 
+			CALL 	circlePlotF_TB		; Update the min (top) and max (bottom) values
+			LD	L,H			
+			LD	H,shapeT_X1 >> 8
+			LD	(HL),C
+			INC	H
+			LD	(HL),B
 			RET
 ;
-; Left-Bottom #2
+; Clip the line horizontally
+; BC: X coordinate (left)
+; DE: X coordinate (right)
+; Returns:
+;  F: NZ if line not to be drawn, otherwise Z
 ;
-circlePlotF_Q4:		LD	A,E			; ADD the X coordinate to the circle centre Y
-			ADD	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the Y coordinate to the circle centre X
-			SUB	IXH
-			JR	NC,@M1
-			XOR	A
-@M1:			LD	(HL),A
+circlePlotF_HC:		RLC	B			; Check if X coordinate (left) is off the LHS of the screen
+			JR	Z,@M1			; It is on-screen, so skip
+			RET	NC 			; It is off the RHS of the screen, so do nothing
+			LD	BC,0			; It is off the LHS of the screen, so force X coordinate (left) to 0
+@M1:			RLC	D			; Check if X coordinate (right) is off the RHS of the screen
+			JR	Z,@M2			; It is on-screen, so skip
+			RET 	C			; It is off the LHS of the screen, so do nothing
+			LD	DE,255			; It is off the RHS of the screen, so force X coordinate (right) to 255
+@M2:			LD	A,B			; This does a final check to reject points that are off the same
+			OR	D			; side of the screen
 			RET
 ;
-; Right-Top #1
+; Update the min (top) and max (bottom) Y coordinates
+; H: The Y coordinate
 ;
-circlePlotF_Q5:		LD	A,E			; SUB the Y coordinate to the circle centre X
-			SUB	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the X coordinate to the circle centre Y
-			ADD	IXL
-			JR	NC,@M1
-			LD	A,255
-@M1:			LD	(HL),A
-			RET
-;
-; Right-Top #2
-;
-circlePlotF_Q6:		LD	A,E			; SUB the X coordinate to the circle centre Y
-			SUB	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; ADD the Y coordinate to the circle centre X
-			ADD	IXH
-			JR	NC,@M1
-			LD	A,255
-@M1:			LD	(HL),A
-			RET
-;
-; Left-Top #1
-;
-circlePlotF_Q7:		LD	A,E			; SUB the Y coordinate to the circle centre
-			SUB	IXH
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the X coordinate to the circle centre
-			SUB	IXL
-			JR	NC,@M1
-			XOR	A
-@M1:			LD	(HL),A
-			RET
-;
-; Left-Top #2
-;
-circlePlotF_Q8:		LD	A,E			; SUB the X coordinate to the circle centre
-			SUB	IXL
-			LD	L,A			; L: Offset into the table
-			LD	A,C			; SUB the Y coordinate to the circle centre
-			SUB	IXH
-			JR	NC,@M1
-			XOR	A
-@M1:			LD	(HL),A
+circlePlotF_TB:		LD	A,(R0+1)		; Get previous top value
+			CP	H			; Compare with Y
+			JR	C, @S1
+			LD	A,H
+			LD	(R0+1),A
+@S1:			LD	A,(R0+0)		; Get previous bottom value
+			CP	H			; Compare with Y	
+			RET	NC
+			LD	A,H
+			LD	(R0+0),A
 			RET
 
 
@@ -809,43 +749,41 @@ lineT_Q2_L2:		LD E,A				; Store the error value back in
 
 
 ; Initialise the circle drawing routine variables
-; BC = Y pixel position of circle centre
-; DE = X pixel position of circle centre
-;  A = Radius of circle
+; BC = X pixel position of circle centre
+; DE = Y pixel position of circle centre
+; HL = Radius of circle
 ;
-circleInit:		PUSH 	BC 			; Put origin in alternate registers
-			PUSH	DE
-			EXX 
-			POP 	DE 
-			POP	BC
+circleInit:		PUSH	HL
+			PUSH	HL
 			EXX
-
-			LD	B,0
-			LD 	IXH,A			; IXH = Drawing Y position
-			LD 	IXL,B			; IXL = Drawing X position (0)
+			POP	DE			; DE: R
 ;
-; Calculate BC (D2) = 3-(R*2)
-;
-			SLA	A
-			RL	B
-			LD	C,A			; BC: R*2
-			LD	HL,3
-			SBC	HL,BC			; HL: 3-(R*2)
-			LD	B,H			; BC: 3-(R*2)
-			LD	C,L
+			LD	IX,0			; IX: Initial X plot position (0)
+			POP	IY			; IY: Initial Y plot position (R)
 ;
 ; Calculate HL (Delta) = 1-R
 ;
-			LD 	HL,1	
-			LD	D,H
-			LD	E,IXH
-			AND 	A
-			SBC 	HL,DE			; HL = 1 - CR
+			LD	HL,1
+			OR	A
+			SBC	HL,DE			; HL: 1-R
+
+;
+; Calculate BC (D2) = 3-(R*2)
+;
+			SLA	E			; DE: R*2
+			RL	D
+			LD	A,3			; BC: 3-(R*2)
+			SUB	E
+			LD	C,A
+			LD	A,0
+			SBC	D
+			LD	B,A 
 ;
 ; Set DE (D1) = 1
 ;
-			LD	E,1			; Can assume D is 0 at this point
+			LD	DE,1
 			RET
+
 
 ; Calculate the next point of the circle
 ; IXH: Y position (zero-origin)
@@ -853,21 +791,84 @@ circleInit:		PUSH 	BC 			; Put origin in alternate registers
 ; Returns:
 ; F: Carry set when completed
 ;
-circleNext:		LD 	A,IXH			; Get Y in A
-			CP 	IXL			; Compare with X
-			RET 	C			; Return if X>Y
+circleNext:		LD	A,IYL			; Check if X > Y
+			SUB	IXL
+			LD	A,IYH
+			SBC	IXH
+			RET	C			; Return if true
 			LD 	A,2			; Used for additions later
 			BIT 	7,H			; Check for Hl<=0
-			JR 	Z,@M1
-			ADD 	HL,DE			; Delta=Delta+D1
-			JR 	@M2 
-@M1:			ADD 	HL,BC			; Delta=Delta+D2
+			JR 	NZ,@M1
+;
+			ADD 	HL,BC			; Delta=Delta+D2
 			ADD 	BC,A 
-			DEC 	IXH			; Y=Y-1
+			DEC	IY			; Y=Y-1
+			JR	@M2
+;
+@M1:			ADD 	HL,DE			; Delta=Delta+D1
 @M2:			ADD 	BC,A
 			ADD 	DE,A
-			INC 	IXL			; X=X+1
+			INC	IX			; X=X+1
 			OR	A			; Reset carry
+			RET
+
+
+; Helper functions for the circle 8-way symmetry plotting
+;
+circle_BCaddIX:		LD	A,C			; BC: X origin
+			ADD	IXL			; IX: X plot position
+			LD	L,A
+			LD	A,B
+			ADC	IXH
+			RET
+;
+circle_DEaddIX:		LD	A,E			; DE: Y origin
+			ADD	IXL			; IX: X plot position
+			LD	H,A
+			LD	A,D
+			ADC	IXH
+			RET
+;
+circle_BCaddIY:		LD	A,C			; BC: X origin
+			ADD	IYL			; IY: Y plot position
+			LD	L,A
+			LD	A,B
+			ADC	IYH
+			RET
+;
+circle_DEaddIY:		LD	A,E			; DE: Y origin
+			ADD	IYL			; IY: Y plot position
+			LD	H,A
+			LD	A,D
+			ADC	IYH
+			RET
+;
+circle_BCsubIX:		LD	A,C			; BC: X origin
+			SUB	IXL			; IX: X plot position
+			LD	L,A
+			LD	A,B
+			SBC	IXH
+			RET
+;
+circle_DEsubIX:		LD	A,E			; DE: Y origin
+			SUB	IXL			; IX: X plot position
+			LD	H,A
+			LD	A,D
+			SBC	IXH
+			RET
+;
+circle_BCsubIY:		LD	A,C			; BC: X origin
+			SUB	IYL			; IY: Y plot position
+			LD	L,A
+			LD	A,B
+			SBC	IYH
+			RET
+;
+circle_DEsubIY:		LD	A,E			; DE: Y origin
+			SUB	IYL			; IY: Y plot position
+			LD	H,A
+			LD	A,D
+			SBC	IYH
 			RET
 
 
@@ -925,9 +926,9 @@ drawShapeTable_B:	ADD A,0				; Add the bank in (self-modded at top of routine)
 			RET
 
 ; Draw Horizontal Line routine
-; HL = Screen address (first character row)
-; D = X pixel position 1
-; E = X pixel position 2
+; HL = Screen address (first pixel row)
+;  D = X pixel position 1
+;  E = X pixel position 2
 ;
 draw_horz_line:		LD A,E				; Check if E > D
 			SUB D 
