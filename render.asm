@@ -514,10 +514,15 @@ circleL2F:		LD	(circleL2F_C+1),A	; Store the colour
 			BIT	7,H			; Check for circles with R>32767
 			RET	NZ
 ;
-			LD	IX,$FF00		; IX: Highest and lowest vertical coords (IXH=top, IXL=bottom)
-			LD	(R0),IX
-			LD	(R1),BC			; R1: Temporary store for the X origin
-			LD	(R2),DE			; R2: Temporary store for the Y origin
+			LD	(circlePlotF_X_IX+1),BC	; Self-mod the X origin into the symmetry plot code
+			LD	(circlePlotF_X_IY+1),BC
+			LD	(circlePlotF_Y_M1+1),DE	; Self-mod the Y origin into the symmetry plot code
+			LD	(circlePlotF_Y_M2+1),DE
+			LD	(circlePlotF_Y_M3+1),DE
+			LD	(circlePlotF_Y_M4+1),DE
+;
+			LD	BC,$FF00		; Self-mod the min(top)/max(bottom) into the plot code
+			LD	(circlePlotF_TB+1),BC
 ;
 			CALL	circleInit		; Initialise the circle parameters
 @L1:			EXX
@@ -529,7 +534,7 @@ circleL2F:		LD	(circleL2F_C+1),A	; Store the colour
 			CALL	circleNext		; Calculate the next pixel position
 			JR	NC,@L1			; Loop until finished
 ;
-			LD	HL,(R0)			; Get the top and bottom circle extent
+			LD	HL,(circlePlotF_TB+1)	; Get the top and bottom circle extent
 			LD	A,H			; Check for H=$FF (circle not plotted)
 			INC	A
 			RET	Z
@@ -546,7 +551,7 @@ circlePlotF_1:		CALL	circlePlotF_X_IX	; Get the X coordinates
 			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
 			RET	NZ			; Return if the line is not to be drawn
 			LD	B,E			;  B: X coordinate (right)
-			LD	DE,(R2)			; Restore the Y origin
+circlePlotF_Y_M1:	LD	DE,0			; Restore the Y origin (self-modded from circleL2F)
 			CALL	circle_DEsubIY		; AL: Y coordinate
 			JR	circlePlotF_PL		; Plot the points into the table
 ;
@@ -554,7 +559,7 @@ circlePlotF_2:		CALL 	circlePlotF_X_IY	; Get the X coordinates
 			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
 			RET	NZ			; Return if the line is not to be drawn
 			LD	B,E			;  B: X coordinate (right)
-			LD	DE,(R2)			; Restore the Y origin
+circlePlotF_Y_M2:	LD	DE,0			; Restore the Y origin (self-modded from circleL2F)
 			CALL	circle_DEsubIX		; AL: Y coordinate
 			JR	circlePlotF_PL		; Plot the points into the table
 ;
@@ -562,7 +567,7 @@ circlePlotF_3:		CALL 	circlePlotF_X_IY	; Get the X coordinates
 			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
 			RET	NZ			; Return if the line is not to be drawn
 			LD	B,E			;  B: X coordinate (right)
-			LD	DE,(R2)			; Restore the Y origin
+circlePlotF_Y_M3:	LD	DE,0			; Restore the Y origin (self-modded from circleL2F)
 			CALL	circle_DEaddIX		; AL: Y coordinate
 			JR	circlePlotF_PL		; Plot the points into the table
 ;
@@ -570,11 +575,11 @@ circlePlotF_4:		CALL	circlePlotF_X_IX	; Get the X coordinates
 			CALL	NZ,circlePlotF_HC	; Clip the line if either of the points are off screen
 			RET	NZ			; Return if the line is not to be drawn
 			LD	B,E			;  B: X coordinate (right)
-			LD	DE,(R2)			; Restore the Y origin
+circlePlotF_Y_M4:	LD	DE,0			; Restore the Y origin (self-modded from circleL2F)
 			CALL	circle_DEaddIY		; AL: Y coordinate
 			JR	circlePlotF_PL		; Plot the points into the table
 ;
-circlePlotF_X_IX:	LD	BC,(R1)			; BC: X origin
+circlePlotF_X_IX:	LD	BC,0			; BC: X origin (self-modded from circleL2F)
 			CALL	circle_BCaddIX	
 			LD	E,L			
 			LD	D,A			; DE: X coordinate (right)
@@ -584,7 +589,7 @@ circlePlotF_X_IX:	LD	BC,(R1)			; BC: X origin
 			OR	D			; Check if on screen (both MSBs are 0)
 			RET
 ;
-circlePlotF_X_IY:	LD	BC,(R1)			; BC: X origin
+circlePlotF_X_IY:	LD	BC,0			; BC: X origin (self-modded from circleL2F)
 			CALL	circle_BCaddIY	
 			LD	E,L			
 			LD	D,A			; DE: X coordinate (right)
@@ -603,8 +608,17 @@ circlePlotF_PL:		RET	NZ			; Check if off screen (MSB is not zero)
 			LD	A,H			; Fine tune the check (LSB < 192)
 			CP	192
 			RET	NC 
-			CALL 	circlePlotF_TB		; Update the min (top) and max (bottom) values
-			LD	L,H			
+circlePlotF_TB:		LD	DE,0			; Store for min (top) and max (bottom) Y coordinates (self-modded)
+			LD	A,D			; Get previous top value
+			CP	H			; Compare with Y
+			JR	C, @S1
+			LD	D,H
+@S1:			LD	A,E			; Get previous bottom value
+			CP	H			; Compare with Y	
+			JR	NC,@S2
+			LD	E,H
+@S2:			LD	(circlePlotF_TB+1),DE	; Update with new max/min values
+			LD	L,H			; Plot the point in the shape table
 			LD	H,shapeT_X1 >> 8
 			LD	(HL),C
 			INC	H
@@ -627,21 +641,6 @@ circlePlotF_HC:		RLC	B			; Check if X coordinate (left) is off the LHS of the sc
 			LD	DE,255			; It is off the RHS of the screen, so force X coordinate (right) to 255
 @M2:			LD	A,B			; This does a final check to reject points that are off the same
 			OR	D			; side of the screen
-			RET
-;
-; Update the min (top) and max (bottom) Y coordinates
-; H: The Y coordinate
-;
-circlePlotF_TB:		LD	A,(R0+1)		; Get previous top value
-			CP	H			; Compare with Y
-			JR	C, @S1
-			LD	A,H
-			LD	(R0+1),A
-@S1:			LD	A,(R0+0)		; Get previous bottom value
-			CP	H			; Compare with Y	
-			RET	NC
-			LD	A,H
-			LD	(R0+0),A
 			RET
 
 
