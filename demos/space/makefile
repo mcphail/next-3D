@@ -25,7 +25,7 @@ OBJS = \
 	$(ODIR)/render_3D.o \
 	$(ODIR)/sprites.o
 
-cube.nex: $(OBJS) 
+space.nex: $(OBJS) 
 	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 --math32 $(OBJS) -o space.nex -create-app -subtype=nex
 
 # Main program at $8000
