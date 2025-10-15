@@ -2,11 +2,12 @@
 ; Title:	2D Primitive Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	12/10/2025
+; Last Updated:	15/10/2025
 ;
 ; Modinfo:
 ; 07/10/2025:	Fixed bug in circleInit where circles with radius > 127 would not render correctly
 ; 12/10/2025:	Added circle clipping
+; 15/10/2025:	DMA setup performance improvement in drawShapeTable
 
     			SECTION KERNEL_CODE
 
@@ -892,6 +893,11 @@ drawShapeTable:		LD (draw_horz_line_colour),A	; Store the colour
 			LD A,(screen_banks+1)		; Self-mod the screen bank in for performance
 			LD (drawShapeTable_B+1),A
 			LD C,L 				; Store the Y position in C
+			PUSH BC				; Stack height and Y position
+			LD HL,draw_horz_line_dma1	; Initial setup of DMA
+			LD BC,draw_horz_line_dma1_len	; B: length, C: port
+			OTIR 
+			POP BC				; Restore height and Y position
 			CALL drawShapeTable_A		; Do the initial banking
 drawShapeTable_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C)
 			LD H, shapeT_X1 >> 8		; Get the MSB table in H - HL is now a pointer in that table
@@ -941,16 +947,16 @@ draw_horz_line:		LD A,E				; Check if E > D
 			LD (draw_horz_line_dst),HL	; HL: The destination address
 			LD B,0				
 			LD C,A 				; BC: The line length in pixels - 1
-			CP 14				; Check if less than 14
+			CP 10				; Check if less than 14
 			JR C,@M2			; It's quicker to LDIR fill short lines
 ;
-; Now just DMA it (314 T-states)
+; Now just DMA it (230 T-states)
 ;
 			INC BC				; T:   6
 			LD (draw_horz_line_len),BC 	; T:  20 - Now just DMA it
-			LD HL,draw_horz_line_dma	; T:  10
-			LD BC,draw_horz_line_dma_len	; T:  10
-			OTIR 				; T: 268 (21 x 12 + 16)
+			LD HL,draw_horz_line_dma2	; T:  10
+			LD BC,draw_horz_line_dma2_len	; T:  10
+			OTIR 				; T: 184 (21 x 8 + 16)
 			RET 
 ;
 ; Plot a single point
@@ -960,29 +966,34 @@ draw_horz_line:		LD A,E				; Check if E > D
 			RET
 ;
 ; LDIR fill short lines (34 T-states to set up, plus the LDIR)
-; Only worth doing if less than 314 T states (13 pixels long), otherwise do DMA
-; - 13 pixels = 302
-; - 14 pixels = 323
+; Only worth doing if less than 230 T states (10 pixels long), otherwise do DMA
+; -  9 pixels = 218
+; - 10 pixels = 239
 ;
 @M2:			LD A,(draw_horz_line_colour)	; T:  13
 			LD D,H				; T:   4
 			LD E,L				; T:   4
 			INC DE 				; T:   6
 			LD (HL),A			; T:   7
-			LDIR				; T: 331 (21 x 13 + 16)
+			LDIR				; T: 205 (21 x 8 + 16)
 			RET
 
 
 draw_horz_line_colour:	DB	0			; Storage for the DMA value to fill with
-draw_horz_line_dma:	DB	$83			; R6-Disable DMA
-			DB	%01111101		; R0-Transfer mode, A -> B, write address
-			DW	draw_horz_line_colour	; Address of the fill byte
-draw_horz_line_len:	DW	0			; Number of bytes to fill
-			DB	%00100100		; R0-Block length, A->B
-			DB	%00010000		; R1-Port A address incrementing
+draw_horz_line_dma1:	DB	$83			; R6-Disable DMA
+			DB	%00011101		; R0-Port A read address
+			DW	draw_horz_line_colour	;   -Address of the fill byte
+			DB	%00100100		; R1-Port A fixed
+			DB	%00010000		; R2-Port B address incrementing
+
+			DC 	draw_horz_line_dma1_len = (ASMPC - draw_horz_line_dma1) * 256 + Z80DMAPORT
+
+draw_horz_line_dma2:	DB	$83			; R6-Disable DMA
+			DB	%01100101		; R0-Block length
+draw_horz_line_len:	DW	0			;   -Number of bytes to fill
 			DB	%10101101		; R4-Continuous mode
-draw_horz_line_dst:	DW	0			; Destination address
+draw_horz_line_dst:	DW	0			;   -Destination address
 			DB	$CF			; R6-Load	
 			DB	$87			; R6-Enable DMA
 
-			DC 	draw_horz_line_dma_len = (ASMPC - draw_horz_line_dma) * 256 + Z80DMAPORT
+			DC 	draw_horz_line_dma2_len = (ASMPC - draw_horz_line_dma2) * 256 + Z80DMAPORT
