@@ -965,10 +965,8 @@ draw_horz_line:		LD	H,A			; H: Screen address high
 ;
 ; Plot a single point
 ; 
-@M1:			LD	A,(draw_horz_line_col)	
-			LD 	(HL),A			;  A: The colour
-			LD 	A,H			; Restore screen address
-			RET
+@M1:			LD	A,(draw_horz_line_col)	;  A: The colour
+			JR	@M4			; Plot just one point
 ;
 ; For short lines, do in software
 ;
@@ -982,7 +980,7 @@ draw_horz_line:		LD	H,A			; H: Screen address high
 			LD 	(HL),A			; These two instructions are two bytes long in total
 			INC 	L			; Hence the multiply by two
 			ENDR
-			LD 	(HL),A			; Don't need to do the INC L for the last plot
+@M4:			LD 	(HL),A			; Don't need to do the INC L for the last plot
 			LD 	A,H			;  A: Restore screen address
 			RET
 
