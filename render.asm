@@ -956,7 +956,7 @@ draw_horz_line:		LD	H,A			; H: Screen address high
 			LD	HL,draw_horz_line_dma2
 			LD	E,C			;  E: Preserve row number
 			LD 	C,Z80DMAPORT	
-			REPT 	9
+			REPT 	8
 			OUTINB	
 			ENDR
 			LD	C,E			;  C: Restore row number
@@ -992,8 +992,7 @@ draw_horz_line_dma1:	DB	$83			; R6-Disable DMA
 			DB	%00100100		; R1-Port A fixed
 			DB	%00010000		; R2-Port B address incrementing
 
-draw_horz_line_dma2:	DB	$83			; R6-Disable DMA
-			DB	%01100101		; R0-Block length
+draw_horz_line_dma2:	DB	%01100101		; R0-Block length
 draw_horz_line_len:	DW	0			;   -Number of bytes to fill
 			DB	%10101101		; R4-Continuous mode
 draw_horz_line_dst:	DW	0			;   -Destination address
