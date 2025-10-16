@@ -2,12 +2,13 @@
 ; Title:	2D Primitive Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	15/10/2025
+; Last Updated:	16/10/2025
 ;
 ; Modinfo:
 ; 07/10/2025:	Fixed bug in circleInit where circles with radius > 127 would not render correctly
 ; 12/10/2025:	Added circle clipping
 ; 15/10/2025:	DMA setup performance improvement in drawShapeTable
+; 16/10/2025:	Added short line plotting back in draw_horz_line
 
     			SECTION KERNEL_CODE
 
@@ -889,104 +890,108 @@ _drawShapeTable:	POP	IY
 ; B: Height
 ; A: Colour
 ;
-drawShapeTable:		LD (draw_horz_line_colour),A	; Store the colour
-			LD A,(screen_banks+1)		; Self-mod the screen bank in for performance
-			LD (drawShapeTable_B+1),A
-			LD C,L 				; Store the Y position in C
-			PUSH BC				; Stack height and Y position
-			LD HL,draw_horz_line_dma1	; Initial setup of DMA
-			LD BC,draw_horz_line_dma1_len	; B: length, C: port
-			OTIR 
-			POP BC				; Restore height and Y position
-			CALL drawShapeTable_A		; Do the initial banking
-drawShapeTable_L:	PUSH BC				; Stack the loop counter (B) and Y coordinate (C)
-			LD H, shapeT_X1 >> 8		; Get the MSB table in H - HL is now a pointer in that table
-			LD L,C  			; The Y coordinate
-			LD D,(HL)			; Get X1 from the first table
-			INC H				; Increment H to the second table (they're a page apart)
-			LD E,(HL) 			; Get X2 from the second table
-			LD H,A				; H: Screen addreess MSB
-			EX AF,AF'			; Preserve screen address
-			CALL draw_horz_line		; Draw the line
-			EX AF,AF'			; Restore screen address
-			POP BC 				; Pop loop counter (B) and Y coordinate (C) off the stack
-			INC C				; Increase the row number
-			INC A 				; Increment the screen address
-	 		CP %00100000			; Check if we've gone onto the next bank
-			CALL Z,drawShapeTable_A		; If so, do the banking and update H
-			DJNZ drawShapeTable_L
+drawShapeTable:		LD 	(draw_horz_line_col),A	; Self-mod the colour for performance
+			LD	A,(screen_banks+1)	; Self-mod the screen bank in for performance
+			LD 	(drawShapeTable_B+1),A
+			LD 	A,L 			; Store the Y position in A temporarily
+			LD	HL,draw_horz_line_dma1	; Initial setup of DMA
+			LD	C,Z80DMAPORT
+			REPT 	6
+			OUTINB
+			ENDR
+			LD 	C,A			; C: Row number (Y position in table)
+			CALL 	drawShapeTable_A	; A: Screen address in bank, plus pages the correct bank into address $0000
+drawShapeTable_L:	LD 	H, shapeT_X1 >> 8	; H: The MSB table
+			LD 	L,C  			; L: The Y coordinate;  HL is now a pointer in that table
+			LD 	D,(HL)			; D: X1 (from the first table)
+			INC 	H			; Increment H to the second table (they're a page apart)
+			LD 	E,(HL) 			; E: X2 (from the second table)
+			CALL 	draw_horz_line		; Draw the line
+			INC 	C			; Increase the row number
+			INC 	A 			; Increment the screen address
+	 		CP 	%00100000		; Check if we've gone onto the next bank
+			CALL 	Z,drawShapeTable_A	; If so, do the banking and update A
+			DJNZ 	drawShapeTable_L	; Loop until finished
 			RET
 ;
 ; This routine pages in the correct bank at address $0000 (over the ROM, but for write only)
 ; Returns:
 ; A: MSB of screen address
 ;
-drawShapeTable_A:	LD A,C				; A: Y coordinate
-			AND %11100000			; 3 bits for the 8 banks we can use
+drawShapeTable_A:	LD 	A,C			; A: Y coordinate
+			AND 	%11100000		; 3 bits for the 8 banks we can use
 			SWAPNIB
 			RRCA
-drawShapeTable_B:	ADD A,0				; Add the bank in (self-modded at top of routine)
-			NEXTREG MMU_REGISTER_0,A	; And set it
-			LD A,C				; A: Y coordinate
-			AND %00011111
+drawShapeTable_B:	ADD	A,0			; Add the bank in (self-modded at top of routine)
+			NEXTREG	MMU_REGISTER_0,A	; And set it
+			LD 	A,C			; A: Y coordinate
+			AND 	%00011111
 			RET
 
 ; Draw Horizontal Line routine
-; HL = Screen address (first pixel row)
+;  A = Screen address (first pixel row)
 ;  D = X pixel position 1
 ;  E = X pixel position 2
+; Preserves
+;  A = Screen address (first pixel row)
+;  C = Screen row number
 ;
-draw_horz_line:		LD A,E				; Check if E > D
-			SUB D 
-			JR NC,@S1			; If > then just draw the line
+draw_horz_line:		LD	H,A			; H: Screen address high
+			LD	A,E			; Check if E > D
+			SUB	D 
+			JR	NC,@S1			; If > then just draw the line
 			NEG
-			LD L,E 				; The second point is the start point
-			JR @S2				; Skip to carry on drawing the line
-@S1:			LD L,D 				; The first point is the start point
-@S2:			JR Z,@M1			; If it is a single point, then just plot it
-			LD (draw_horz_line_dst),HL	; HL: The destination address
-			LD B,0				
-			LD C,A 				; BC: The line length in pixels - 1
-			CP 10				; Check if less than 14
-			JR C,@M2			; It's quicker to LDIR fill short lines
-;
-; Now just DMA it (230 T-states)
-;
-			INC BC				; T:   6
-			LD (draw_horz_line_len),BC 	; T:  20 - Now just DMA it
-			LD HL,draw_horz_line_dma2	; T:  10
-			LD BC,draw_horz_line_dma2_len	; T:  10
-			OTIR 				; T: 184 (21 x 8 + 16)
+			LD	L,E 			; The second point is the start point
+			JR	@S2			; Skip to carry on drawing the line
+@S1:			LD	L,D 			; The first point is the start point
+@S2:			JR	Z,@M1			; If it is a single point, then just plot it
+			CP	8			; If it is less than 8 (less than 9 pixels) 
+			JR	C,@M2			; then don't use the DMA
+			LD	(draw_horz_line_dst),HL	; HL: The destination address
+			LD	D,H 			;  D: Preserve screen address
+			LD 	H,0				
+			LD 	L,A 			; HL: The line length in pixels - 1
+			INC	HL			; HL: The line length
+			LD	(draw_horz_line_len),HL ; Now just DMA it
+			LD	HL,draw_horz_line_dma2
+			LD	E,C			;  E: Preserve row number
+			LD 	C,Z80DMAPORT	
+			REPT 	9
+			OUTINB	
+			ENDR
+			LD	C,E			;  C: Restore row number
+			LD	A,D			;  A: Restore screen address
 			RET 
 ;
 ; Plot a single point
 ; 
-@M1:			LD A,(draw_horz_line_colour)	; Shortcut to plot a single point
-			LD (HL),A
+@M1:			LD	A,(draw_horz_line_col)	
+			LD 	(HL),A			;  A: The colour
+			LD 	A,H			; Restore screen address
 			RET
 ;
-; LDIR fill short lines (34 T-states to set up, plus the LDIR)
-; Only worth doing if less than 230 T states (10 pixels long), otherwise do DMA
-; -  9 pixels = 218
-; - 10 pixels = 239
+; For short lines, do in software
 ;
-@M2:			LD A,(draw_horz_line_colour)	; T:  13
-			LD D,H				; T:   4
-			LD E,L				; T:   4
-			INC DE 				; T:   6
-			LD (HL),A			; T:   7
-			LDIR				; T: 205 (21 x 8 + 16)
+@M2:			ADD 	A,A			; Multiply by two
+			NEG				; Negate
+			ADD 	14			;  A: 14-(A*2) - remember we want to plot 1 pixel more!
+			LD	(@M3+1),A		; Self-mod the JR
+			LD 	A,(draw_horz_line_col)	;  A: The colour	
+@M3:			JR 	@M3			; This is self-modded to jump into the list	
+			REPT	8			; of plots in this REPT structure
+			LD 	(HL),A			; These two instructions are two bytes long in total
+			INC 	L			; Hence the multiply by two
+			ENDR
+			LD 	A,H			;  A: Restore screen address
 			RET
 
 
-draw_horz_line_colour:	DB	0			; Storage for the DMA value to fill with
+draw_horz_line_col:	DB	0			; Storage for the DMA value to fill with
 draw_horz_line_dma1:	DB	$83			; R6-Disable DMA
 			DB	%00011101		; R0-Port A read address
-			DW	draw_horz_line_colour	;   -Address of the fill byte
+			DW	draw_horz_line_col	;   -Address of the fill byte
 			DB	%00100100		; R1-Port A fixed
 			DB	%00010000		; R2-Port B address incrementing
-
-			DC 	draw_horz_line_dma1_len = (ASMPC - draw_horz_line_dma1) * 256 + Z80DMAPORT
 
 draw_horz_line_dma2:	DB	$83			; R6-Disable DMA
 			DB	%01100101		; R0-Block length
@@ -995,5 +1000,3 @@ draw_horz_line_len:	DW	0			;   -Number of bytes to fill
 draw_horz_line_dst:	DW	0			;   -Destination address
 			DB	$CF			; R6-Load	
 			DB	$87			; R6-Enable DMA
-
-			DC 	draw_horz_line_dma2_len = (ASMPC - draw_horz_line_dma2) * 256 + Z80DMAPORT
