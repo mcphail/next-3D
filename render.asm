@@ -978,10 +978,11 @@ draw_horz_line:		LD	H,A			; H: Screen address high
 			LD	(@M3+1),A		; Self-mod the JR
 			LD 	A,(draw_horz_line_col)	;  A: The colour	
 @M3:			JR 	@M3			; This is self-modded to jump into the list	
-			REPT	8			; of plots in this REPT structure
+			REPT	7			; of plots in this REPT structure
 			LD 	(HL),A			; These two instructions are two bytes long in total
 			INC 	L			; Hence the multiply by two
 			ENDR
+			LD 	(HL),A			; Don't need to do the INC L for the last plot
 			LD 	A,H			;  A: Restore screen address
 			RET
 
