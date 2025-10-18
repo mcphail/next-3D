@@ -2,10 +2,11 @@
 ; Title:	Line and Triangle Clipping Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	22/09/2025
+; Last Updated:	18/10/2025
 ;
 ; Modinfo:
-;
+; 18/10/2025:	Register juggling in drawShapeTable
+
     			SECTION KERNEL_CODE
 
     			INCLUDE "globals.inc"
@@ -207,11 +208,11 @@ drawTriangle_R:		POP	HL 			; Restore the start of the list
 			LD	A,IXH			; Get the top Y point ($E901)
 			CP	$FF			; If it has not been updated
 			RET	Z			; then don't do anything
-			LD	L,A 
+			LD	E,A 
 			LD	A,IXL			; And the bottom Y point
 			OR	A			; If it has not been updated,
 			RET	Z			; then don't do anything
-			SUB	L 
+			SUB	E 
 			INC	A
 			RET	Z			; Don't do anything here
 			LD	B,A			; B: The height
