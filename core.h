@@ -2,9 +2,10 @@
  * Title:			Core Definitions
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	20/08/2025
+ * Last Updated:	25/10/2025
  *
  * Modinfo:
+ * 25/10/2025:		Removed SCREEN_WIDTH, SCREEN_HEIGHT and START_8K_BANK
  */
 
 #ifndef __CORE_H__
@@ -15,11 +16,6 @@
 #define NOP  { intrinsic_emit(0x00); }
 #define NextReg(r,v)    ZXN_NEXTREG_helper(r,v)
 #define NextRegA(r,var) ZXN_NEXTREGA_helper(r,var)
-
-#define START_8K_BANK	18	   // START_16K_BANK * 2
-
-#define SCREEN_WIDTH 256       // Our resolution
-#define SCREEN_HEIGHT 192
 
 // nicer types
 typedef	uint8_t		uint8;

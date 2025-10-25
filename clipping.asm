@@ -2,10 +2,11 @@
 ; Title:	Line and Triangle Clipping Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	18/10/2025
+; Last Updated:	25/10/2025
 ;
 ; Modinfo:
 ; 18/10/2025:	Register juggling in drawShapeTable
+; 25/10/2025:	Now uses SCREEN_HEIGHT for clipping
 
     			SECTION KERNEL_CODE
 
@@ -379,7 +380,7 @@ clipTriangleRight:	LD	A,(p2_x+1)		;  A: The current X point (MSB)
 ; Clip the triangle at the bottom edge
 ;
 clipTriangleBottom:	LD	HL,(p2_y)		; HL: The current X point	
-			LD	DE,192			; The bottom of the screen
+			LD	DE,SCREEN_HEIGHT	; The bottom of the screen
 			CMP_HL	DE	
 			LD	HL,(p1_y)		; HL: The previous Y point
 			JR	NC,@M1			; No, so go here
@@ -461,9 +462,9 @@ clipRegionV:		RLC	H 		; H: Test the Y coordinate MSB
 			JR	NZ, clipRegionB ; Off bottom of screen 
 			LD	H,A		; Store A temporarily
 			LD	A,L		; L: Y (LSB)
-			CP	192
+			CP	SCREEN_HEIGHT
 			LD	A,H		; Restore A
-			JR	C, clipRegionH 	; We're in the top 192 lines of the screen, so skip 
+			JR	C, clipRegionH 	; We're above SCREEN_HEIGHT so skip 
 clipRegionB:		OR	2		; Bottom
 			JR	clipRegionH
 clipRegionT:		OR	1		; Top

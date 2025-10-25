@@ -2,12 +2,15 @@
 ; Title:	Global Assembler Includes
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	13/09/2025
+; Last Updated:	25/10/2025
 ;
 ; Modinfo:
-;
+; 25/10/2025:	Added SCREEN_WIDTH and SCREEN_HEIGHT
 
 	EXTERN	R0,R1,R2,R3,R4,R5,R6,R7 	; In ram.inc
+
+	SCREEN_WIDTH  = 256
+	SCREEN_HEIGHT = 192
 
     	MACRO BREAK
 		DB $fd,00

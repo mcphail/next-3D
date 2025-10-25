@@ -2,7 +2,7 @@
 ; Title:	2D Primitive Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	18/10/2025
+; Last Updated:	25/10/2025
 ;
 ; Modinfo:
 ; 07/10/2025:	Fixed bug in circleInit where circles with radius > 127 would not render correctly
@@ -10,6 +10,7 @@
 ; 15/10/2025:	DMA setup performance improvement in drawShapeTable
 ; 16/10/2025:	Added short line plotting back in draw_horz_line
 ; 18/10/2025:	Register juggling in drawShapeTable
+; 25/10/2025:	Now uses SCREEN_HEIGHT for clipping
 
     			SECTION KERNEL_CODE
 
@@ -440,7 +441,7 @@ circleL2:		LD	(circlePlot+1),A	; Store the colour
 circlePlot_1:		CALL	circle_DEsubIY		; Calculate the Y
 			RET	NZ			; Return if off screen
 			LD	A,H
-			CP	192
+			CP	SCREEN_HEIGHT
 			RET	NC
 			CALL	get_pixel_address	; H: Calculated row address
 			CALL	circle_BCsubIX		; L: Calculated X (left)
@@ -453,7 +454,7 @@ circlePlot:		LD	(HL),0			; Plot the point (colour self-modded)
 circlePlot_2:		CALL	circle_DEsubIX
 			RET 	NZ
 			LD	A,H
-			CP	192
+			CP	SCREEN_HEIGHT
 			RET	NC
 			CALL	get_pixel_address
 			CALL	circle_BCsubIY
@@ -465,7 +466,7 @@ circlePlot_2:		CALL	circle_DEsubIX
 circlePlot_3:		CALL	circle_DEaddIX
 			RET 	NZ
 			LD	A,H
-			CP	192
+			CP	SCREEN_HEIGHT
 			RET	NC
 			CALL	get_pixel_address
 			CALL	circle_BCsubIY
@@ -477,7 +478,7 @@ circlePlot_3:		CALL	circle_DEaddIX
 circlePlot_4:		CALL	circle_DEaddIY
 			RET 	NZ
 			LD	A,H
-			CP	192
+			CP	SCREEN_HEIGHT
 			RET	NC
 			CALL	get_pixel_address
 			CALL	circle_BCsubIX
@@ -608,8 +609,8 @@ circlePlotF_X_IY:	LD	BC,0			; BC: X origin (self-modded from circleL2F)
 ;  AH: Y coordinate
 ;
 circlePlotF_PL:		RET	NZ			; Check if off screen (MSB is not zero)
-			LD	A,H			; Fine tune the check (LSB < 192)
-			CP	192
+			LD	A,H			; Fine tune the check (LSB < SCREEN_HEIGHT)
+			CP	SCREEN_HEIGHT
 			RET	NC 
 circlePlotF_TB:		LD	DE,0			; Store for min (top) and max (bottom) Y coordinates (self-modded)
 			LD	A,D			; Get previous top value
