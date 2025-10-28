@@ -84,6 +84,8 @@ There are example models and converted files in the [models](./models/) director
 - *.obj: The models exported from Blender in Wavefront (.obj) format
 - *.h: The models as converted by convert_model.py
 
+And there is a [tutorial video here](https://www.youtube.com/watch?v=sk5lVi9HBn0) with guidance on preparing models for export.
+
 ## Core Modules
 
 Headline documentation is [available here](documentation/README.md).
