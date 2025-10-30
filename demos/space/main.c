@@ -2,9 +2,10 @@
  * Title:			Spectrum Next 3D Engine Space Demo
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	30/09/2025
+ * Last Updated:	30/10/2025
  *
  * Modinfo:
+ * 30/10/2025:		Added proof-of-concept code for Z sorting objects
  */
 
 #pragma output REGISTER_SP = 0xbfff
@@ -42,9 +43,19 @@
 // Global data
 // ***************************************************************************************************************************************
 
-uint8_t	renderMode = 1;					// 0: Wireframe, 1: Filled
-Point16_3D sun_pos = { 0, 0, 20000 };	// The sun position
-Object_3D object[MAX_OBJECTS];			// List of objects to display
+// Struct used to store an object's rotated point and index (for the Z-sort algorithm)
+//
+typedef struct SZSort_3D {
+	Object_3D * object;					// Pointer to the object
+	Point16_3D	pos;					// The rotated points
+} ZSort_3D;
+
+uint8_t		renderMode = 1;				// 0: Wireframe, 1: Filled
+Point16_3D	sunPos = { 0, 0, 20000 };	// The sun position
+
+Object_3D	object[MAX_OBJECTS];		// List of objects to display
+ZSort_3D	objectRotated[MAX_OBJECTS];	// List of objects to sort
+Point16		point_t[64];				// Buffer for rotated points
 
 // ***************************************************************************************************************************************
 //  Main startup and loop
@@ -64,9 +75,9 @@ void rotate(int i) {
 //
 void drawSun(void) {
 	Point16_3D p = {					// Get the sun's position relative to the camera
-		sun_pos.x - cam_pos.x,
-		sun_pos.y - cam_pos.y,
-		sun_pos.z - cam_pos.z,
+		sunPos.x - cam_pos.x,
+		sunPos.y - cam_pos.y,
+		sunPos.z - cam_pos.z,
 	};
 	p = rotate16_3D(p, cam_theta);		// Rotate the sun around the camera
 
@@ -88,6 +99,12 @@ void drawSun(void) {
 			}
 		}
 	}
+}
+
+// Callback used in the sort to sort objects by Z coordinate
+//
+int cmpZ(const ZSort_3D * a, const ZSort_3D * b) {
+    return (b->pos.z - a->pos.z);
 }
 
 void main(void)
@@ -183,16 +200,46 @@ void main(void)
 		drawStars(v/2);		// Draw the stars, move at half ships velocity
 		drawSun();			// Draw the sun
 
-		// Loop through the object array and draw/move any that are active
+		// First rotate all the objects in the world
 		//
-		for(int i=0; i<MAX_OBJECTS; i++) {
-			if(object[i].flags) {
-				drawObject(&object[i], renderMode);
-				if(object[i].move) {
-					object[i].move(i);
+		int objectCount=0;						// Count of any many objects are visible on-screen
+		for(int i=0; i<MAX_OBJECTS; i++) {		// Loop through the objects in the world
+			Object_3D * o = &object[i];			// Get a pointer to the object
+			if(o->flags) {						// If the object is active, i.e. flags != 0
+				Point16_3D posWorld = {			// Get the object's position relative to the camera
+					o->pos.x - cam_pos.x,
+					o->pos.y - cam_pos.y,
+					o->pos.z - cam_pos.z,
+				};
+				Point16_3D p = rotate16_3D(posWorld, cam_theta);		// Translate the object around the camera
+				if(p.z >= 200 && abs(p.x) < p.z && abs(p.y) < p.z ) {	// If the object is roughly in the view
+					objectRotated[objectCount].object = o;				// Add it to the list of objects to process
+					objectRotated[objectCount++].pos = p;
+				}
+				if(o->move) {					// Call the objects movement routine if it has one
+					o->move(i);
 				}
 			}
-		}	
+		}
+
+		// Sort the objects by Z position
+		//
+		qsort(objectRotated, objectCount, sizeof(ZSort_3D), cmpZ);
+
+		// Now draw the objects
+		//
+		for(int i=0; i<objectCount; i++) {		// Loop through the list of objects that are in view
+			ZSort_3D * zs = &objectRotated[i];	// Get a pointer to the object's translated position
+			Object_3D * o = zs->object;			// Get a pointer to the object data
+			Angle_3D a = {						// Adjust the model rotation according to the camera rotation
+				cam_theta.x - o->theta.x,
+				cam_theta.y - o->theta.y,
+				cam_theta.z - o->theta.z,
+			};
+			rotateModel(&point_t[0], zs->pos, a, o->model);	// Rotate the camera around around its centre
+			renderModel(&point_t[0], o->model, renderMode);	// Render the object in the viewport
+		}
+
 		waitVBlank();	// Wait for the vblank before switching
 		swapL2(); 		// Do the double-buffering
 	};
