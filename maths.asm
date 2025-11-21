@@ -2,10 +2,11 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	20/11/2025
+; Last Updated:	21/11/2025
 ;
 ; Modinfo:
 ; 20/11/2025:		Added fastDiv16
+; 21/11/2025		Improved performance of project3D
 ;
 
     			SECTION KERNEL_CODE
@@ -758,9 +759,8 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
    			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
    			LD 	D,A		; DE: Sign-extended A
    			ADD	HL,DE		; HL: pos.x + r.x
-			LD	DE,256		; DE: pd
 			POP 	BC		; BC: z
-			CALL	fastMulDiv	; HL: fastMulDiv(pos.x + r.x, pd, z)
+			CALL	project3D_vp	; HL: Perspective calculation (pos.x + r.x) * 256 / z
 			ADD	HL,128		; Add screen X centre
 			LD 	(IY+0),L	; Store in return value
 			LD	(IY+1),H
@@ -776,13 +776,34 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
    			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
    			LD 	D,A		; BC: Sign-extended A
    			ADD	HL,DE		; HL: pos.y + r.y
-			LD	DE,256		; DE: pd
 			POP 	BC		; BC: z
-			CALL	fastMulDiv	; HL: fastMulDiv(pos.y + r.y, pd, z)
+			CALL	project3D_vp	; HL: Perspective calculation (pos.y + r.y) * 256 / z
 			ADD	HL,96		; Add screen Y centre
 			LD 	(IY+2),L	; Store in return value
 			LD	(IY+3),H
 			RET
+
+; Do the perspective calculation
+; HL: The x or y coordinate
+; BC: The z coordinate
+; Returns:
+; HL: The projected point (x or y)
+;
+project3D_vp:		LD	A,H		; Preserve the sign for later
+			XOR	B
+			EX	AF,AF		; Preserve the flags
+			BIT	7,H 		; Make all the values positive
+			CALL	NZ,negHL
+			BIT	7,B
+			CALL	NZ,negBC
+			LD	D,0		; DEHL = HL * 256 (the vanishing point)
+			LD	E,H
+			LD	H,L
+			LD	L,0
+			CALL	l_divu_32_32x16	; DEHL = DEHL / BC
+			EX	AF,AF		; Restore the flags
+			RET	P 		; Answer is positive so just return
+			JP	negHL		; Answer is negative so negate it 
 
 ; extern uint16_t fastDiv16(uint16_t a, uint16_t b) __z88dk_callee;
 ; Calculates an estimate of a / b
@@ -791,16 +812,19 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
 PUBLIC _fastDiv16, fastDiv16
 
 _fastDiv16:		POP	IY
-			POP	DE		; DE = u
-			POP	HL		; HL = v
+			POP	HL		; HL: Dividend
+			POP	DE		; DE: Divisor
 			PUSH	IY
 
-; HL = HL / DE
+; HL: Dividend
+; DE: Divisor
+; Returns:
+; HL: The result (HL/DEV)
 ;
-fastDiv16:		LD	A,H		; Check for divide by zero
-			OR	L
+fastDiv16:		LD	A,D		; Check for divide by zero
+			OR	E
 			RET	Z
-
+			EX	DE,HL		; Swap the dividend and divisor
 			LD	A,15		; The bit counter
 @L1:			BIT	7,H		; Check high byte of HL
 			JR	NZ,@S1	
