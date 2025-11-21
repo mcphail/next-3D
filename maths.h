@@ -2,9 +2,10 @@
  * Title:			Fast 3D Maths Routines
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	30/09/2025
+ * Last Updated:	20/11/2025
  *
  * Modinfo:
+ * 20/11/2025:		Added fastDiv16
  */
 
 #ifndef __MATHS_H__
@@ -64,5 +65,7 @@ extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 
 extern Point16 project3D(Point16_3D pos, Point8_3D r) __z88dk_callee;
 extern uint8_t windingOrder(Point16 p1, Point16 p2, Point16 p3) __z88dk_callee;
+
+extern uint16_t fastDiv16(uint16_t a, uint16_t b) __z88dk_callee;
 
 #endif 	//__MATHS_H__

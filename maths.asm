@@ -2,9 +2,10 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	09/09/2025
+; Last Updated:	20/11/2025
 ;
 ; Modinfo:
+; 20/11/2025:		Added fastDiv16
 ;
 
     			SECTION KERNEL_CODE
@@ -12,6 +13,7 @@
     			INCLUDE "globals.inc"
 
 			EXTERN	sin_table		; In ram.inc
+			EXTERN	div_table		; In ram.inc
 
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
@@ -780,4 +782,87 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
 			ADD	HL,96		; Add screen Y centre
 			LD 	(IY+2),L	; Store in return value
 			LD	(IY+3),H
+			RET
+
+; extern uint16_t fastDiv16(uint16_t a, uint16_t b) __z88dk_callee;
+; Calculates an estimate of a / b
+; Inspired by https://blog.segger.com/algorithms-for-division-part-3-using-multiplication/
+;
+PUBLIC _fastDiv16, fastDiv16
+
+_fastDiv16:		POP	IY
+			POP	DE		; DE = u
+			POP	HL		; HL = v
+			PUSH	IY
+
+; HL = HL / DE
+;
+fastDiv16:		LD	A,H		; Check for divide by zero
+			OR	L
+			RET	Z
+
+			LD	A,15		; The bit counter
+@L1:			BIT	7,H		; Check high byte of HL
+			JR	NZ,@S1	
+			ADD	HL,HL		; Normalise HL by shifting it right
+			DEC	A		; Increment the bit counter
+			JR	@L1	
+@S1:			EX	AF,AF		; Store the bit counter for later
+;
+; Look up the reciprocal in the table
+;
+			LD	A,H		; A = HL >> 8
+			ADD	A,A		; Now index into the table
+			LD	L,A
+			LD	H,div_table >> 8
+			LD	A,(HL)
+			INC	L
+			LD	H,(HL)
+;			LD	L,A 		; Not needed, use A instead of L in next block
+;
+; Modified from l_z80n_mulu_32_16x16 in z88dk
+;		
+			LD	B,A		; x0 - was originally LD B,L
+			ld	C,E		; y0
+			ld	E,A		; x0 - was originally LD E,L
+			ld	L,D
+			PUSH	HL		; x1 y1
+			LD	L,C		; y0
+
+			; BC = x0 y0
+			; DE = y1 x0
+			; HL = x1 y0
+			; stack = x1 y1
+
+			MUL	DE		; y1*x0
+			EX	DE,HL
+			MUL	DE		; x1*y0
+
+			XOR	A	
+			ADD	HL,DE		; sum cross products p2 p1
+			ADC	A,A		; capture carry p3
+
+			LD	E,C		; x0
+			ld	D,B		; y0
+			MUL	DE		; y0*x0
+
+			LD	B,A		; carry from cross products
+			LD	C,H		; LSB of MSW from cross products
+
+			LD	A,D
+			ADD	A,L
+			LD	H,A
+			LD	L,E		; LSW in HL p1 p0
+
+			POP	DE
+			MUL	DE		; x1*y1
+
+			EX	DE,HL
+			ADC	HL,BC
+			EX	DE,HL		; DE = final MSW
+
+			EX	AF,AF		; The bit counter
+			LD	B,A
+			BSRL 	DE,B		; Undo the normalisation by shifting right B times
+			EX	DE,HL
 			RET
