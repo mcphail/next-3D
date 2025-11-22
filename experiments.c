@@ -2,9 +2,10 @@
  * Title:			Experimental Code
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	24/09/2025
+ * Last Updated:	22/11/2025
  *
  * Modinfo:
+ * 22/11/2025:		Now uses fastMulDiv16 for stars
  */
 
 #include <arch/zxn.h>
@@ -61,16 +62,16 @@ Point8_3D calculateNormal(Point8_3D p1, Point8_3D p2, Point8_3D p3) {
 	return n;
 }
 
-void initStar(Point16_3D * star) {
-	star->x = 256 - rand()%512;
-	star->y = 256 - rand()%512;
-	star->z = 1024 + rand()%1024;
+void initStar(Point16_3D * star, uint16_t z) {
+	star->x = 1024 - rand()%2048;
+	star->y = 1024 - rand()%2048;
+	star->z = z;
 }
 
 void initStars(void) {
 	int	i;
 	for(i=0; i<starCount; i++) {
-		initStar(&stars[i]);
+		initStar(&stars[i], rand()%1024);
 	}
 }
 
@@ -80,8 +81,8 @@ void drawStars(int speed) {
 
 	for(i=0; i<starCount; i++) {
 		star = &stars[i];
-		int x = fastMulDiv(star->x, 256, star->z) + 128;
-		int y = fastMulDiv(star->y, 256, star->z) + 96;
+		int x = fastMulDiv16(star->x, 256, star->z) + 128;
+		int y = fastMulDiv16(star->y, 256, star->z) + 96;
 		if(x >=0 && x <=255 && y >=0 && y <= 191) {
 			if(star->z > 512) {
 				plotL2(x,y,0xFF);
@@ -96,7 +97,7 @@ void drawStars(int speed) {
 		}
 		star->z -= speed;
 		if(star->z  < 0) {
-			initStar(star);
+			initStar(star, 1024);
 		}
 	}
 }
