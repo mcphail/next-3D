@@ -2,11 +2,12 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	21/11/2025
+; Last Updated:	22/11/2025
 ;
 ; Modinfo:
 ; 20/11/2025:		Added fastDiv16
 ; 21/11/2025		Improved performance of project3D
+; 22/11/2025:		Refactored multiply and divide routines 
 ;
 
     			SECTION KERNEL_CODE
@@ -20,9 +21,6 @@
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
 
 			EXTERN	l_z80n_muls_32_16x16	; DEHL =   HL x DE (signed)
-			EXTERN	l_z80n_muls_16_16x16	;   HL =   HL x DE (signed)
-			EXTERN	l_z80n_muls_16_16x8	;   HL =    L x DE (signed)
-			EXTERN	l_z80n_mulu_16_16x8	;   HL =    L x DE (unsigned)
 			EXTERN	l_z80n_mulu_24_16x8	;  AHL =    E x HL (unsigned)
 			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
 
@@ -629,12 +627,12 @@ sin16_mul_neg:		EX	DE,HL
 			JP	negHL
 
 
-; extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee
+; extern int16_t fastMulDiv32(int16_t a, int16_t b, int16_t c) __z88dk_callee
 ; Calculates a * b / c, with the internal calculation done in 32-bits
 ;
-PUBLIC _fastMulDiv, fastMulDiv
+PUBLIC _fastMulDiv32, fastMulDiv32
 
-_fastMulDiv:		POP	IY
+_fastMulDiv32:		POP	IY
 			POP	HL	; a
 			POP	DE	; b
 			POP	BC	; c
@@ -642,7 +640,7 @@ _fastMulDiv:		POP	IY
 
 ; HL = HL * DE / BC
 ;
-fastMulDiv:		PUSH	BC			; Save this somewhere
+fastMulDiv32:		PUSH	BC			; Save this somewhere
 			CALL 	l_z80n_muls_32_16x16	; DEHL: 32-bit signed product
 			POP	BC
 			LD	A,B			; Get the sign 
@@ -656,6 +654,209 @@ fastMulDiv:		PUSH	BC			; Save this somewhere
 			POP 	AF
 			RET	P 			; Answer is positive
 			JP	negHL			; Answer is negative so negate it 
+
+; extern int16_t fastMulDiv16(int16_t a, int16_t b, int16_t c) __z88dk_callee
+; Calculates a * b / c, with the internal calculation done in 16-bits
+;
+PUBLIC _fastMulDiv16, fastMulDiv16
+
+_fastMulDiv16:		POP	IY
+			POP	HL	; a
+			POP	DE	; b
+			POP	BC	; c
+			PUSH	IY
+
+; HL = HL * DE / BC
+;
+fastMulDiv16:		LD	A,H
+			XOR	D
+			XOR	B
+			PUSH	AF 			; Work out the final sign
+			BIT	7,H			; Make all the operands positve
+			CALL	NZ,negHL
+			BIT	7,D
+			CALL	NZ,negDE
+			BIT 	7,B
+			CALL	NZ,negBC
+			PUSH	BC			; BC: Save the divisor
+			CALL	fastMulU16_16x16	; HL: 16-bit product (HL*DE)
+			POP	DE			; DE: The divisor
+			CALL	fastDivU16_16x16	; HL: HL*DE/BC
+			POP	AF			;  F: The sign
+			RET	P 			; Answer is positive
+			JP	negHL			; Answer is negative
+
+; extern uint16_t fastMulU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+; Calculates a * b (unsigned)
+;
+PUBLIC _fastMulU16_16x16, fastMulU16_16x16
+
+_fastMulU16_16x16:	POP	IY
+			POP	HL
+			POP	DE
+			PUSH	IY
+
+; HL: Multiplicand
+; DE: Multiplier
+; Returns
+; HL: Result (HL*DE)
+;  F: Carry set if overflow
+;
+; Does: ((H*E+D*L)*256)+(L*E)
+;
+fastMulU16_16x16:	LD	B,D
+			LD	C,E 
+			LD	D,H
+			MUL	D,E			; DE: H*E
+			LD	H,D			; HA: H*E
+			LD	A,E
+			LD	D,B
+			LD	E,L
+			MUL	D,E			; DE: D*L
+			PUSH	DE
+			LD	D,L
+			LD	E,C
+			MUL	D,E			; DE: L*E
+			POP	BC			; BC: D*L
+			LD	L,A			; HL: H*E
+			ADD	HL,BC			; HL: The sum of the two most significant multiplications
+			XOR	A
+			SBC	H			; If H is not zero then its an overflow
+			RET	C
+			LD	H,L
+			LD	L,A
+			ADD	HL,DE
+			RET 
+
+; extern int16_t fastMulS16_16x16(int16_t a, int16_t b) __z88dk_callee;
+; Calculates a * b (signed)
+;
+PUBLIC _fastMulS16_16x16, fastMulS16_16x16
+
+_fastMulS16_16x16:	POP	IY
+			POP	HL
+			POP	DE
+			PUSH	IY
+
+; HL: Multiplicand
+; DE: Multiplier
+; Returns
+; HL: Result (HL*DE)
+;  F: Carry set if overflow
+;
+; Does: ((H*E+D*L)*256)+(L*E)
+;
+fastMulS16_16x16:	LD	A,H
+			OR	D
+			PUSH	AF
+			BIT	7,H
+			CALL	NZ,negHL
+			BIT	7,D
+			CALL	NZ,negDE
+			CALL	fastMulU16_16x16
+			POP	AF
+			RET	P
+			JP	negHL
+
+; extern uint16_t fastDivU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+; Calculates an estimate of a / b (unsigned)
+; Inspired by https://blog.segger.com/algorithms-for-division-part-3-using-multiplication/
+;
+PUBLIC _fastDivU16_16x16, fastDivU16_16x16
+
+_fastDivU16_16x16:	POP	IY
+			POP	HL		; HL: Dividend
+			POP	DE		; DE: Divisor
+			PUSH	IY
+
+; HL: Dividend
+; DE: Divisor
+; Returns:
+; HL: The result (HL/DEV)
+;
+fastDivU16_16x16:	LD	A,D		; Check for divide by zero
+			OR	E
+			RET	Z
+			EX	DE,HL		; Swap the dividend and divisor
+			LD	A,15		; The bit counter
+@L1:			BIT	7,H		; Check high byte of HL
+			JR	NZ,@S1	
+			ADD	HL,HL		; Normalise HL by shifting it right
+			DEC	A		; Increment the bit counter
+			JR	@L1	
+@S1:			EX	AF,AF		; Store the bit counter for later
+;
+; Look up the reciprocal in the table
+;
+			LD	A,H		; A = HL >> 8
+			ADD	A,A		; Now index into the table
+			LD	L,A
+			LD	H,div_table >> 8
+			LD	A,(HL)
+			INC	L
+			LD	H,(HL)
+;			LD	L,A 		; Not needed, use A instead of L in next block
+;
+; Modified from l_z80n_mulu_32_16x16 in z88dk
+;		
+			LD	B,A		; x0 - was originally LD B,L
+			ld	C,E		; y0
+			ld	E,A		; x0 - was originally LD E,L
+			ld	L,D
+			PUSH	HL		; x1 y1
+			LD	L,C		; y0
+			MUL	DE		; y1*x0
+			EX	DE,HL
+			MUL	DE		; x1*y0
+			XOR	A	
+			ADD	HL,DE		; sum cross products p2 p1
+			ADC	A,A		; capture carry p3
+			LD	E,C		; x0
+			ld	D,B		; y0
+			MUL	DE		; y0*x0
+			LD	B,A		; carry from cross products
+			LD	C,H		; LSB of MSW from cross products
+			LD	A,D
+			ADD	A,L
+			LD	H,A
+			LD	L,E		; LSW in HL p1 p0
+			POP	DE
+			MUL	DE		; x1*y1
+			EX	DE,HL
+			ADC	HL,BC
+			EX	DE,HL		; DE = final MSW
+			EX	AF,AF		; The bit counter
+			LD	B,A
+			BSRL 	DE,B		; Undo the normalisation by shifting right B times
+			EX	DE,HL
+			RET
+
+; extern int16_t fastDivS16_16x16(int16_t a, int16_t b) __z88dk_callee;
+; Calculates an estimate of a / b (signed)
+;
+PUBLIC _fastDivS16_16x16, fastDivS16_16x16
+
+_fastDivS16_16x16:	POP	IY
+			POP	HL		; HL: Dividend
+			POP	DE		; DE: Divisor
+			PUSH	IY
+
+; HL: Dividend
+; DE: Divisor
+; Returns:
+; HL: The result (HL/DEV)
+;
+fastDivS16_16x16:	LD	A,H
+			OR	D
+			PUSH	AF
+			BIT	7,H
+			CALL	NZ,negHL
+			BIT	7,D
+			CALL	NZ,negDE
+			CALL	fastDivU16_16x16
+			POP	AF
+			RET	P
+			JP	negHL
 
 ; extern uint8_t windingOrder(Point16 p1, Point16 p2, Point16 p3) __z88dk_callee;
 ; For backface culling using polygon winding order
@@ -678,21 +879,21 @@ windingOrder:		LD	DE,(R0)			; DE: p1.x
 			LD	BC,(R5)			; BC: p3.y
 			XOR	A
 			SBC	HL,BC			; HL = p2.y-p3.y
-			CALL	l_z80n_muls_16_16x16	; HL - p1.x*(p2.y-p3.y)
+			CALL	fastMulS16_16x16	; HL - p1.x*(p2.y-p3.y)
 			PUSH	HL
 			LD	DE,(R2)			; DE: p2.x
 			LD	HL,(R5)			; HL: p3.y
 			LD	BC,(R1)			; BC: p1.y
 			XOR	A
 			SBC	HL,BC			; HL = p3.y-p1.y
-			CALL	l_z80n_muls_16_16x16	; HL - p2.x*(p3.y-p1.y)
+			CALL	fastMulS16_16x16	; HL - p2.x*(p3.y-p1.y)
 			PUSH	HL
 			LD	DE,(R4)			; DE: p3.x
 			LD	HL,(R1)			; HL: p1.y
 			LD	BC,(R3)			; BC: p2.y
 			XOR	A
 			SBC	HL,BC			; HL = p1.y-p2.y
-			CALL	l_z80n_muls_16_16x16	; HL - p3.x*(p1.y-p2.y)
+			CALL	fastMulS16_16x16	; HL - p3.x*(p1.y-p2.y)
 			POP	DE
 			POP	BC
 			ADD	HL,DE
@@ -804,89 +1005,3 @@ project3D_vp:		LD	A,H		; Preserve the sign for later
 			EX	AF,AF		; Restore the flags
 			RET	P 		; Answer is positive so just return
 			JP	negHL		; Answer is negative so negate it 
-
-; extern uint16_t fastDiv16(uint16_t a, uint16_t b) __z88dk_callee;
-; Calculates an estimate of a / b
-; Inspired by https://blog.segger.com/algorithms-for-division-part-3-using-multiplication/
-;
-PUBLIC _fastDiv16, fastDiv16
-
-_fastDiv16:		POP	IY
-			POP	HL		; HL: Dividend
-			POP	DE		; DE: Divisor
-			PUSH	IY
-
-; HL: Dividend
-; DE: Divisor
-; Returns:
-; HL: The result (HL/DEV)
-;
-fastDiv16:		LD	A,D		; Check for divide by zero
-			OR	E
-			RET	Z
-			EX	DE,HL		; Swap the dividend and divisor
-			LD	A,15		; The bit counter
-@L1:			BIT	7,H		; Check high byte of HL
-			JR	NZ,@S1	
-			ADD	HL,HL		; Normalise HL by shifting it right
-			DEC	A		; Increment the bit counter
-			JR	@L1	
-@S1:			EX	AF,AF		; Store the bit counter for later
-;
-; Look up the reciprocal in the table
-;
-			LD	A,H		; A = HL >> 8
-			ADD	A,A		; Now index into the table
-			LD	L,A
-			LD	H,div_table >> 8
-			LD	A,(HL)
-			INC	L
-			LD	H,(HL)
-;			LD	L,A 		; Not needed, use A instead of L in next block
-;
-; Modified from l_z80n_mulu_32_16x16 in z88dk
-;		
-			LD	B,A		; x0 - was originally LD B,L
-			ld	C,E		; y0
-			ld	E,A		; x0 - was originally LD E,L
-			ld	L,D
-			PUSH	HL		; x1 y1
-			LD	L,C		; y0
-
-			; BC = x0 y0
-			; DE = y1 x0
-			; HL = x1 y0
-			; stack = x1 y1
-
-			MUL	DE		; y1*x0
-			EX	DE,HL
-			MUL	DE		; x1*y0
-
-			XOR	A	
-			ADD	HL,DE		; sum cross products p2 p1
-			ADC	A,A		; capture carry p3
-
-			LD	E,C		; x0
-			ld	D,B		; y0
-			MUL	DE		; y0*x0
-
-			LD	B,A		; carry from cross products
-			LD	C,H		; LSB of MSW from cross products
-
-			LD	A,D
-			ADD	A,L
-			LD	H,A
-			LD	L,E		; LSW in HL p1 p0
-
-			POP	DE
-			MUL	DE		; x1*y1
-
-			EX	DE,HL
-			ADC	HL,BC
-			EX	DE,HL		; DE = final MSW
-
-			EX	AF,AF		; The bit counter
-			LD	B,A
-			BSRL 	DE,B		; Undo the normalisation by shifting right B times
-			EX	DE,HL
-			RET

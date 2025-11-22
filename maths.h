@@ -2,10 +2,11 @@
  * Title:			Fast 3D Maths Routines
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	20/11/2025
+ * Last Updated:	22/11/2025
  *
  * Modinfo:
  * 20/11/2025:		Added fastDiv16
+ * 22/11/2025:		Refactored multiply and divide routines
  */
 
 #ifndef __MATHS_H__
@@ -61,11 +62,16 @@ extern Point16_3D rotate16_Z(Point16_3D p, uint8_t a) __z88dk_callee;
 extern int16_t fastSin16(uint8_t a, int16_t m);
 extern int16_t fastCos16(uint8_t a, int16_t m);
 
-extern int16_t fastMulDiv(int16_t a, int16_t b, int16_t c) __z88dk_callee;
+extern int16_t fastMulDiv32(int16_t a, int16_t b, int16_t c) __z88dk_callee;
+extern int16_t fastMulDiv16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
+
+extern uint16_t fastMulU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+extern uint16_t fastDivU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+
+extern int16_t fastMul16S_16x16(int16_t a, int16_t b) __z88dk_callee;
+extern int16_t fastDiv16S_16x16(int16_t a, int16_t b) __z88dk_callee;
 
 extern Point16 project3D(Point16_3D pos, Point8_3D r) __z88dk_callee;
 extern uint8_t windingOrder(Point16 p1, Point16 p2, Point16 p3) __z88dk_callee;
-
-extern uint16_t fastDiv16(uint16_t a, uint16_t b) __z88dk_callee;
 
 #endif 	//__MATHS_H__
