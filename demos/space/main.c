@@ -2,10 +2,11 @@
  * Title:			Spectrum Next 3D Engine Space Demo
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	30/10/2025
+ * Last Updated:	22/11/2025
  *
  * Modinfo:
  * 30/10/2025:		Added proof-of-concept code for Z sorting objects
+ * 22/11/2025		drawSun now uses fastMulDiv32
  */
 
 #pragma output REGISTER_SP = 0xbfff
@@ -85,8 +86,8 @@ void drawSun(void) {
 	//
 	if(p.z >= 200 && abs(p.x) < p.z && abs(p.y) < p.z ) {
 		Point16 t = {
-		    fastMulDiv(p.x, pd, p.z) + 128,
-		    fastMulDiv(p.y, pd, p.z) + 96,
+		    fastMulDiv32(p.x, pd, p.z) + 128,
+		    fastMulDiv32(p.y, pd, p.z) + 96,
 		};
 		int16_t r = (32768-p.z)/256;	// This sets the sun's radius (size)
 
