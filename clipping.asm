@@ -2,11 +2,12 @@
 ; Title:	Line and Triangle Clipping Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	25/10/2025
+; Last Updated:	22/11/2025
 ;
 ; Modinfo:
 ; 18/10/2025:	Register juggling in drawShapeTable
 ; 25/10/2025:	Now uses SCREEN_HEIGHT for clipping
+; 22/11/2025:	Now uses fastMulDiv16 for clipping
 
     			SECTION KERNEL_CODE
 
@@ -24,7 +25,7 @@ dx:			DS	2
 dy:			DS 	2
 
 			EXTERN	scratchpad		; From ram.inc
-			EXTERN	fastMulDiv		; From maths.asm
+			EXTERN	fastMulDiv16		; From maths.asm
 			EXTERN	negDE 			; From maths.asm
 			EXTERN	plotL2asm_colour	; From render.asm
 			EXTERN	lineL2			; From render.asm
@@ -622,7 +623,7 @@ clipTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
 			LD	DE,(p1_y)
 			LD	BC,(dy)
 			CALL	negDE 
-			CALL	fastMulDiv		; HL: fastMulDiv(dx, -p1->y, dy); 
+			CALL	fastMulDiv16		; HL: fastMulDiv(dx, -p1->y, dy); 
 			LD	DE,(p1_x)
 			ADD	HL,DE 			; HL: p1_x +fastMulDiv(dx, -p1->y, dy)
 			EX	DE,HL			; DE: X
@@ -643,7 +644,7 @@ clipLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
 			LD	DE,(p1_x)		
 			LD	BC,(dx)
 			CALL	negDE
-			CALL	fastMulDiv
+			CALL	fastMulDiv16
 			LD	DE,(p1_y)
 			ADD	HL,DE			; HL: Y
 			LD	DE,0			; DE: X
@@ -666,7 +667,7 @@ clipBottom:		LD	HL,191			; Do p1->x + fastMulDiv(dx, 191-p1->y, dy)
 			EX	DE,HL
 			LD	HL,(dx)
 			LD	BC,(dy)
-			CALL	fastMulDiv
+			CALL	fastMulDiv16
 			LD	DE,(p1_x)
 			ADD	HL,DE			; HL: X
 			EX	DE,HL			; DE: X
@@ -690,7 +691,7 @@ clipRight:		LD	HL,255			; Do p1->y + fastMulDiv(dy, 255-p1->x, dx)
 			EX	DE,HL
 			LD	HL,(dy)
 			LD	BC,(dx)
-			CALL	fastMulDiv	
+			CALL	fastMulDiv16
 			LD	DE,(p1_y)
 			ADD	HL,DE			; HL: Y
 			LD	DE,255			; DE: X		
