@@ -5,6 +5,7 @@
 ; Last Updated:	23/11/2025
 ;
 ; Modinfo:
+; 23/11/2025:	Refactored project3D, fixed bug in windingOrder
 ;
     			SECTION KERNEL_CODE
 
@@ -16,7 +17,6 @@
 			EXTERN	cos16			; In maths.asm
 			EXTERN	negHL			; In maths.asm
 			EXTERN	negBC			; In maths.asm
-			EXTERN	muls16_16x16		; In maths.asm
 
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
@@ -522,6 +522,8 @@ _project3D:		POP	BC		; The return address
 ; Calculate z
 ; Returns Point16 value stored in IY
 ;
+; First, translate the rotated 8-bit z coordinate into 16-bit world space by adding it to the models z coordinate
+;
 project3D:		LD 	C,A		;  C: r.z - sign extend into BC
    			ADD	A,A		; Sign bit of A into carry
    			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
@@ -533,15 +535,10 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
 ;
 ; Calculate x perspective point
 ;
+			POP 	BC		; BC: z
 			LD	L,(IY+0)	; HL: pos.x
 			LD	H,(IY+1)
-			LD	A,E		;  E: r.x
-   			ADD	A,A		; Sign bit of A into carry
-   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
-   			LD 	D,A		; DE: Sign-extended A
-   			ADD	HL,DE		; HL: pos.x + r.x
-			POP 	BC		; BC: z
-			CALL	project3D_vp	; HL: Perspective calculation (pos.x + r.x) * 256 / z
+			CALL	project3D_vp	; HL: Perspective calculation (y * 256 / z)
 			ADD	HL,128		; Add screen X centre
 			LD 	(IY+0),L	; Store in return value
 			LD	(IY+1),H
@@ -549,30 +546,39 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
 ; Calculate y perspective point
 ;
 			POP	DE		; DE: r.x, r.y
+			POP 	BC		; BC: z
+			LD	E,D		;  E: r.y
 			LD	L,(IY+2)	; HL: pos.Y
 			LD	H,(IY+3)
-			LD	E,D		;  E: r.y
-			LD	A,E		;  D: r.y
-   			ADD	A,A		; Sign bit of A into carry
-   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
-   			LD 	D,A		; BC: Sign-extended A
-   			ADD	HL,DE		; HL: pos.y + r.y
-			POP 	BC		; BC: z
-			CALL	project3D_vp	; HL: Perspective calculation (pos.y + r.y) * 256 / z
+			CALL	project3D_vp	; HL: Perspective calculation (y * 256 / z)
 			ADD	HL,96		; Add screen Y centre
 			LD 	(IY+2),L	; Store in return value
 			LD	(IY+3),H
 			RET
 
 ; Do the perspective calculation
-; HL: The x or y coordinate
+; HL: The x or y coordinate of the model
+;  E: The x or y coordinate of the rotated point
 ; BC: The z coordinate
 ; Returns:
 ; HL: The projected point (x or y)
 ;
-project3D_vp:		LD	A,H		; Preserve the sign for later
+; First translate the x or y coordinate into world space by adding it to the models x or y 16-bit world coordinate
+;
+project3D_vp:		LD	A,E		; Sign extend E into DE
+   			ADD	A,A		; Sign bit of A into carry
+   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
+   			LD 	D,A		; DE: Sign-extended A (r.x or r.y)
+   			ADD	HL,DE		; HL: coordinate + r
+;
+; Now do the perspective calculation HL*256/BC on that point now it has been translated into world space
+; At this point:
+; HL: Is the translated coordinate
+; BC: Is the z position of the point in world space
+;
+			LD	A,H		; Preserve the result sign for later
 			XOR	B
-			EX	AF,AF		; Preserve the flags
+			EX	AF,AF
 			BIT	7,H 		; Make all the values positive
 			CALL	NZ,negHL
 			BIT	7,B
@@ -580,7 +586,7 @@ project3D_vp:		LD	A,H		; Preserve the sign for later
 			LD	D,0		; DEHL = HL * 256 (the vanishing point)
 			LD	E,H
 			LD	H,L
-			LD	L,0
+			LD	L,D		; L: 0
 			CALL	l_divu_32_32x16	; DEHL = DEHL / BC
 			EX	AF,AF		; Restore the flags
 			RET	P 		; Answer is positive so just return
