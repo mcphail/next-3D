@@ -175,13 +175,14 @@ fastCMS8:		PUSH	BC		; BC: The multipliers
 			PUSH	DE		;  D: The angle
 			LD	A,D		;  A: Angle
 			LD	E,C		;  E: Multiplier for sin
-			PUSH	AF		; Stack the angle
-			CALL	sin8		;  A: fastSin(C,D)
-			LD	C,A		;  C: fastSin(C,D)
-			POP	AF
+			LD	C,A		;  C: Angle (temp)
+			CALL	sin8		;  D: sin(C,D)
+			LD	A,C		;  A: Angle
+			LD	C,D		;  C: sin(C,D)
 			LD	E,B		;  E: Multiplier for cos
-			CALL	cos8		;  A: fastCos(B,D)
-			SUB	C		;  A: fastCos(B,D)-fastSin(C,D)
+			CALL	cos8		;  A: cos(B,D)
+			LD	A,D
+			SUB	C		;  A: cos(B,D)-sin(C,D)
 			POP	DE
 			POP	BC
 			RET
@@ -192,13 +193,14 @@ fastSPC8:		PUSH	BC		; BC: The multipliers
 			PUSH	DE		;  D: The angle
 			LD	A,D		;  A: Angle
 			LD	E,C		; E: Multiplier for cos
-			PUSH	AF		; Stack the angle
-			CALL	cos8		; A: fastCos(C,D)
-			LD	C,A		; C: fastCos(C,D)
-			POP	AF
+			LD	C,A		; C: Angle (temp)
+			CALL	cos8		; A: cos(C,D)
+			LD	A,C		; A: Angle
+			LD	C,D		; C: cos(C,D)
 			LD	E,B		; E: Multiplier for sin
-			CALL	sin8		; A: fastSin(B,D)
-			ADD	C		; A: fastSin(B,D)+fastCos(C,D)
+			CALL	sin8		; A: sin(B,D)
+			LD	A,D
+			ADD	C		; A: sin(B,D)+cos(C,D)
 			POP	DE
 			POP	BC
 			RET

@@ -119,7 +119,7 @@ _sin8:			POP	BC
 			POP	DE			; D: Angle, E: Multiplier
 			LD	A,D 			; A: Angle
 			CALL	sin8
-			LD	L,A
+			LD	L,D
 			PUSH	BC
 			RET
 
@@ -127,12 +127,12 @@ _cos8:			POP	BC
 			POP	DE			; D: Angle, E: Multiplier
 			LD	A,D 
 			CALL	cos8
-			LD	L,A
+			LD	L,D
 			PUSH	BC
 			RET
 
-; A=COS(A)*E/256
-; A=SIN(A)*E/256
+; D=COS(A)*E/256
+; D=SIN(A)*E/256
 ; 
 cos8:			ADD	A,64			; Cosine is a quarter revolution copy of the sin wave
 sin8:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page boundary
@@ -150,6 +150,7 @@ sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
 			MUL	D,E 
 			LD	A,D 
 			NEG
+			LD	D,A
 			RET
 ;	
 sin8_neg_angle:		JR	Z,sin8_mul_neg
@@ -157,7 +158,6 @@ sin8_neg_angle:		JR	Z,sin8_mul_neg
 ;
 sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
 			MUL	D,E
-			LD	A,D 
 			RET 
 
 ; extern int16_t sin16(uint8_t a, int16_t m);
