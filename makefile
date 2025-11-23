@@ -21,9 +21,10 @@ OBJS = \
 	$(ODIR)/render.o \
 	$(ODIR)/clipping.o \
 	$(ODIR)/maths.o \
+	${ODIR}/maths_3D.o \
 	$(ODIR)/experiments.o \
 	$(ODIR)/render_3D.o \
-	$(ODIR)/sprites.o
+	$(ODIR)/sprites.o 
 
 next-3D.nex: $(OBJS)
 	$(CC) +zxn -vn -m --list --c-code-in-asm -clib=sdcc_iy -Cz"--clean" -pragma-include:zpragma.inc -startup=1 --math32 $(OBJS) -o next-3D.nex -create-app -subtype=nex
@@ -57,6 +58,9 @@ $(ODIR)/clipping.o: clipping.asm globals.inc | $(ODIR)
 
 $(ODIR)/maths.o: maths.asm globals.inc | $(ODIR)
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/maths.o maths.asm
+
+$(ODIR)/maths_3D.o: maths_3D.asm globals.inc | $(ODIR)
+	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/maths_3D.o maths_3D.asm
 
 $(ODIR)/render_3D.o: render_3D.asm globals.inc | $(ODIR)
 	$(CC) $(CFLAGS) --codesegPAGE_02_KERNEL_CODE --constsegPAGE_02_KERNEL_CODE -o $(ODIR)/render_3D.o render_3D.asm

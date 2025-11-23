@@ -10,6 +10,8 @@
 #ifndef __RENDER_3D_H__
 #define __RENDER_3D_H__
 
+#include "maths_3D.h"
+
 #define MAX_POINTS	64				// Maximum points per shape
 #define MAX_OBJECTS 16				// Maximum number of objects in the world
 

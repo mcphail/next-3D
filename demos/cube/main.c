@@ -2,9 +2,10 @@
  * Title:			Spectrum Next 3D Engine Cube Demo
  * Author:			Dean Belfield
  * Created:			29/09/2025
- * Last Updated:	29/09/2025
+ * Last Updated:	23/11/2025
  *
  * Modinfo:
+ * 23/11/2025:		Now includes maths_3D.h
  */
 
 #pragma output REGISTER_SP = 0xbfff
@@ -23,6 +24,7 @@
 #include "../../render.h"
 #include "../../clipping.h"
 #include "../../maths.h"
+#include "../../maths_3D.h"
 #include "../../render_3D.h"
 #include "../../sprites.h"
 #include "../../experiments.h"

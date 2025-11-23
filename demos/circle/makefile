@@ -21,6 +21,7 @@ OBJS = \
 	$(ODIR)/render.o \
 	$(ODIR)/clipping.o \
 	$(ODIR)/maths.o \
+	${ODIR}/maths_3D.o \
 	$(ODIR)/experiments.o \
 	$(ODIR)/render_3D.o \
 	$(ODIR)/sprites.o

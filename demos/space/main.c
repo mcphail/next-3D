@@ -2,11 +2,12 @@
  * Title:			Spectrum Next 3D Engine Space Demo
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	22/11/2025
+ * Last Updated:	23/11/2025
  *
  * Modinfo:
  * 30/10/2025:		Added proof-of-concept code for Z sorting objects
  * 22/11/2025		drawSun now uses fastMulDiv32
+* 23/11/2025:		Now includes maths_3D.h
  */
 
 #pragma output REGISTER_SP = 0xbfff
@@ -25,6 +26,7 @@
 #include "../../render.h"
 #include "../../clipping.h"
 #include "../../maths.h"
+#include "../../maths_3D.h"
 #include "../../render_3D.h"
 #include "../../sprites.h"
 #include "../../experiments.h"
