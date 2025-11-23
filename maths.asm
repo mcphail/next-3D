@@ -300,32 +300,23 @@ _mulu16_16x16:		POP	IY
 ; DE: Multiplier
 ; Returns
 ; HL: Result (HL*DE)
-;  F: Carry set if overflow
 ;
-; Does: ((H*E+D*L)*256)+(L*E)
-;
-mulu16_16x16:		LD	B,D
-			LD	C,E 
+mulu16_16x16:		LD	A,D
 			LD	D,H
-			MUL	D,E			; DE: H*E
-			LD	H,D			; HA: H*E
-			LD	A,E
-			LD	D,B
-			LD	E,L
-			MUL	D,E			; DE: D*L
-			PUSH	DE
-			LD	D,L
+			LD	H,A
+			LD	C,E
+			LD	B,L
+			MUL	D,E
+			EX	DE,HL		; HL: H*E
+			MUL	D,E		; DE: D*L
+			ADD	HL,DE		; HL: H*E+D*L - Adding the cross products
 			LD	E,C
-			MUL	D,E			; DE: L*E
-			POP	BC			; BC: D*L
-			LD	L,A			; HL: H*E
-			ADD	HL,BC			; HL: The sum of the two most significant multiplications
-			XOR	A
-			SBC	H			; If H is not zero then its an overflow
-			RET	C
-			LD	H,L
-			LD	L,A
-			ADD	HL,DE
+			LD	D,B
+			MUL	D,E		; DE: E*L
+			LD	A,L		;  A: Cross product LSB
+			ADD	A,D
+			LD	H,A
+			LD	L,E
 			RET 
 
 ; extern int16_t muls16_16x16(int16_t a, int16_t b) __z88dk_callee;
@@ -342,12 +333,9 @@ _muls16_16x16:		POP	IY
 ; DE: Multiplier
 ; Returns
 ; HL: Result (HL*DE)
-;  F: Carry set if overflow
-;
-; Does: ((H*E+D*L)*256)+(L*E)
 ;
 muls16_16x16:		LD	A,H
-			OR	D
+			XOR	D
 			PUSH	AF
 			BIT	7,H
 			CALL	NZ,negHL
@@ -447,7 +435,7 @@ _divs16_16x16:		POP	IY
 ; HL: The result (HL/DEV)
 ;
 divs16_16x16:		LD	A,H
-			OR	D
+			XOR	D
 			PUSH	AF
 			BIT	7,H
 			CALL	NZ,negHL

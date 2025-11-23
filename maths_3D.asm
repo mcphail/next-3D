@@ -17,12 +17,12 @@
 			EXTERN	cos16			; In maths.asm
 			EXTERN	negHL			; In maths.asm
 			EXTERN	negBC			; In maths.asm
+			EXTERN	muls16_16x16		; In maths.asm
 
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
 
 			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
-			EXTERN	l_muls_16_16x16		;  HL  =   HL * DE (signed)
 
 ; extern Point8_3D rotate8_3D(Point8_3D p, Angle_3D theta) __z88dk_callee;
 ; This is an optimised version of this C routine
@@ -224,21 +224,21 @@ windingOrder:		LD	DE,(R0)			; DE: p1.x
 			LD	BC,(R5)			; BC: p3.y
 			XOR	A
 			SBC	HL,BC			; HL = p2.y-p3.y
-			CALL	l_muls_16_16x16		; HL - p1.x*(p2.y-p3.y)
+			CALL	muls16_16x16		; HL - p1.x*(p2.y-p3.y)
 			PUSH	HL
 			LD	DE,(R2)			; DE: p2.x
 			LD	HL,(R5)			; HL: p3.y
 			LD	BC,(R1)			; BC: p1.y
 			XOR	A
 			SBC	HL,BC			; HL = p3.y-p1.y
-			CALL	l_muls_16_16x16		; HL - p2.x*(p3.y-p1.y)
+			CALL	muls16_16x16		; HL - p2.x*(p3.y-p1.y)
 			PUSH	HL
 			LD	DE,(R4)			; DE: p3.x
 			LD	HL,(R1)			; HL: p1.y
 			LD	BC,(R3)			; BC: p2.y
 			XOR	A
 			SBC	HL,BC			; HL = p1.y-p2.y
-			CALL	l_muls_16_16x16		; HL - p3.x*(p1.y-p2.y)
+			CALL	muls16_16x16		; HL - p3.x*(p1.y-p2.y)
 			POP	DE
 			POP	BC
 			ADD	HL,DE
