@@ -13,11 +13,11 @@
 #ifndef __MATHS_H__
 #define __MATHS_H__
 
-extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
-extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
+extern int8_t sin8(uint8_t a, int8_t m) __z88dk_callee;
+extern int8_t cos8(uint8_t a, int8_t m) __z88dk_callee;
 
-extern int16_t fastSin16(uint8_t a, int16_t m);
-extern int16_t fastCos16(uint8_t a, int16_t m);
+extern int16_t sin16(uint8_t a, int16_t m);
+extern int16_t cos16(uint8_t a, int16_t m);
 
 extern int16_t muldivs32_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 extern int16_t muldivs16_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee;

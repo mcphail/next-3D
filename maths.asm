@@ -110,13 +110,13 @@ negDEHL:		LD	A,L
 			RET
 
 
-; extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
-; extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
+; extern int8_t sin8(uint8_t a, int8_t m) __z88dk_callee;
+; extern int8_t cos8(uint8_t a, int8_t m) __z88dk_callee;
 ;
-PUBLIC _fastSin8
-PUBLIC _fastCos8
+PUBLIC _sin8
+PUBLIC _cos8
 
-_fastSin8:		POP	BC
+_sin8:			POP	BC
 			POP	DE			; D: Angle, E: Multiplier
 			LD	A,D 			; A: Angle
 			CALL	sin8
@@ -124,7 +124,7 @@ _fastSin8:		POP	BC
 			PUSH	BC
 			RET
 
-_fastCos8:		POP	BC
+_cos8:			POP	BC
 			POP	DE			; D: Angle, E: Multiplier
 			LD	A,D 
 			CALL	cos8
@@ -161,13 +161,13 @@ sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
 			LD	A,D 
 			RET 
 
-; extern int16_t fastSin16(uint8_t a, int16_t m);
-; extern int16_t fastCos16(uint8_t a, int16_t m);
+; extern int16_t sin16(uint8_t a, int16_t m);
+; extern int16_t cos16(uint8_t a, int16_t m);
 ;
-PUBLIC _fastSin16
-PUBLIC _fastCos16
+PUBLIC _sin16
+PUBLIC _cos16
 
-_fastSin16:		LD	HL,2
+_sin16:			LD	HL,2
 			ADD	HL,SP			; Skip over return address
 			LD	A,(HL)			;  A: Angle
 			INC	HL
@@ -176,7 +176,7 @@ _fastSin16:		LD	HL,2
 			LD	D,(HL)			; DE: Multiplier
 			JR	sin16 
 
-_fastCos16:		LD	HL,2
+_cos16:			LD	HL,2
 			ADD	HL,SP			; Skip over return address
 			LD	A,(HL)			;  A: Angle
 			INC	HL
