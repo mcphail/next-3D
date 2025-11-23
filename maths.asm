@@ -21,7 +21,6 @@
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
 
-			EXTERN	l_z80n_mulu_24_16x8	;  AHL =    E x HL (unsigned)
 			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
 
 			PUBLIC	_pd			; int pd
