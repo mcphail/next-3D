@@ -2,12 +2,13 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	22/11/2025
+; Last Updated:	23/11/2025
 ;
 ; Modinfo:
 ; 20/11/2025:		Added fastDiv16
 ; 21/11/2025		Improved performance of project3D
 ; 22/11/2025:		Refactored multiply and divide routines 
+; 23/11/2025:		Added more multiply routines, refactored sin and cos routines
 ;
 
     			SECTION KERNEL_CODE
@@ -20,24 +21,22 @@
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
 
-			EXTERN	l_z80n_muls_32_16x16	; DEHL =   HL x DE (signed)
 			EXTERN	l_z80n_mulu_24_16x8	;  AHL =    E x HL (unsigned)
 			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
 
 			PUBLIC	_pd			; int pd
 
-			PUBLIC	sin8		
-			PUBLIC	cos8		
-			PUBLIC	sin16		
-			PUBLIC	cos16		
-			PUBLIC	negHL	
-			PUBLIC	negDE	
-			PUBLIC	negBC	
-			PUBLIC 	negDEHL
+			PUBLIC	sin8, sin16		
+			PUBLIC	cos8, cos16	
+
+			PUBLIC	negHL, negDE, negBC, negDEHL
+			PUBLIC	absHL, absDE, absBC, absDEHL
 
 			PUBLIC	muldivs16_16x16
 			PUBLIC	muldivs32_16x16
 
+			PUBLIC	muls32_16x16
+			PUBLIC	mulu32_16x16
 			PUBLIC	muls16_16x16
 			PUBLIC	mulu16_16x16
 			PUBLIC	divs16_16x16
@@ -45,10 +44,12 @@
 
 _pd:			DW	256			; Perspective distance
 
-; Negates HL
+; Negate HL and ABS(HL)
 ;
-PUBLIC	negHL
+PUBLIC	negHL, absHL
 
+absHL:			BIT	7,H
+			RET	P
 negHL: 			XOR 	A	
 			SUB	L 
 			LD 	L,A
@@ -57,10 +58,12 @@ negHL: 			XOR 	A
 			LD	H,A
 			RET 
 
-; Negates DE
+; Negate DE and ABS(DE)
 ;
-PUBLIC	negDE
+PUBLIC	negDE, absDE
 
+absDE:			BIT	7,D
+			RET	P
 negDE:			XOR 	A	
 			SUB	E
 			LD 	E,A
@@ -69,10 +72,12 @@ negDE:			XOR 	A
 			LD	D,A
 			RET
 
-; Negates BC
+; Negate BC and ABS(BC)
 ;
-PUBLIC	negBC 
+PUBLIC	negBC, absDE
 
+absBC:			BIT	7,B
+			RET	P 
 negBC:			XOR 	A
 			SUB	C 
 			LD 	C,A
@@ -81,37 +86,29 @@ negBC:			XOR 	A
 			LD	B,A
 			RET
 
-; Negates DEHL
+; Negate DEHL and ABS(DEHL)
 ;
-negDEHL:		LD A,L	
+absDEHL:		BIT	7,D
+			RET	P
+negDEHL:		LD	A,L	
 			CPL
-			LD L,A
-			LD A,H
+			LD	L,A
+			LD	A,H
 			CPL
-			LD H,A
-			LD A,E
+			LD	H,A
+			LD	A,E
 			CPL
-			LD E,A
-			LD A,D
+			LD	E,A
+			LD	A,D
 			CPL
-			LD D,A
-			INC L
-			RET NZ
-			INC H
-			RET NZ
-			INC DE
+			LD	D,A
+			INC	L
+			RET	NZ
+			INC	H
+			RET	NZ
+			INC	DE
 			RET
 
-; 8-bit unsigned quick multiply, with divide by 256
-; Returns A=(B*C)/256
-;
-MUL8_DIV256:		EX	DE,HL
-			LD 	D,B
-			LD	E,C
-			MUL	D,E
-			LD	A,D
-			EX	DE,HL
-			RET
 
 ; extern int8_t fastSin8(uint8_t a, int8_t m) __z88dk_callee;
 ; extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
@@ -145,28 +142,24 @@ sin8:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page bounda
 			LD 	D,(HL)			; Fetch the value from the sin table
 			RLCA				; Get the sign of the angle
 			LD	A,E			;  A: The multiplicand
-			JR	C,sin8_neg_angle		; Skip to the case where the sin angle is negative
+			BIT	7,A			; And the sign of the multiplicand
+			JR	C,sin8_neg_angle	; Skip to the case where the sin angle is negative
 ;
-sin8_pos_angle:		AND	A			; The multiplicand is also positive
-			JP	P,sin8_mul_pos		; So return a positive result
+sin8_pos_angle:		JR	Z,sin8_mul_pos
 			NEG				; Otherwise negate the multiplicand
-			JR	sin8_mul_neg		; And return a negative result
-;	
-sin8_neg_angle:		AND	A			; The multiplicand is positive
-			JP	P,sin8_mul_neg 		; So return a negative result
-			NEG 				; Otherwise negate the multiplicand
-			JR	sin8_mul_pos		; And return a positive result
-;
-sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
-			MUL	D,E
-			LD	A,D 
-			RET 
-;
 sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
 			MUL	D,E 
 			LD	A,D 
 			NEG
 			RET
+;	
+sin8_neg_angle:		JR	Z,sin8_mul_neg
+			NEG 				; Otherwise negate the multiplicand
+;
+sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
+			MUL	D,E
+			LD	A,D 
+			RET 
 
 ; extern int16_t fastSin16(uint8_t a, int16_t m);
 ; extern int16_t fastCos16(uint8_t a, int16_t m);
@@ -201,31 +194,32 @@ sin16:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page bound
 			RES	7,L			; It's only a 128 byte table, so clear the top bit
 			LD	L,(HL)			; Fetch the value from the sin table
 			RLCA				; Get the sign of the angle
-			LD	A,D			;  A: High byte of the multiplicand
+			BIT	7,D			; And the sign of the multiplicand
 			JR	C,sin16_neg_angle	; Skip to the case where the sin angle is negative
 ;
-sin16_pos_angle:	AND	A			; The multiplicand is also positive
-			JP	P,sin16_mul_pos		; So return a positive result
+sin16_pos_angle:	JR	Z,sin16_mul
 			CALL	negDE			; Otherwise negate the multiplicand
-			JR	sin16_mul_neg		; And return a negative result
+sin16_mul_neg:		CALL	sin16_mul
+			JP	negHL			; And return a negative result
 ;	
-sin16_neg_angle:	AND	A			; The multiplicand is positive
-			JP	P,sin16_mul_neg 	; So return a negative result
+sin16_neg_angle:	JR	Z,sin16_mul_neg
 			CALL	negDE			; Otherwise negate the multiplicand
-			JR	sin16_mul_pos		; And return a positive result
 ;
-sin16_mul_pos:		EX	DE,HL
-			CALL	l_z80n_mulu_24_16x8	; AHL = E x HL
-			LD	L,H			; Divide by 256
+; HL = L * DE / 256
+;
+sin16_mul:		LD	H,E
+			LD	D,D
+			LD	E,L
+			MUL	D,E			; DE: YH*X
+			EX	DE,HL 
+			MUL	D,E			; DE: YL*X
+			LD	A,D
+			ADD	A,L
+			LD	L,A 
+			LD	A,H
+			ADC	A,0
 			LD	H,A
-			RET 
-;
-sin16_mul_neg:		EX	DE,HL
-			CALL	l_z80n_mulu_24_16x8	; AHL = E x HL
-			LD	L,H 			; Divide by 256
-			LD	H,A 
-			JP	negHL
-
+			RET
 
 ; extern int16_t muldivs32_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee
 ; Calculates a * b / c, with the internal calculation done in 32-bits
@@ -241,15 +235,13 @@ _muldivs32_16x16:	POP	IY
 ; HL = HL * DE / BC
 ;
 muldivs32_16x16:	PUSH	BC			; Save this somewhere
-			CALL 	l_z80n_muls_32_16x16	; DEHL: 32-bit signed product
+			CALL 	muls32_16x16		; DEHL: 32-bit signed product
 			POP	BC
 			LD	A,B			; Get the sign 
 			XOR	D 
 			PUSH 	AF
-			BIT	7,D			; Is DEHL negative?
-			CALL	NZ,negDEHL		; Yes, so make it positive
-			BIT 	7,B			; Is BC negative?
-			CALL	NZ,negBC		; Yes, so make it positive
+			CALL	absDEHL	
+			CALL	absBC
 			CALL	l_divu_32_32x16	
 			POP 	AF
 			RET	P 			; Answer is positive
@@ -272,12 +264,9 @@ muldivs16_16x16:	LD	A,H
 			XOR	D
 			XOR	B
 			PUSH	AF 			; Work out the final sign
-			BIT	7,H			; Make all the operands positve
-			CALL	NZ,negHL
-			BIT	7,D
-			CALL	NZ,negDE
-			BIT 	7,B
-			CALL	NZ,negBC
+			CALL	absHL
+			CALL	absDE
+			CALL	absBC
 			PUSH	BC			; BC: Save the divisor
 			CALL	mulu16_16x16		; HL: 16-bit product (HL*DE)
 			POP	DE			; DE: The divisor
@@ -337,14 +326,80 @@ _muls16_16x16:		POP	IY
 muls16_16x16:		LD	A,H
 			XOR	D
 			PUSH	AF
-			BIT	7,H
-			CALL	NZ,negHL
-			BIT	7,D
-			CALL	NZ,negDE
+			CALL	absHL
+			CALL	absDE
 			CALL	mulu16_16x16
 			POP	AF
 			RET	P
 			JP	negHL
+
+; extern int16_t mulu32_16x16(int16_t a, int16_t b) __z88dk_callee;
+; Calculates a * b (signed)
+;
+PUBLIC _mulu32_16x16, mulu32_16x16
+
+_mulu32_16x16:		POP	IY
+			POP	HL
+			POP	DE
+			PUSH	IY
+
+; HL: Multiplicand
+; DE: Multiplier
+; Returns
+; DEHL: Result (HL*DE)
+;
+mulu32_16x16:		LD	B,L		; x0
+			LD	C,E		; y0
+			LD	E,L		; x0
+			LD	L,D
+			PUSH	HL		; x1 y1
+			LD	L,C		; y0
+			MUL	DE		; y1*x0
+			EX	DE,HL
+			MUL	DE		; x1*y0
+			XOR	A	
+			ADD	HL,DE		; sum cross products p2 p1
+			ADC	A,A		; capture carry p3
+			LD	E,C		; x0
+			LD	D,B		; y0
+			MUL	DE		; y0*x0
+			LD	B,A		; carry from cross products
+			LD	C,H		; LSB of MSW from cross products
+			LD	A,D
+			ADD	A,L
+			LD	H,A
+			LD	L,E		; LSW in HL p1 p0
+			POP	DE
+			MUL	DE		; x1*y1
+			EX	DE,HL
+			ADC	HL,BC
+			EX	DE,HL		; DE = final MSW
+			RET
+
+; extern int32_t muls32_16x16(int16_t a, int16_t b) __z88dk_callee;
+; Calculates a * b (signed)
+;
+PUBLIC _muls32_16x16, muls32_16x16
+
+_muls32_16x16:		POP	IY
+			POP	HL
+			POP	DE
+			PUSH	IY
+
+; HL: Multiplicand
+; DE: Multiplier
+; Returns
+; DEHL: Result (HL*DE)
+;
+muls32_16x16:		LD	A,H
+			XOR	D
+			PUSH	AF
+			CALL	absHL
+			CALL	absDE
+			CALL	mulu32_16x16
+			POP	AF
+			RET	P
+			JP	negDEHL
 
 ; extern uint16_t divu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 ; Calculates an estimate of a / b (unsigned)
@@ -383,36 +438,8 @@ divu16_16x16:		LD	A,D		; Check for divide by zero
 			LD	A,(HL)
 			INC	L
 			LD	H,(HL)
-;			LD	L,A 		; Not needed, use A instead of L in next block
-;
-; Modified from l_z80n_mulu_32_16x16 in z88dk
-;		
-			LD	B,A		; x0 - was originally LD B,L
-			ld	C,E		; y0
-			ld	E,A		; x0 - was originally LD E,L
-			ld	L,D
-			PUSH	HL		; x1 y1
-			LD	L,C		; y0
-			MUL	DE		; y1*x0
-			EX	DE,HL
-			MUL	DE		; x1*y0
-			XOR	A	
-			ADD	HL,DE		; sum cross products p2 p1
-			ADC	A,A		; capture carry p3
-			LD	E,C		; x0
-			ld	D,B		; y0
-			MUL	DE		; y0*x0
-			LD	B,A		; carry from cross products
-			LD	C,H		; LSB of MSW from cross products
-			LD	A,D
-			ADD	A,L
-			LD	H,A
-			LD	L,E		; LSW in HL p1 p0
-			POP	DE
-			MUL	DE		; x1*y1
-			EX	DE,HL
-			ADC	HL,BC
-			EX	DE,HL		; DE = final MSW
+			LD	L,A 		; Not needed, use A instead of L in next block
+			CALL	mulu32_16x16	; 
 			EX	AF,AF		; The bit counter
 			LD	B,A
 			BSRL 	DE,B		; Undo the normalisation by shifting right B times
@@ -437,10 +464,8 @@ _divs16_16x16:		POP	IY
 divs16_16x16:		LD	A,H
 			XOR	D
 			PUSH	AF
-			BIT	7,H
-			CALL	NZ,negHL
-			BIT	7,D
-			CALL	NZ,negDE
+			CALL	absHL
+			CALL	absDE
 			CALL	divu16_16x16
 			POP	AF
 			RET	P

@@ -22,9 +22,11 @@ extern int16_t fastCos16(uint8_t a, int16_t m);
 extern int16_t muldivs32_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 extern int16_t muldivs16_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 
+extern uint32_t mulu32_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 extern uint16_t mulu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 extern uint16_t divu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 
+extern int32_t muls32_16x16(int16_t a, int16_t b) __z88dk_callee;
 extern int16_t muls16_16x16(int16_t a, int16_t b) __z88dk_callee;
 extern int16_t divs16_16x16(int16_t a, int16_t b) __z88dk_callee;
 
