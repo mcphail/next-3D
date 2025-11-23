@@ -34,7 +34,14 @@
 			PUBLIC	negDE	
 			PUBLIC	negBC	
 			PUBLIC 	negDEHL
-			PUBLIC	fastMulS16_16x16
+
+			PUBLIC	muldivs16_16x16
+			PUBLIC	muldivs32_16x16
+
+			PUBLIC	muls16_16x16
+			PUBLIC	mulu16_16x16
+			PUBLIC	divs16_16x16
+			PUBLIC 	divu16_16x16
 
 _pd:			DW	256			; Perspective distance
 
@@ -220,12 +227,12 @@ sin16_mul_neg:		EX	DE,HL
 			JP	negHL
 
 
-; extern int16_t fastMulDiv32(int16_t a, int16_t b, int16_t c) __z88dk_callee
+; extern int16_t muldivs32_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee
 ; Calculates a * b / c, with the internal calculation done in 32-bits
 ;
-PUBLIC _fastMulDiv32, fastMulDiv32
+PUBLIC _muldivs32_16x16, muldivs32_16x16
 
-_fastMulDiv32:		POP	IY
+_muldivs32_16x16:	POP	IY
 			POP	HL	; a
 			POP	DE	; b
 			POP	BC	; c
@@ -233,7 +240,7 @@ _fastMulDiv32:		POP	IY
 
 ; HL = HL * DE / BC
 ;
-fastMulDiv32:		PUSH	BC			; Save this somewhere
+muldivs32_16x16:	PUSH	BC			; Save this somewhere
 			CALL 	l_z80n_muls_32_16x16	; DEHL: 32-bit signed product
 			POP	BC
 			LD	A,B			; Get the sign 
@@ -248,12 +255,12 @@ fastMulDiv32:		PUSH	BC			; Save this somewhere
 			RET	P 			; Answer is positive
 			JP	negHL			; Answer is negative so negate it 
 
-; extern int16_t fastMulDiv16(int16_t a, int16_t b, int16_t c) __z88dk_callee
+; extern int16_t muldivs16_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee
 ; Calculates a * b / c, with the internal calculation done in 16-bits
 ;
-PUBLIC _fastMulDiv16, fastMulDiv16
+PUBLIC _muldivs16_16x16, muldivs16_16x16
 
-_fastMulDiv16:		POP	IY
+_muldivs16_16x16:	POP	IY
 			POP	HL	; a
 			POP	DE	; b
 			POP	BC	; c
@@ -261,7 +268,7 @@ _fastMulDiv16:		POP	IY
 
 ; HL = HL * DE / BC
 ;
-fastMulDiv16:		LD	A,H
+muldivs16_16x16:	LD	A,H
 			XOR	D
 			XOR	B
 			PUSH	AF 			; Work out the final sign
@@ -272,19 +279,19 @@ fastMulDiv16:		LD	A,H
 			BIT 	7,B
 			CALL	NZ,negBC
 			PUSH	BC			; BC: Save the divisor
-			CALL	fastMulU16_16x16	; HL: 16-bit product (HL*DE)
+			CALL	mulu16_16x16		; HL: 16-bit product (HL*DE)
 			POP	DE			; DE: The divisor
-			CALL	fastDivU16_16x16	; HL: HL*DE/BC
+			CALL	divu16_16x16		; HL: HL*DE/BC
 			POP	AF			;  F: The sign
 			RET	P 			; Answer is positive
-			JP	negHL			; Answer is negative
+			JP	negHL		
 
-; extern uint16_t fastMulU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+; extern uint16_t mulu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 ; Calculates a * b (unsigned)
 ;
-PUBLIC _fastMulU16_16x16, fastMulU16_16x16
+PUBLIC _mulu16_16x16, mulu16_16x16
 
-_fastMulU16_16x16:	POP	IY
+_mulu16_16x16:		POP	IY
 			POP	HL
 			POP	DE
 			PUSH	IY
@@ -297,7 +304,7 @@ _fastMulU16_16x16:	POP	IY
 ;
 ; Does: ((H*E+D*L)*256)+(L*E)
 ;
-fastMulU16_16x16:	LD	B,D
+mulu16_16x16:		LD	B,D
 			LD	C,E 
 			LD	D,H
 			MUL	D,E			; DE: H*E
@@ -321,12 +328,12 @@ fastMulU16_16x16:	LD	B,D
 			ADD	HL,DE
 			RET 
 
-; extern int16_t fastMulS16_16x16(int16_t a, int16_t b) __z88dk_callee;
+; extern int16_t muls16_16x16(int16_t a, int16_t b) __z88dk_callee;
 ; Calculates a * b (signed)
 ;
-PUBLIC _fastMulS16_16x16, fastMulS16_16x16
+PUBLIC _muls16_16x16, muls16_16x16
 
-_fastMulS16_16x16:	POP	IY
+_muls16_16x16:		POP	IY
 			POP	HL
 			POP	DE
 			PUSH	IY
@@ -339,25 +346,25 @@ _fastMulS16_16x16:	POP	IY
 ;
 ; Does: ((H*E+D*L)*256)+(L*E)
 ;
-fastMulS16_16x16:	LD	A,H
+muls16_16x16:		LD	A,H
 			OR	D
 			PUSH	AF
 			BIT	7,H
 			CALL	NZ,negHL
 			BIT	7,D
 			CALL	NZ,negDE
-			CALL	fastMulU16_16x16
+			CALL	mulu16_16x16
 			POP	AF
 			RET	P
 			JP	negHL
 
-; extern uint16_t fastDivU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+; extern uint16_t divu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 ; Calculates an estimate of a / b (unsigned)
 ; Inspired by https://blog.segger.com/algorithms-for-division-part-3-using-multiplication/
 ;
-PUBLIC _fastDivU16_16x16, fastDivU16_16x16
+PUBLIC _divu16_16x16, divu16_16x16
 
-_fastDivU16_16x16:	POP	IY
+_divu16_16x16:		POP	IY
 			POP	HL		; HL: Dividend
 			POP	DE		; DE: Divisor
 			PUSH	IY
@@ -367,7 +374,7 @@ _fastDivU16_16x16:	POP	IY
 ; Returns:
 ; HL: The result (HL/DEV)
 ;
-fastDivU16_16x16:	LD	A,D		; Check for divide by zero
+divu16_16x16:		LD	A,D		; Check for divide by zero
 			OR	E
 			RET	Z
 			EX	DE,HL		; Swap the dividend and divisor
@@ -424,12 +431,12 @@ fastDivU16_16x16:	LD	A,D		; Check for divide by zero
 			EX	DE,HL
 			RET
 
-; extern int16_t fastDivS16_16x16(int16_t a, int16_t b) __z88dk_callee;
+; extern int16_t divs16_16x16(int16_t a, int16_t b) __z88dk_callee;
 ; Calculates an estimate of a / b (signed)
 ;
-PUBLIC _fastDivS16_16x16, fastDivS16_16x16
+PUBLIC _divs16_16x16, divs16_16x16
 
-_fastDivS16_16x16:	POP	IY
+_divs16_16x16:		POP	IY
 			POP	HL		; HL: Dividend
 			POP	DE		; DE: Divisor
 			PUSH	IY
@@ -439,14 +446,14 @@ _fastDivS16_16x16:	POP	IY
 ; Returns:
 ; HL: The result (HL/DEV)
 ;
-fastDivS16_16x16:	LD	A,H
+divs16_16x16:		LD	A,H
 			OR	D
 			PUSH	AF
 			BIT	7,H
 			CALL	NZ,negHL
 			BIT	7,D
 			CALL	NZ,negDE
-			CALL	fastDivU16_16x16
+			CALL	divu16_16x16
 			POP	AF
 			RET	P
 			JP	negHL

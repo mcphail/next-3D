@@ -81,8 +81,8 @@ void drawStars(int speed) {
 
 	for(i=0; i<starCount; i++) {
 		star = &stars[i];
-		int x = fastMulDiv16(star->x, 256, star->z) + 128;
-		int y = fastMulDiv16(star->y, 256, star->z) + 96;
+		int x = muldivs16_16x16(star->x, 256, star->z) + 128;
+		int y = muldivs16_16x16(star->y, 256, star->z) + 96;
 		if(x >=0 && x <=255 && y >=0 && y <= 191) {
 			if(star->z > 512) {
 				plotL2(x,y,0xFF);

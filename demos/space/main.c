@@ -88,8 +88,8 @@ void drawSun(void) {
 	//
 	if(p.z >= 200 && abs(p.x) < p.z && abs(p.y) < p.z ) {
 		Point16 t = {
-		    fastMulDiv32(p.x, pd, p.z) + 128,
-		    fastMulDiv32(p.y, pd, p.z) + 96,
+		    muldivs32_16x16(p.x, pd, p.z) + 128,
+		    muldivs32_16x16(p.y, pd, p.z) + 96,
 		};
 		int16_t r = (32768-p.z)/256;	// This sets the sun's radius (size)
 

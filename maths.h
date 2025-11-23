@@ -19,13 +19,13 @@ extern int8_t fastCos8(uint8_t a, int8_t m) __z88dk_callee;
 extern int16_t fastSin16(uint8_t a, int16_t m);
 extern int16_t fastCos16(uint8_t a, int16_t m);
 
-extern int16_t fastMulDiv32(int16_t a, int16_t b, int16_t c) __z88dk_callee;
-extern int16_t fastMulDiv16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
+extern int16_t muldivs32_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
+extern int16_t muldivs16_16x16(int16_t a, int16_t b, int16_t c) __z88dk_callee;
 
-extern uint16_t fastMulU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
-extern uint16_t fastDivU16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+extern uint16_t mulu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
+extern uint16_t divu16_16x16(uint16_t a, uint16_t b) __z88dk_callee;
 
-extern int16_t fastMul16S_16x16(int16_t a, int16_t b) __z88dk_callee;
-extern int16_t fastDiv16S_16x16(int16_t a, int16_t b) __z88dk_callee;
+extern int16_t muls16_16x16(int16_t a, int16_t b) __z88dk_callee;
+extern int16_t divs16_16x16(int16_t a, int16_t b) __z88dk_callee;
 
 #endif 	//__MATHS_H__

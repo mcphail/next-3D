@@ -16,12 +16,13 @@
 			EXTERN	cos16			; In maths.asm
 			EXTERN	negHL			; In maths.asm
 			EXTERN	negBC			; In maths.asm
-			EXTERN	fastMulS16_16x16	; In maths.asm
+			EXTERN	muls16_16x16		; In maths.asm
 
 ; These are declared here
 ; https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/math/integer/z80n
 
 			EXTERN	l_divu_32_32x16		; DEHL = DEHL / BC (unsigned)
+			EXTERN	l_muls_16_16x16		;  HL  =   HL * DE (signed)
 
 ; extern Point8_3D rotate8_3D(Point8_3D p, Angle_3D theta) __z88dk_callee;
 ; This is an optimised version of this C routine
@@ -223,21 +224,21 @@ windingOrder:		LD	DE,(R0)			; DE: p1.x
 			LD	BC,(R5)			; BC: p3.y
 			XOR	A
 			SBC	HL,BC			; HL = p2.y-p3.y
-			CALL	fastMulS16_16x16	; HL - p1.x*(p2.y-p3.y)
+			CALL	l_muls_16_16x16		; HL - p1.x*(p2.y-p3.y)
 			PUSH	HL
 			LD	DE,(R2)			; DE: p2.x
 			LD	HL,(R5)			; HL: p3.y
 			LD	BC,(R1)			; BC: p1.y
 			XOR	A
 			SBC	HL,BC			; HL = p3.y-p1.y
-			CALL	fastMulS16_16x16	; HL - p2.x*(p3.y-p1.y)
+			CALL	l_muls_16_16x16		; HL - p2.x*(p3.y-p1.y)
 			PUSH	HL
 			LD	DE,(R4)			; DE: p3.x
 			LD	HL,(R1)			; HL: p1.y
 			LD	BC,(R3)			; BC: p2.y
 			XOR	A
 			SBC	HL,BC			; HL = p1.y-p2.y
-			CALL	fastMulS16_16x16	; HL - p3.x*(p1.y-p2.y)
+			CALL	l_muls_16_16x16		; HL - p3.x*(p1.y-p2.y)
 			POP	DE
 			POP	BC
 			ADD	HL,DE
@@ -488,8 +489,8 @@ fastSPC16:		PUSH	AF		; Stack the angle
 ;
 ; int16_t z = pos.z + r.z;  
 ; Point16 p = {
-;     fastMulDiv(pos.x + r.x, pd, z) + 128, // r.x * pd / z
-;     fastMulDiv(pos.y + r.y, pd, z) + 96,  // r.y * pd / z
+;     muldivs16_16x16(pos.x + r.x, pd, z) + 128, // r.x * pd / z
+;     muldivs16_16x16(pos.y + r.y, pd, z) + 96,  // r.y * pd / z
 ; };
 ; return p;
 ;
@@ -530,7 +531,7 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
 			PUSH	DE		; DE: r.x, r.y
 			PUSH	HL
 ;
-; Calculate x = fastMulDiv(pos.x + r.x, pd, z) + 128
+; Calculate x perspective point
 ;
 			LD	L,(IY+0)	; HL: pos.x
 			LD	H,(IY+1)
@@ -545,7 +546,7 @@ project3D:		LD 	C,A		;  C: r.z - sign extend into BC
 			LD 	(IY+0),L	; Store in return value
 			LD	(IY+1),H
 ;
-; Calculate y = fastMulDiv(pos.y + r.y, pd, z) + 96,
+; Calculate y perspective point
 ;
 			POP	DE		; DE: r.x, r.y
 			LD	L,(IY+2)	; HL: pos.Y

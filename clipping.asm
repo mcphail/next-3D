@@ -25,7 +25,7 @@ dx:			DS	2
 dy:			DS 	2
 
 			EXTERN	scratchpad		; From ram.inc
-			EXTERN	fastMulDiv16		; From maths.asm
+			EXTERN	muldivs16_16x16		; From maths.asm
 			EXTERN	negDE 			; From maths.asm
 			EXTERN	plotL2asm_colour	; From render.asm
 			EXTERN	lineL2			; From render.asm
@@ -619,13 +619,13 @@ clipLine_Next:		POP	AF			; A: codeout, flag set from previous calculation
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
 ;
-clipTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
+clipTop:		LD	HL,(dx)			; Do p1->x + muldivs16_16x16(dx, -p1->y, dy)
 			LD	DE,(p1_y)
 			LD	BC,(dy)
 			CALL	negDE 
-			CALL	fastMulDiv16		; HL: fastMulDiv(dx, -p1->y, dy); 
+			CALL	muldivs16_16x16		; HL: muldivs16_16x16(dx, -p1->y, dy); 
 			LD	DE,(p1_x)
-			ADD	HL,DE 			; HL: p1_x +fastMulDiv(dx, -p1->y, dy)
+			ADD	HL,DE 			; HL: p1_x + muldivs16_16x16(dx, -p1->y, dy)
 			EX	DE,HL			; DE: X
 			LD	HL,0			; HL: Y
 			RET
@@ -640,11 +640,11 @@ clipTop:		LD	HL,(dx)			; Do p1->x + fastMulDiv(dx, -p1->y, dy)
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
 ;
-clipLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
+clipLeft:		LD	HL,(dy)			; Do p1->y + muldivs16_16x16(dy, -p1->x, dx)
 			LD	DE,(p1_x)		
 			LD	BC,(dx)
 			CALL	negDE
-			CALL	fastMulDiv16
+			CALL	muldivs16_16x16
 			LD	DE,(p1_y)
 			ADD	HL,DE			; HL: Y
 			LD	DE,0			; DE: X
@@ -660,14 +660,14 @@ clipLeft:		LD	HL,(dy)			; Do p1->y + fastMulDiv(dy, -p1->x, dx)
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
 ;
-clipBottom:		LD	HL,191			; Do p1->x + fastMulDiv(dx, 191-p1->y, dy)
+clipBottom:		LD	HL,191			; Do p1->x + muldivs16_16x16(dx, 191-p1->y, dy)
 			LD	DE,(p1_y)
 			OR	A
 			SBC	HL,DE
 			EX	DE,HL
 			LD	HL,(dx)
 			LD	BC,(dy)
-			CALL	fastMulDiv16
+			CALL	muldivs16_16x16
 			LD	DE,(p1_x)
 			ADD	HL,DE			; HL: X
 			EX	DE,HL			; DE: X
@@ -684,14 +684,14 @@ clipBottom:		LD	HL,191			; Do p1->x + fastMulDiv(dx, 191-p1->y, dy)
 ; DE: X coordinate of clipped point
 ; HL: Y coordinate of clipped point
 ;
-clipRight:		LD	HL,255			; Do p1->y + fastMulDiv(dy, 255-p1->x, dx)
+clipRight:		LD	HL,255			; Do p1->y + muldivs16_16x16(dy, 255-p1->x, dx)
 			LD	DE,(p1_x)
 			OR	A
 			SBC	HL,DE
 			EX	DE,HL
 			LD	HL,(dy)
 			LD	BC,(dx)
-			CALL	fastMulDiv16
+			CALL	muldivs16_16x16
 			LD	DE,(p1_y)
 			ADD	HL,DE			; HL: Y
 			LD	DE,255			; DE: X		
