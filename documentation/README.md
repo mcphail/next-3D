@@ -12,13 +12,14 @@ This includes an implementation of the Cohen-Sutherland line clipping algorithm 
 
 This contains routines to initialise the Next kernel along with low-level routines for reading the keyboard, DMA, and interrupts.
 
+
+### [maths_3D.h/asm](maths_3D.md)
+
+This contains routines for rotating and projecting vertices in 8-bit (model) and 16-bit (world) space.
+
 ### [maths.h/asm](maths.md)
 
 This contains trig, multiplication and division routines
-
-### [maths.h/asm](maths_3D.md)
-
-This contains routines for rotating and projecting vertices in 8-bit (model) and 16-bit (world) space.
 
 ### [render_3D.h/asm](render_3D.md)
 
