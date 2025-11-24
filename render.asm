@@ -2,7 +2,7 @@
 ; Title:	2D Primitive Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	25/10/2025
+; Last Updated:	24/11/2025
 ;
 ; Modinfo:
 ; 07/10/2025:	Fixed bug in circleInit where circles with radius > 127 would not render correctly
@@ -11,6 +11,7 @@
 ; 16/10/2025:	Added short line plotting back in draw_horz_line
 ; 18/10/2025:	Register juggling in drawShapeTable
 ; 25/10/2025:	Now uses SCREEN_HEIGHT for clipping
+; 24/11/2025	Optimised draw_horz_line slightly
 
     			SECTION KERNEL_CODE
 
@@ -948,9 +949,9 @@ draw_horz_line:		LD	H,A			; H: Screen address high
 			CP	8			; If it is less than 8 (less than 9 pixels) 
 			JR	C,@M2			; then don't use the DMA
 			LD	(draw_horz_line_dst),HL	; HL: The destination address
-			LD	D,H 			;  D: Preserve screen address
-			LD 	H,0				
 			LD 	L,A 			; HL: The line length in pixels - 1
+			LD	A,H 			;  A: Preserve screen address
+			LD 	H,0				
 			INC	HL			; HL: The line length
 			LD	(draw_horz_line_len),HL ; Now just DMA it
 			LD	HL,draw_horz_line_dma2
@@ -958,7 +959,6 @@ draw_horz_line:		LD	H,A			; H: Screen address high
 			REPT 	8
 			OUTINB	
 			ENDR
-			LD	A,D			;  A: Restore screen address
 			RET 
 ;
 ; Plot a single point
