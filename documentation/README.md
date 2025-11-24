@@ -14,7 +14,11 @@ This contains routines to initialise the Next kernel along with low-level routin
 
 ### [maths.h/asm](maths.md)
 
-This contains fast routines for rotating and projecting vertices in 8-bit (model) and 16-bit (world) space.
+This contains trig, multiplication and division routines
+
+### [maths.h/asm](maths_3D.md)
+
+This contains routines for rotating and projecting vertices in 8-bit (model) and 16-bit (world) space.
 
 ### [render_3D.h/asm](render_3D.md)
 
@@ -34,6 +38,10 @@ Primitives are drawn on an offscreen Layer 2 surface, and there are functions fo
 ### [sprites.h/asm](sprites.md)
 
 This contains low level routines for manipulating Next sprites
+
+### [structs.h](structs.md)
+
+Common structures used in the 3D engine
 
 ### experiments.h/c
 
