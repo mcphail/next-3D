@@ -2,10 +2,11 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	23/11/2025
-; Last Updated:	23/11/2025
+; Last Updated:	24/11/2025
 ;
 ; Modinfo:
 ; 23/11/2025:	Refactored project3D, fixed bug in windingOrder
+; 24/11/2025:	Removed individual axis rotate functions
 ;
     			SECTION KERNEL_CODE
 
@@ -89,86 +90,6 @@ rotate8_3D:		PUSH	BC		; Store angles for later
 			LD	(IY+0),A	; Set r.x
 			RET
 
-
-; extern Point8_3D rotate8_X(Point8_3D p, uint8_t a) __z88dk_callee;
-; This is an optimised version of this C routine
-;
-; Point8_3D r = {
-;     p.x,
-;     fastCos8(p.y, a) - fastSin8(p.z, a),
-;     fastSin8(p.y, a) + fastCos8(p.z, a),
-; };
-; return r;
-;
-PUBLIC _rotate8_X
-
-_rotate8_X:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; C: p.x, B: p.y
-			POP	DE		; E: p.z, D: a
-			PUSH	HL		; Stack the return address
-			LD	(IY+0),C	; Set r.x
-;			LD	B,B		; B: p.y
-			LD	C,E		; C: p.z
-			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
-			LD	(IY+1),A	; Set r.y
-			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
-			LD	(IY+2),A	; Set r.z
-			RET 
-
-; extern Point8_3D rotate8_Y(Point8_3D p, uint8_t a) __z88dk_callee;
-; This is an optimised version of this C routine
-;
-; Point8_3D r2 = {
-; 	fastCos8(p.x, a) - fastSin8(p.z, ay),
-; 	p.y,
-; 	fastSin8(p.x, a) + fastCos8(p.z, a),
-; };
-; return r;
-;
-PUBLIC _rotate8_Y
-
-_rotate8_Y:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; C: p.x, B: p.y
-			POP	DE		; E: p.z, D: a
-			PUSH	HL		; Stack the return address
-			LD	(IY+1),B	; Set r.y
-			LD	B,C		; B: p.y
-			LD	C,E		; C: p.z
-			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
-			LD	(IY+0),A	; Set r.x
-			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
-			LD	(IY+2),A	; Set r.z
-			RET 
-
-; extern Point8_3D rotate8_Z(Point8_3D p, uint8_t a) __z88dk_callee;
-; This is an optimised version of this C routine
-;
-; Point8_3D r = {
-;     fastCos8(p.x, a) - fastSin8(p.y, a),
-;     fastSin8(p.x, a) + fastCos8(p.y, a),
-;     p.z,	
-; };
-; return r;
-;
-PUBLIC _rotate8_Z
-
-_rotate8_Z:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; C: p.x, B: p.y
-			POP	DE		; E: p.z, D: a
-			PUSH	HL		; Stack the return address
-			LD	(IY+2),E	; Set r.z
-			LD	A,B
-			LD	B,C		; B: p.x
-			LD	C,A		; C: p.y
-			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
-			LD	(IY+0),A	; Set r.x
-			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
-			LD	(IY+1),A	; Set r.y
-			RET 
-
 ; Do A=fastCos8(B,D)-fastSin8(C,D)
 ;
 fastCMS8:		PUSH	BC		; BC: The multipliers
@@ -204,51 +125,6 @@ fastSPC8:		PUSH	BC		; BC: The multipliers
 			POP	DE
 			POP	BC
 			RET
-
-; extern uint8_t windingOrder(Point16 p1, Point16 p2, Point16 p3) __z88dk_callee;
-; For backface culling using polygon winding order
-; Optimised version of this C routine:
-; return p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0;
-;
-PUBLIC _windingOrder,windingOrder
-
-_windingOrder:		POP	BC			; The returna address
-			POP	HL: LD (R0),HL		; p1.x
-			POP	HL: LD (R1),HL		; p1.y
-			POP	HL: LD (R2),HL		; p2.x
-			POP	HL: LD (R3),HL		; p2.y
-			POP	HL: LD (R4),HL		; p3.x
-			POP	HL: LD (R5),HL		; p3.y
-			PUSH	BC			; Stack the return address
-
-windingOrder:		LD	DE,(R0)			; DE: p1.x
-			LD	HL,(R3)			; HL: p2.y
-			LD	BC,(R5)			; BC: p3.y
-			XOR	A
-			SBC	HL,BC			; HL = p2.y-p3.y
-			CALL	muls16_16x16		; HL - p1.x*(p2.y-p3.y)
-			PUSH	HL
-			LD	DE,(R2)			; DE: p2.x
-			LD	HL,(R5)			; HL: p3.y
-			LD	BC,(R1)			; BC: p1.y
-			XOR	A
-			SBC	HL,BC			; HL = p3.y-p1.y
-			CALL	muls16_16x16		; HL - p2.x*(p3.y-p1.y)
-			PUSH	HL
-			LD	DE,(R4)			; DE: p3.x
-			LD	HL,(R1)			; HL: p1.y
-			LD	BC,(R3)			; BC: p2.y
-			XOR	A
-			SBC	HL,BC			; HL = p1.y-p2.y
-			CALL	muls16_16x16		; HL - p3.x*(p1.y-p2.y)
-			POP	DE
-			POP	BC
-			ADD	HL,DE
-			ADD	HL,BC
-			LD	L,0
-			RL	H			; Rotate the sign bit into L
-			RL	L			; Rotate it into L
-			RET 
 
 ; extern Point16_3D rotate16_3D(Point16_3D p, Angle_3D theta) __z88dk_callee;
 ; This is an optimised version of this C routine
@@ -345,118 +221,6 @@ rotate16_3D:		PUSH	AF		; Stack theta.z
 			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
 			LD	(R2),HL
 			RET
-
-; extern Point16_3D rotate16_X(Point16_3D p, uint8_t a);
-; This is an optimised version of this C routine
-;
-; Point16_3D r = {
-;     p.x,
-;     fastCos16(p.y, a) - fastSin16(p.z, a),
-;     fastSin16(p.y, a) + fastCos16(p.z, a),
-; };
-; return r;
-;
-PUBLIC _rotate16_X
-
-_rotate16_X:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; BC: p.x
-			LD	(IY+0),C	; Don't need to calculate this, just store for return
-			LD	(IY+1),B
-			POP	BC		; BC: p.y
-			POP	DE		; DE: p.z
-			DEC	SP		; Correct the stack address for single byte
-			POP	AF
-			PUSH	HL		; Stack the return address
-;
-			PUSH	AF		; Do the calculation
-			PUSH	BC
-			PUSH	DE
-			CALL	fastCMS16
-			LD	(IY+2),L
-			LD	(IY+3),H
-			POP	DE
-			POP	BC
-			POP	AF	
-			CALL	fastSPC16 
-			LD	(IY+4),L
-			LD	(IY+5),H
-			RET 
-
-; extern Point16_3D rotate16_Y(Point16_3D p, uint8_t a) __z88dk_callee;
-; This is an optimised version of this C routine
-;
-; Point16_3D r2 = {
-; 	fastCos16(p.x, a) - fastSin16(p.z, ay),
-; 	p.y,
-; 	fastSin16(p.x, a) + fastCos16(p.z, a),
-; };
-; return r;
-;
-PUBLIC _rotate16_Y
-
-_rotate16_Y:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; BC: p.x
-			POP	DE		; DE: p.y
-			LD	(IY+2),E	; Don't need to calculate this, just store for return
-			LD	(IY+3),D
-			POP	DE		; DE: p.z
-			DEC	SP		; Correct the stack address for single byte
-			POP	AF
-			PUSH	HL		; Stack the return address
-;
-			PUSH	AF		; Do the calculation
-			PUSH	BC
-			PUSH	DE
-			CALL	fastCMS16
-			LD	(IY+0),L
-			LD	(IY+1),H
-			POP	DE
-			POP	BC
-			POP	AF	
-			CALL	fastSPC16 
-			LD	(IY+4),L
-			LD	(IY+5),H
-			RET 
-
-; extern Point16_3D rotate16_Z(Point16_3D p, uint8_t a) __z88dk_callee;
-; This is an optimised version of this C routine
-;
-; Point16_3D r = {
-;     fastCos16(p.x, a) - fastSin16(p.y, a),
-;     fastSin16(p.x, a) + fastCos16(p.y, a),
-;     p.z,	
-; };
-; return r;
-;
-PUBLIC _rotate16_Z
-
-_rotate16_Z:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; BC: p.x
-			POP	DE		; DE: p.y
-			EX	(SP),HL		;
-			LD	(IY+4),L	; Don't need to calculate this, just store for return
-			LD	(IY+5),H
-			EX	(SP),HL
-			INC	SP
-			POP	AF
-			PUSH	HL		; Stack the return address
-;
-			PUSH	AF		; Do the calculation
-			PUSH	BC
-			PUSH	DE
-			CALL	fastCMS16
-			LD	(IY+0),L
-			LD	(IY+1),H
-			POP	DE
-			POP	BC
-			POP	AF	
-			CALL	fastSPC16 
-			LD	(IY+2),L
-			LD	(IY+3),H
-			RET 
 
 ; Do HL=fastCos16(BC,A)-fastSin16(DE,A)
 ;
@@ -593,3 +357,48 @@ project3D_vp:		LD	A,E		; Sign extend E into DE
 			EX	AF,AF		; Restore the flags
 			RET	P 		; Answer is positive so just return
 			JP	negHL		; Answer is negative so negate it 
+
+; extern uint8_t windingOrder(Point16 p1, Point16 p2, Point16 p3) __z88dk_callee;
+; For backface culling using polygon winding order
+; Optimised version of this C routine:
+; return p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y)<0;
+;
+PUBLIC _windingOrder,windingOrder
+
+_windingOrder:		POP	BC			; The returna address
+			POP	HL: LD (R0),HL		; p1.x
+			POP	HL: LD (R1),HL		; p1.y
+			POP	HL: LD (R2),HL		; p2.x
+			POP	HL: LD (R3),HL		; p2.y
+			POP	HL: LD (R4),HL		; p3.x
+			POP	HL: LD (R5),HL		; p3.y
+			PUSH	BC			; Stack the return address
+
+windingOrder:		LD	DE,(R0)			; DE: p1.x
+			LD	HL,(R3)			; HL: p2.y
+			LD	BC,(R5)			; BC: p3.y
+			XOR	A
+			SBC	HL,BC			; HL = p2.y-p3.y
+			CALL	muls16_16x16		; HL - p1.x*(p2.y-p3.y)
+			PUSH	HL
+			LD	DE,(R2)			; DE: p2.x
+			LD	HL,(R5)			; HL: p3.y
+			LD	BC,(R1)			; BC: p1.y
+			XOR	A
+			SBC	HL,BC			; HL = p3.y-p1.y
+			CALL	muls16_16x16		; HL - p2.x*(p3.y-p1.y)
+			PUSH	HL
+			LD	DE,(R4)			; DE: p3.x
+			LD	HL,(R1)			; HL: p1.y
+			LD	BC,(R3)			; BC: p2.y
+			XOR	A
+			SBC	HL,BC			; HL = p1.y-p2.y
+			CALL	muls16_16x16		; HL - p3.x*(p1.y-p2.y)
+			POP	DE
+			POP	BC
+			ADD	HL,DE
+			ADD	HL,BC
+			LD	L,0
+			RL	H			; Rotate the sign bit into L
+			RL	L			; Rotate it into L
+			RET 
