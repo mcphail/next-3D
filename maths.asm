@@ -2,13 +2,14 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	23/11/2025
+; Last Updated:	24/11/2025
 ;
 ; Modinfo:
 ; 20/11/2025:		Added fastDiv16
 ; 21/11/2025		Improved performance of project3D
 ; 22/11/2025:		Refactored multiply and divide routines 
 ; 23/11/2025:		Added more multiply routines, refactored sin and cos routines
+; 24/11/2025:		Minor performance tweak in sin and cos routines
 ;
 
     			SECTION KERNEL_CODE
@@ -140,24 +141,34 @@ sin8:			LD	H,sin_table >> 8	; The sin table is a 128 byte table on a page bounda
 			RES	7,L			; It's only a 128 byte table, so clear the top bit
 			LD 	D,(HL)			; Fetch the value from the sin table
 			RLCA				; Get the sign of the angle
-			LD	A,E			;  A: The multiplicand
-			BIT	7,A			; And the sign of the multiplicand
+			BIT	7,E			; And the sign of the multiplicand
 			JR	C,sin8_neg_angle	; Skip to the case where the sin angle is negative
 ;
-sin8_pos_angle:		JR	Z,sin8_mul_pos
-			NEG				; Otherwise negate the multiplicand
-sin8_mul_neg:		LD	E,A			; A = -(D*A/256)
-			MUL	D,E 
-			LD	A,D 
-			NEG
-			LD	D,A
+; Here, the angle (D) is positive
+;
+sin8_pos_angle:		JR	Z,sin8_res_pos		; If the multiplicand is positive, then positive result	
+			XOR	A			; Negate the multiplicand
+			SUB	E
+			LD	E,A			; And drop through to return a negative result
+;
+; Here, the result will be negative
+;
+sin8_res_neg:		MUL	D,E 			; A = -(D*A/256)
+			XOR	A			; Negate the result
+			SUB	D
+			LD	D,A 
 			RET
 ;	
-sin8_neg_angle:		JR	Z,sin8_mul_neg
-			NEG 				; Otherwise negate the multiplicand
+; Here the angle (D) is negative
 ;
-sin8_mul_pos:		LD	E,A			; A = +(D*A/256)
-			MUL	D,E
+sin8_neg_angle:		JR	Z,sin8_res_neg		; If the multiplicand is positive, then negative result
+			XOR 	A 			; Otherwise negate the multiplicand
+			SUB	E
+			LD	E,A
+;
+; Here, the result will be positive
+;
+sin8_res_pos:		MUL	D,E			; A = +(D*A/256)
 			RET 
 
 ; extern int16_t sin16(uint8_t a, int16_t m);
