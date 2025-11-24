@@ -1,4 +1,4 @@
-# maths_3S.h/asm
+# maths_3D.h/asm
 
 The trigonometry assumes 256 bytes per full rotation of a circle for convenience and performance reasons.
 
