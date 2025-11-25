@@ -2,11 +2,12 @@
 ; Title:	Fast 3D Maths Routines
 ; Author:	Dean Belfield
 ; Created:	23/11/2025
-; Last Updated:	24/11/2025
+; Last Updated:	25/11/2025
 ;
 ; Modinfo:
 ; 23/11/2025:	Refactored project3D, fixed bug in windingOrder
 ; 24/11/2025:	Removed individual axis rotate functions
+; 25/11/2025:	Optimised project3D
 ;
     			SECTION KERNEL_CODE
 
@@ -56,9 +57,9 @@ rotate8_3D:		PUSH	BC		; Store angles for later
 ;			LD	D,D		; D: theta.x
 			LD	B,(IY+1)	; B: p.y
 			LD	C,(IY+2)	; C: p.z
-			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
+			CALL	CMS8		; A=cos8(B,D)-sin8(C,D)
 			EX	AF,AF'
-			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
+			CALL	SPC8		; A=sin8(B,D)+cos8(C,D)
 			LD	(IY+2),A	; Set r.z
 			EX	AF,AF'
 			LD	(IY+1),A	; Set r.y
@@ -70,9 +71,9 @@ rotate8_3D:		PUSH	BC		; Store angles for later
 			LD	D,E		; D: theta.y
 			LD	B,(IY+0)	; B: p.x
 			LD	C,(IY+2)	; C: p.z
-			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
+			CALL	CMS8		; A=cos8(B,D)-sin8(C,D)
 			EX	AF,AF'
-			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
+			CALL	SPC8		; A=sin8(B,D)+cos8(C,D)
 			LD	(IY+2),A	; Set r.z
 			EX 	AF,AF'
 			LD	(IY+0),A	; Set r.x
@@ -82,17 +83,17 @@ rotate8_3D:		PUSH	BC		; Store angles for later
 			POP	DE		; E: theta.y, D: theta.z
 			LD	B,(IY+0)	; B: p.x
 			LD	C,(IY+1)	; C: p.y
-			CALL	fastCMS8	; A=fastCos8(B,D)-fastSin8(C,D)
+			CALL	CMS8		; A=cos8(B,D)-sin8(C,D)
 			EX	AF,AF'
-			CALL	fastSPC8	; A=fastSin8(B,D)+fastCos8(C,D)
+			CALL	SPC8		; A=sin8(B,D)+cos8(C,D)
 			LD	(IY+1),A	; Set r.y
 			EX	AF,AF'
 			LD	(IY+0),A	; Set r.x
 			RET
 
-; Do A=fastCos8(B,D)-fastSin8(C,D)
+; Do A=cos8(B,D)-sin8(C,D)
 ;
-fastCMS8:		PUSH	BC		; BC: The multipliers
+CMS8:			PUSH	BC		; BC: The multipliers
 			PUSH	DE		;  D: The angle
 			LD	A,D		;  A: Angle
 			LD	E,C		;  E: Multiplier for sin
@@ -108,9 +109,9 @@ fastCMS8:		PUSH	BC		; BC: The multipliers
 			POP	BC
 			RET
 
-; Do A=fastSin8(B,D)+fastCos8(C,D)
+; Do A=sin8(B,D)+cos8(C,D)
 ; 
-fastSPC8:		PUSH	BC		; BC: The multipliers
+SPC8:			PUSH	BC		; BC: The multipliers
 			PUSH	DE		;  D: The angle
 			LD	A,D		;  A: Angle
 			LD	E,C		; E: Multiplier for cos
@@ -180,12 +181,12 @@ rotate16_3D:		PUSH	AF		; Stack theta.z
 			PUSH	AF
 			PUSH	BC
 			PUSH	DE
-			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
+			CALL	CMS16		; HL: Cos16(BC,A) - Sin16(DE,A)
 			LD	(R2),HL
 			POP	DE
 			POP	BC
 			POP	AF
-			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
+			CALL	SPC16		; HL: sin16(BC,A) + cos16(DE,A)
 			LD	(R3),HL
 ;
 ; Do rotate16_Y
@@ -197,12 +198,12 @@ rotate16_3D:		PUSH	AF		; Stack theta.z
 			PUSH	AF
 			PUSH	BC
 			PUSH	DE
-			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
+			CALL	CMS16		; HL: cos16(BC,A) - sin16(DE,A)
 			LD	(R1),HL
 			POP	DE
 			POP	BC
 			POP	AF
-			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
+			CALL	SPC16		; HL: sin16(BC,A) + cos16(DE,A)
 			LD	(R3),HL
 ;
 ; Do rotate16_Z
@@ -213,18 +214,18 @@ rotate16_3D:		PUSH	AF		; Stack theta.z
 			PUSH	AF
 			PUSH	BC
 			PUSH	DE
-			CALL	fastCMS16	; HL: fastCos16(BC,A) - fastSin16(DE,A)
+			CALL	CMS16		; HL: cos16(BC,A) - sin16(DE,A)
 			LD	(R1),HL
 			POP	DE
 			POP	BC
 			POP	AF
-			CALL	fastSPC16	; HL: fastSin16(BC,A) + fastCos16(DE,A)
+			CALL	SPC16		; HL: sin16(BC,A) + cos16(DE,A)
 			LD	(R2),HL
 			RET
 
-; Do HL=fastCos16(BC,A)-fastSin16(DE,A)
+; Do HL=cos16(BC,A)-sin16(DE,A)
 ;
-fastCMS16:		PUSH	AF		; Stack the angle
+CMS16:			PUSH	AF		; Stack the angle
 			PUSH	BC		; Stack the fastCos multiplier
 			CALL	sin16		; HL: fastSin(DE,A)
 			POP	DE		
@@ -236,9 +237,9 @@ fastCMS16:		PUSH	AF		; Stack the angle
 			SBC	HL,DE		; HL: fastCos(HL,A)-fastSin(DE,A)
 			RET
 
-; Do HL=fastSin16(BC,A)+fastCo16s(DE,A)
+; Do HL=sin16(BC,A)+cos16(DE,A)
 ; 
-fastSPC16:		PUSH	AF		; Stack the angle
+SPC16:			PUSH	AF		; Stack the angle
 			PUSH	BC		; Stack the fastSin multiplier
 			CALL	cos16		; HL: fastCos(DE,A)
 			POP	DE 
@@ -267,71 +268,74 @@ PUBLIC _project3D, project3D
 
 _project3D:		POP	BC		; The return address
 			POP	IY		; Return data address
-			POP	HL		; BC: pos.x
-			LD	(IY+0),L
-			LD	(IY+1),H
-			POP	HL		; BC: pos.y
-			LD	(IY+2),L
-			LD	(IY+3),H
-			POP	HL		; HL: pos.z
+			POP	HL: LD (R1),HL	; R1: pos.x
+			POP	HL: LD (R2),HL	; R2: pos.y
+			POP	HL: LD (R3),HL	; HL: pos.z
 			POP	DE		;  E: r.x, D: r.y
 			DEC	SP
 			POP	AF		;  A: r.z
 			PUSH	BC		; Restore the return address
+			CALL	project3D
+			LD	(IY+0),E	; Populate the Point16 structure
+			LD	(IY+1),D
+			LD	(IY+2),L
+			LD	(IY+3),H
+			RET
 ;
 ; At this point
-; IY: Pointer to Point16 structure containing pos.x and pos.y
-; HL: pos.z
+; R1: pos.x
+; R2: pos.y
+; R3: pos.z
 ;  E: r.x
 ;  D: r.y
 ;  A: r.z
 ; Calculate z
-; Returns Point16 value stored in IY
+; Returns Point16 value stored in (DE,HL)
 ;
 ; First, translate the rotated 8-bit z coordinate into 16-bit world space by adding it to the models z coordinate
 ;
-project3D:		LD 	C,A		;  C: r.z - sign extend into BC
-   			ADD	A,A		; Sign bit of A into carry
-   			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
-   			LD 	B,A		; BC: Sign-extended A
-   			ADD	HL,BC		; HL: pos.z + r.z
-			PUSH	HL
-			PUSH	DE		; DE: r.x, r.y
-			PUSH	HL
+project3D:		LD	BC,(R3)		; BC: R3+A (signed)
+			OR	A
+			JP	P,@M1
+			DEC	B
+@M1:			ADD	A,C
+			LD	C,A
+			ADC	A,B
+			SUB	C
+			LD	B,A
+;
 ;
 ; Calculate x perspective point
 ;
-			POP 	BC		; BC: z
-			LD	L,(IY+0)	; HL: pos.x
-			LD	H,(IY+1)
-			CALL	project3D_vp	; HL: Perspective calculation (y * 256 / z)
+			PUSH	BC		; DE: pos.z + r.z
+			PUSH	DE		; DE: r.x, r.y
+			LD	HL,(R1)		; HL: pos.x
+			LD	A,E		;  A: r.x
+			CALL	project3D_vp	; HL: Perspective calculation (x * 256 / z)
 			ADD	HL,128		; Add screen X centre
-			LD 	(IY+0),L	; Store in return value
-			LD	(IY+1),H
 ;
 ; Calculate y perspective point
 ;
 			POP	DE		; DE: r.x, r.y
 			POP 	BC		; BC: z
-			LD	E,D		;  E: r.y
-			LD	L,(IY+2)	; HL: pos.Y
-			LD	H,(IY+3)
+			PUSH	HL		; Stack the translated x coordinate
+			LD	HL,(R2)		; HL: pos.y
+			LD	A,D		;  A: r.y
 			CALL	project3D_vp	; HL: Perspective calculation (y * 256 / z)
-			ADD	HL,96		; Add screen Y centre
-			LD 	(IY+2),L	; Store in return value
-			LD	(IY+3),H
+			ADD	HL,96		; HL: The translated y coordinate
+			POP	DE		; DE: The translated x coordinate
 			RET
 
 ; Do the perspective calculation
 ; HL: The x or y coordinate of the model
-;  E: The x or y coordinate of the rotated point
+;  A: The x or y coordinate of the rotated point
 ; BC: The z coordinate
 ; Returns:
 ; HL: The projected point (x or y)
 ;
 ; First translate the x or y coordinate into world space by adding it to the models x or y 16-bit world coordinate
 ;
-project3D_vp:		LD	A,E		; Sign extend E into DE
+project3D_vp:		LD	E,A		; Sign extend E into DE
    			ADD	A,A		; Sign bit of A into carry
    			SBC	A,A		;  A: 0 if carry is 0, otherwise 0xFF 
    			LD 	D,A		; DE: Sign-extended A (r.x or r.y)

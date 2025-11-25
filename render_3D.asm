@@ -2,9 +2,10 @@
 ; Title:	3D Modelling Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	23/09/2025
+; Last Updated:	25/11/2025
 ;
 ; Modinfo:
+; 25/11/2025:	Optimised project3D
 ;
 
     			SECTION KERNEL_CODE
@@ -61,9 +62,13 @@ _rotateModel:		POP	BC		; The return address
 ; Sort out the angles for rotate
 ; IX: Pointer to the Point16 buffer for the rotated points
 ; IY: Pointer to the Model_3D structure
+;
+; The model origin
 ; R1: p.x
 ; R2: p.y
 ; R3: p.z
+;
+; The model rotation
 ;  D: theta.x
 ;  C: theta.y
 ;  B: theta.z
@@ -102,19 +107,14 @@ rotateModel:		LD	E,(IY+0)	; Fetch number of vertices from the model
 			LD	E,(IY+0)	; r.x
 			LD	D,(IY+1)	; r.y
 			LD	A,(IY+2)	; r.z
-			LD	HL,(R1): LD (scratchpad+0),HL
-			LD	HL,(R2): LD (scratchpad+2),HL
-			LD	HL,(R3)		; p.z
 			CALL	project3D	; Do the projection, Point16 result in (IY)
 ;
 ; Store the transformed point in the buffer
 ;
-			LD	HL,(scratchpad+0)
-			LD	DE,(scratchpad+2)
-			LD	(IX+0),L	; Store the rotated point
-			LD	(IX+1),H
-			LD	(IX+2),E
-			LD	(IX+3),D
+			LD	(IX+0),E	; Store the rotated point
+			LD	(IX+1),D
+			LD	(IX+2),L
+			LD	(IX+3),H
 			LD	BC,4
 			ADD	IX,BC
 ;
