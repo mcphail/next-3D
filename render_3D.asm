@@ -5,7 +5,7 @@
 ; Last Updated:	25/11/2025
 ;
 ; Modinfo:
-; 25/11/2025:	Optimised project3D
+; 25/11/2025:	Optimised project3D, rotate8_3D
 ;
 
     			SECTION KERNEL_CODE
@@ -52,9 +52,7 @@ _rotateModel:		POP	BC		; The return address
 ;
 			PUSH	IX
 			LD	IX,(R0)		; Pointer to the Point16 buffer	
-			LD	B,A		; B: theta.z
-			LD	C,D		; C: theta.y
-			LD	D,E		; D: theta.x
+			LD	L,A		; L: theta.z
 			CALL	rotateModel
 			POP	IX
 			RET
@@ -70,44 +68,43 @@ _rotateModel:		POP	BC		; The return address
 ;
 ; The model rotation
 ;  D: theta.x
-;  C: theta.y
-;  B: theta.z
+;  E: theta.y
+;  L: theta.z
 ;
-rotateModel:		LD	E,(IY+0)	; Fetch number of vertices from the model
+rotateModel:		LD	A,L
+			LD	(@M1+1),DE	; Self-mod the angles
+			LD	(@M2+1),A
+;
+			LD	B,(IY+0)	; Fetch number of vertices from the model
 			LD	L,(IY+2)	; Fetch pointer to the vertices
 			LD	H,(IY+3)
 ;
 			LD	IY,scratchpad	; Used to store results of calculations
-
 ;
 ; First get the number of vertices to plot
 ;
-@L1:			PUSH	BC		; Push theta.y, theta.z
-			PUSH	DE		; Push theta.x, loop counter
+@L1:			PUSH	BC		; Push loop counter
 ;
 ; Read a vertice in from the model
 ;
-			LD	A,(HL)		; v.x
-			LD	(scratchpad+0),A
+			LD	A,(HL)		; A: v.x
 			INC	HL 
-			LD	A,(HL)		; v.y
-			LD	(scratchpad+1),A
+			LD	B,(HL)		; B: v.y
 			INC	HL
-			LD	A,(HL)		; v.z
-			LD	(scratchpad+2),A
-			INC	HL			
+			LD	C,(HL)		; C: v.z
+			INC	HL	
+			PUSH	HL
+			LD	H,A		; H: v.x
 ;
 ; Apply rotation
 ;
-			PUSH	HL
+@M1:			LD	DE,0		; theta.x, theta.y
+@M2:			LD	L,0		; theta.z
 			CALL	rotate8_3D	; Do the rotation, Point8_3D result in (IY)
+			CALL	project3D	; Do the projection, Point16 result in (IY)
 ;
 ; Apply projection
 ;
-			LD	E,(IY+0)	; r.x
-			LD	D,(IY+1)	; r.y
-			LD	A,(IY+2)	; r.z
-			CALL	project3D	; Do the projection, Point16 result in (IY)
 ;
 ; Store the transformed point in the buffer
 ;
@@ -121,10 +118,8 @@ rotateModel:		LD	E,(IY+0)	; Fetch number of vertices from the model
 ; Loop
 ;
 			POP	HL		; Pop pointer to vertices
-			POP	DE		; Pop theta.x, loop counter
-			POP	BC		; Pop theta.y, theta.z
-			DEC	E			
-			JR	NZ,@L1
+			POP	BC		; Pop loop counter
+			DJNZ	@L1
 			RET
 
 
@@ -232,18 +227,18 @@ drawObject:		LD	IX,pointBuffer	; Buffer for the translated points
 ;
 			LD	A,(_cam_theta+1)
 			SUB	(IY+12)
-			LD	C,A		;  C: cam_theta.y - theta.y
+			LD	E,A		;  E: cam_theta.y - theta.y
 ;
 			LD	A,(_cam_theta+2)
 			SUB	(IY+13)
-			LD	B,A		;  B: cam_theta.z - theta.z
+			LD	L,A		;  L: cam_theta.z - theta.z
 ;
 ;
 ; Rotate and project the object to screen space and render
 ;
-			LD	E,(IY+3)
+			LD	C,(IY+3)
 			LD	A,(IY+4)
-			LD	IYL,E		; IY: Pointer to the Model_3D object
+			LD	IYL,C		; IY: Pointer to the Model_3D object
 			LD	IYH,A
 			PUSH	IY
 			CALL	rotateModel

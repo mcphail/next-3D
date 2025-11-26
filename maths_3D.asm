@@ -7,7 +7,7 @@
 ; Modinfo:
 ; 23/11/2025:	Refactored project3D, fixed bug in windingOrder
 ; 24/11/2025:	Removed individual axis rotate functions
-; 25/11/2025:	Optimised project3D
+; 25/11/2025:	Optimised project3D, rotate8_3D
 ;
     			SECTION KERNEL_CODE
 
@@ -36,59 +36,75 @@
 ;
 PUBLIC _rotate8_3D, rotate8_3D
 
-_rotate8_3D:		POP	HL		; Pop the return address
-			POP	IY		; Return data address
-			POP	BC		; C: p.x, B: p.y
-			POP	DE		; E: p.y, D: theta.x
-			LD	(IY+0),C	; p.x
-			LD	(IY+1),B	; p.y
-			LD	(IY+2),E	; p.z
-			POP	BC		; C: theta.y, B: theta.z
-			PUSH	HL		; Push the return stack back
+_rotate8_3D:		POP	IY		; Pop the return address
+			POP	HL		; Return data address
+			LD	(@M1+1),HL	; Self mod it for later
+			POP	BC
+			LD	A,C		; A: p.x (C)
+;			LD	B,B		; B: p.y (B)
+			POP	DE
+			LD	C,E		; C: p.z (E)
+			LD	E,D		; L: theta.x (D)	
+			POP	HL
+			LD	D,L		; D: theta.y (L)
+			LD	L,H		; L: theta.z (H)
+			LD	C,A		; C: p.x
+			PUSH	IY		; Push the return address
+			CALL	rotate8_3D
+@M1:			LD	HL,0		; Where to store the return data
+			LD	(HL),E		; p.x
+			INC	HL
+			LD	(HL),D		; p.y
+			INC	HL
+			LD	(HL),A		; p.z
+			RET 
 ;
 ; Do rotate8_X
 ; At this point:
-;  D: theta.x
-;  C: theta.y
-;  B: theta.z
-; IY: Pointer to buffer containing Point8 data
+;  E: theta.x
+;  D: theta.y
+;  L: theta.z
+;  H: p.x
+;  B: p.y
+;  C: p.z
+; Returns: (NB: These registers plug straight into project3D)
+;  E: p.x
+;  D: p.y
+;  A: p.z
 ;
-rotate8_3D:		PUSH	BC		; Store angles for later	
-;			LD	D,D		; D: theta.x
-			LD	B,(IY+1)	; B: p.y
-			LD	C,(IY+2)	; C: p.z
+rotate8_3D:		PUSH	DE		; Rotate X
+			PUSH	HL
+			LD	D,E		; D: theta.x
 			CALL	CMS8		; A=cos8(B,D)-sin8(C,D)
 			EX	AF,AF'
 			CALL	SPC8		; A=sin8(B,D)+cos8(C,D)
-			LD	(IY+2),A	; Set r.z
+			POP	HL
+			POP	DE
+			LD	C,A		; p.z
 			EX	AF,AF'
-			LD	(IY+1),A	; Set r.y
+			LD	B,A		; p.y
 ;
-; Do rotate8_Y
-;
-			POP	DE		; E: theta.y, D: theta.z
-			PUSH	DE
-			LD	D,E		; D: theta.y
-			LD	B,(IY+0)	; B: p.x
-			LD	C,(IY+2)	; C: p.z
+			PUSH	BC		; Rotate Y
+			PUSH	HL
+			LD	B,H		; B: p.x
 			CALL	CMS8		; A=cos8(B,D)-sin8(C,D)
 			EX	AF,AF'
 			CALL	SPC8		; A=sin8(B,D)+cos8(C,D)
-			LD	(IY+2),A	; Set r.z
+			POP	HL
+			POP	BC
+			PUSH	AF		; p.z
 			EX 	AF,AF'
-			LD	(IY+0),A	; Set r.x
 ;
-; Do rotate8_Z
-;
-			POP	DE		; E: theta.y, D: theta.z
-			LD	B,(IY+0)	; B: p.x
-			LD	C,(IY+1)	; C: p.y
+			LD	D,L		; D: theta.z
+			LD	C,B		; C: p.y
+			LD	B,A		; B: p.x
 			CALL	CMS8		; A=cos8(B,D)-sin8(C,D)
 			EX	AF,AF'
 			CALL	SPC8		; A=sin8(B,D)+cos8(C,D)
-			LD	(IY+1),A	; Set r.y
-			EX	AF,AF'
-			LD	(IY+0),A	; Set r.x
+			LD	D,A		; p.y
+			EX 	AF,AF'
+			LD	E,A		; p.x
+			POP	AF		; p.z
 			RET
 
 ; Do A=cos8(B,D)-sin8(C,D)
