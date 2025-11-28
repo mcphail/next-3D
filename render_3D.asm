@@ -2,10 +2,11 @@
 ; Title:	3D Modelling Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	25/11/2025
+; Last Updated:	28/11/2025
 ;
 ; Modinfo:
 ; 25/11/2025:	Optimised project3D, rotate8_3D
+; 28/11/2025:	Optimised renderModel
 ;
 
     			SECTION KERNEL_CODE
@@ -284,72 +285,45 @@ renderModel:		LD	B,(IY+1)	;  B: Number of faces
 			LD	L,(IY+4)	; HL: Pointer to the face data
 			LD	H,(IY+5)
 
-			LD	(R6+1),A	; R6H = mode
-;
-@L1:			PUSH	BC		; Stack the loop counter
+			LD	(@M3+1),A	; Mode 
 ;
 ; Fetch all the face data (four bytes)
 ;
-			XOR	A		;  A: 0
-			LD	B,2		;  B: Multiplier for shift (x4)
-;
-			LD	D,A
-			LD	E,(HL)		;  E: Fetch the first face
-			BSLA	DE,B 		; DE: Multiply by 4
-			LD	IY,(R7)		; IY: Pointer to the vector buffer
-			ADD	IY,DE		; IY: Now points to the vertice
-			LD	E,(IY+0)	; DE: First point X coordinate
-			LD	D,(IY+1)
-			LD	(R0),DE		; R0: X1
-			LD	E,(IY+2)	; DE: First point Y coordinate
-			LD	D,(IY+3)
-			LD	(R1),DE		; R1: Y1
+@L1:			EXX
+			LD	DE,R0		; DE: Pointer to the variable storage for the point data
+			EXX
+			REPT	3
+			LD	A,(HL): INC HL
+			EXX
+			LD	HL,(R7)		; HL: Pointer to the translated point buffer
+			ADD	HL,A		; Effectively multiply the face number by 4 by adding it to the
+			ADD	HL,A		; pointer 4 times
+			ADD	HL,A
+			ADD	HL,A
+			LDI			; Copy the point data to DE
+			LDI
+			LDI
+			LDI
+			EXX
+			ENDR
+			LD	A,(HL)		; The face colour
+			EX	AF,AF
 			INC	HL
-;
-			LD	D,A
-			LD	E,(HL)		;  E: Fetch the second face
-			BSLA	DE,B		; DE: Multiply by 4
-			LD	IY,(R7)		; IY: Pointer to the vector buffer
-			ADD	IY,DE		; IY: Now points to the vertice
-			LD	E,(IY+0)	; DE: Second point X coordinate
-			LD	D,(IY+1)
-			LD	(R2),DE		; R2: X2
-			LD	E,(IY+2)	; DE: Second point Y coordinate
-			LD	D,(IY+3)
-			LD	(R3),DE		; R3: Y2
-			INC	HL
-;
-			LD	D,A
-			LD	E,(HL)		;  E: Fetch the third face
-			BSLA	DE,B		; DE: Multiply by 4
-			LD	IY,(R7)		; IY: Pointer to the vector buffer
-			ADD	IY,DE		; IY: Now points to the vertice
-			LD	E,(IY+0)	; DE: Third point X coordinate
-			LD	D,(IY+1)
-			LD	(R4),DE		; R4: X3
-			LD	E,(IY+2)	; DE: Third point Y coordinate
-			LD	D,(IY+3)
-			LD	(R5),DE		; R5: Y3
-			INC	HL
-;
-			LD	A,(HL)
-			LD	(R6),A		; R6L: The face colour
-			INC	HL
-;
-			PUSH	HL		; Stack the pointer to the face data
+			EXX
 			CALL	windingOrder	; Do the backface culling calculation
 			JR	Z,@M1		; This face is culled, so skip
-			LD	HL,(R6)		;  L: face colour
-			DEC	H		;  H: mode (0 = wireframe, 1 = filled)
-			JR	NZ, @M2		; Not 1, so jump to wireframe version
-			LD	A,L		;  A: face colour
+
+@M3:			LD	A,0		;  A: mode (0 = wireframe, 1 = filled)
+			OR	A
+			JR	Z, @M2		; Not 1, so jump to wireframe version
+			EX	AF,AF
 			CALL	triangleL2CF	; Only draw triangles that are facing us
-@M1:			POP	HL		; Restore the pointer to the face data
-			POP	BC		; And loop
-			DEC	B
-			JP	NZ,@L1
+@M1:			EXX
+			DJNZ	@L1
 			RET
 ;
-@M2:			LD	A,0xFF		; Always do wireframe in white
+@M2:			DEC	A		; Always do wireframe in colour #FF
 			CALL	triangleL2C
-			JR	@M1
+			EXX
+			DJNZ	@L1
+			RET
