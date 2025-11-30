@@ -2,11 +2,12 @@
 ; Title:	3D Modelling Functions
 ; Author:	Dean Belfield
 ; Created:	20/08/2025
-; Last Updated:	28/11/2025
+; Last Updated:	30/11/2025
 ;
 ; Modinfo:
 ; 25/11/2025:	Optimised project3D, rotate8_3D
 ; 28/11/2025:	Optimised renderModel
+; 30/11/2025:	Added buffer parameter to drawObject
 ;
 
     			SECTION KERNEL_CODE
@@ -41,25 +42,23 @@ _cam_theta:		DS	3,0		; Angle_3D   cam_theta;
 PUBLIC _rotateModel, rotateModel
 
 _rotateModel:		POP	BC		; The return address
-			POP	HL: LD (R0),HL	; R0: Pointer to Point16 buffer
+			POP	HL: LD (R7),HL	; R0: Pointer to Point16 buffer
 			POP	HL: LD (R1),HL	; R1: p.x
 			POP	HL: LD (R2),HL	; R2: p.y
 			POP	HL: LD (R3),HL	; R3: p.z
 			POP	DE		;  E: theta.x, D: theta.y
 			DEC	SP		; Correct the stack address for single byte
-			POP	AF		;  A: theta.z
+			POP	AF
+			LD	L,A		;  L: theta.z
 			POP	IY		; IY: Pointer to Model_3D object
 			PUSH	BC		; Restore the return address
-;
 			PUSH	IX
-			LD	IX,(R0)		; Pointer to the Point16 buffer	
-			LD	L,A		; L: theta.z
 			CALL	rotateModel
 			POP	IX
-			RET
+			RET 
 ;
 ; Sort out the angles for rotate
-; IX: Pointer to the Point16 buffer for the rotated points
+; R7: Pointer to the Point16 buffer for the rotated points
 ; IY: Pointer to the Model_3D structure
 ;
 ; The model origin
@@ -79,8 +78,8 @@ rotateModel:		LD	A,L
 			LD	B,(IY+0)	; Fetch number of vertices from the model
 			LD	L,(IY+2)	; Fetch pointer to the vertices
 			LD	H,(IY+3)
-;
-			LD	IY,scratchpad	; Used to store results of calculations
+
+			LD	IX,(R7)		; IX: Pointer to the Point16 buffer for the rotated points
 ;
 ; First get the number of vertices to plot
 ;
@@ -104,9 +103,6 @@ rotateModel:		LD	A,L
 			CALL	rotate8_3D	; Do the rotation, Point8_3D result in (IY)
 			CALL	project3D	; Do the projection, Point16 result in (IY)
 ;
-; Apply projection
-;
-;
 ; Store the transformed point in the buffer
 ;
 			LD	(IX+0),E	; Store the rotated point
@@ -124,7 +120,7 @@ rotateModel:		LD	A,L
 			RET
 
 
-; extern void drawObject(Object_3D * o, uint8_t renderMode) __z88dk_callee;
+; extern void drawObject(Point16 * buffer, Object_3D * o, uint8_t renderMode) __z88dk_callee;
 ; This is an optimised version of this C routine
 ;
 ; Point16_3D u_pos = {
@@ -145,19 +141,19 @@ rotateModel:		LD	A,L
 ;
 PUBLIC _drawObject, drawObject
 
-pointBuffer:		DS	256		; TODO: Move this somewhere else when finished
-
-_drawObject:		POP	HL		; The return address	
+_drawObject:		POP	BC		; The return address	
+			POP	HL: LD (R7),HL	; Pointer to the vector buffer
 			POP	IY		; Pointer to the model data
 			DEC	SP
 			POP	AF		;  A: renderMode
-			PUSH	HL		; Restore the return address
+			PUSH	BC		; Restore the return address
 			PUSH	IX
 			CALL	drawObject
 			POP	IX
 			RET
 
 ; Draw an object in world space
+; R7: Pointer to the translated points buffer
 ; IY: Pointer to an Object_3D structure
 ;  A: Render mode (0: wireframe, 1: filled)
 ;
@@ -167,9 +163,7 @@ _drawObject:		POP	HL		; The return address
 ;  +  5: Point16_3D world position of object (6 bytes)
 ;  + 11: Angle3D object rotation (3 bytes)
 ;
-drawObject:		LD	IX,pointBuffer	; Buffer for the translated points
-			LD	(R7),IX		; For renderModel
-			LD	(@M1+1),A	; Store renderMode for later
+drawObject:		PUSH	AF		; Store mode for later
 
 			LD	L,(IY+5)	; p.x
 			LD	H,(IY+6)
@@ -241,13 +235,9 @@ drawObject:		LD	IX,pointBuffer	; Buffer for the translated points
 			LD	A,(IY+4)
 			LD	IYL,C		; IY: Pointer to the Model_3D object
 			LD	IYH,A
-			PUSH	IY
 			CALL	rotateModel
-			POP	IY
-@M1:			LD	A,0		; Render mode
-			LD	IX,(R7)
-			CALL	renderModel
-			RET
+			POP	AF		;  A: Render mode
+			JR	renderModel
 
 
 ; extern void renderModel(Point16 * buffer, Model_3D * m, uint8_t mode) __z88dk_callee;

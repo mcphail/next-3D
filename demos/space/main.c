@@ -2,12 +2,13 @@
  * Title:			Spectrum Next 3D Engine Space Demo
  * Author:			Dean Belfield
  * Created:			20/08/2025
- * Last Updated:	23/11/2025
+ * Last Updated:	30/11/2025
  *
  * Modinfo:
  * 30/10/2025:		Added proof-of-concept code for Z sorting objects
  * 22/11/2025		drawSun now uses fastMulDiv32
-* 23/11/2025:		Now includes maths_3D.h
+ * 23/11/2025:		Now includes maths_3D.h
+ * 30/11/2025:		Added buffer parameter to drawObject
  */
 
 #pragma output REGISTER_SP = 0xbfff
@@ -58,7 +59,7 @@ Point16_3D	sunPos = { 0, 0, 20000 };	// The sun position
 
 Object_3D	object[MAX_OBJECTS];		// List of objects to display
 ZSort_3D	objectRotated[MAX_OBJECTS];	// List of objects to sort
-Point16		point_t[64];				// Buffer for rotated points
+Point16		points[64];					// Buffer for translated points
 
 // ***************************************************************************************************************************************
 //  Main startup and loop
@@ -239,8 +240,8 @@ void main(void)
 				cam_theta.y - o->theta.y,
 				cam_theta.z - o->theta.z,
 			};
-			rotateModel(&point_t[0], zs->pos, a, o->model);	// Rotate the camera around around its centre
-			renderModel(&point_t[0], o->model, renderMode);	// Render the object in the viewport
+			rotateModel(points, zs->pos, a, o->model);	// Rotate the camera around around its centre
+			renderModel(points, o->model, renderMode);	// Render the object in the viewport
 		}
 
 		waitVBlank();	// Wait for the vblank before switching

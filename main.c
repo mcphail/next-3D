@@ -3,12 +3,13 @@
  * Author:			Dean Belfield
  * Contributors:	Henrique Olifiers, Michael "Flash" Ware
  * Created:			20/08/2025
- * Last Updated:	07/10/2025
+ * Last Updated:	30/11/2025
  *
  * Modinfo:
  * 04/09/2025:		Moved models to includes in models folder
  * 22/09/2025:		Beta version 0.5
  * 07/10/2025:		Moved demo code to demos folder
+ * 30/11/2025:		Added buffer parameter to drawObject
  */
 
 #pragma output REGISTER_SP = 0xbfff
@@ -44,6 +45,7 @@
 // ***************************************************************************************************************************************
 
 uint8_t		renderMode = 1;			// Render mode: 0=Wireframe, 1=Filled
+Point16		points[64];				// Buffer for translated points
 Object_3D	object[MAX_OBJECTS];	// Array of objects in the world
 
 // ***************************************************************************************************************************************
@@ -105,7 +107,7 @@ void main(void)
 		//
 		for(int i=0; i<MAX_OBJECTS; i++) {
 			if(object[i].flags) {
-				drawObject(&object[i], renderMode);
+				drawObject(points, &object[i], renderMode);
 				if(object[i].move) {
 					object[i].move(i);
 				}
