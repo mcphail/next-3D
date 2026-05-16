@@ -40,7 +40,7 @@ Alternatively there is a ready-built Docker container with a number of useful Si
 There is a makefile in the root directory to build the Next3D object files, and a makefile for each demo folder.
 
 - `make` to make the .nex file
-- `make deploy` to make and deploy to the folder `Dev/next/dev` in your home folder
+- `make install` to make and deploy to the folder `Dev/next/dev` in your home folder
 - `make clean` to clean the build directory
 
 The Next3D object files must be built before the demos.
@@ -48,7 +48,7 @@ The Next3D object files must be built before the demos.
 In addition, for Linux/Mac users, there is a bash script for building the 3D library code and all the demos
 
 - `sh make_all.sh` to make all object files in root and the sub-folders in the demo folder
-- `sh make_all.sh deploy` to make and deploy all nex files to the folder `Dev/next/dev` in your home folder
+- `sh make_all.sh install` to make and deploy all nex files to the folder `Dev/next/dev` in your home folder
 - `sh make_all.sh clean` to clean all the object files
 
 ## Running in emulator
@@ -66,7 +66,7 @@ Copy the .nex file(s) to a folder on the Spectrum Next and run from the browser.
 To save removing the SD card every time, use [NextSync](https://solhsa.com/specnext.html#NEXTSYNC) to synchronise the folder `/Dev/next/dev` in your home folder with the Next over WiFi.
 
 - Set up NextSync to synchronise the folder on your PC with the Spectrum Next
-- Use `make deploy` or `sh make_all.sh deploy` to make the .nex file(s) and copy them to the sync folder `Dev/next/dev`
+- Use `make install` or `sh make_all.sh install` to make the .nex file(s) and copy them to the sync folder `Dev/next/dev`
 - Use the dot command .sync on the Spectrum Next to synchronise that folder with the Next
 
 ## Creating Models
