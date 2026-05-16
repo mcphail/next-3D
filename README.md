@@ -47,9 +47,9 @@ The Next3D object files must be built before the demos.
 
 In addition, for Linux/Mac users, there is a bash script for building the 3D library code and all the demos
 
-- `sh make_all.sh` to make all object files in root and the sub-folders in the demo folder
-- `sh make_all.sh install` to make and deploy all nex files to the folder `Dev/next/dev` in your home folder
-- `sh make_all.sh clean` to clean all the object files
+- `./make_all.sh` to make all object files in root and the sub-folders in the demo folder
+- `./make_all.sh install` to make and deploy all nex files to the folder `Dev/next/dev` in your home folder
+- `./make_all.sh clean` to clean all the object files
 
 ## Running in emulator
 
